@@ -48,7 +48,7 @@ if ($env:EVX_TIMESTAMP_URL) {
 $stArgs += $File
 
 for ($i = 1; $i -le 3; $i++) {
-  & $signtool.FullName @args
+  & $signtool.FullName @stArgs
   if ($LASTEXITCODE -eq 0) { exit 0 }
   Write-Warning "signtool failed (attempt $i), retrying"
   Start-Sleep -Seconds (2 * $i)

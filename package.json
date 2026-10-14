@@ -1,7 +1,7 @@
 {
   "name": "evactis-3dworkflow",
   "private": true,
-  "description": "EVACTIS 3DWORKFLOW \u2014 offline-first facility environment authoring (Studio), playback (Viewer) and optional client-hosted Site Server.",
+  "description": "EVACTIS 3DWORKFLOW — offline-first facility environment authoring (Studio), playback (Viewer) and optional client-hosted Site Server.",
   "license": "UNLICENSED",
   "author": "Evactis <https://evactis.ca>",
   "packageManager": "pnpm@10.28.0",
