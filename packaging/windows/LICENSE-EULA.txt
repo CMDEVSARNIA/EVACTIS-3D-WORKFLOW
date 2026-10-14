@@ -1,0 +1,17 @@
+EVACTIS 3DWORKFLOW — END-USER LICENCE AGREEMENT / CONTRAT DE LICENCE D'UTILISATEUR FINAL
+
+PLACEHOLDER — to be replaced by Evactis with the licence approved by its legal counsel
+before any release build. / TEXTE PROVISOIRE — à remplacer par Evactis par la licence
+approuvée par son conseiller juridique avant toute version publiée.
+
+Copyright (c) 2026 Evactis. All rights reserved. / Tous droits réservés.
+
+This software runs entirely on your own hardware. It does not contact Evactis or any
+third party, collect telemetry, or require an internet connection.
+
+Ce logiciel s'exécute entièrement sur votre propre matériel. Il ne communique ni avec
+Evactis ni avec un tiers, ne recueille aucune télémétrie et ne nécessite aucune
+connexion Internet.
+
+Third-party components are listed in licenses.md, installed with the program.
+Les composants tiers sont énumérés dans licenses.md, installé avec le programme.

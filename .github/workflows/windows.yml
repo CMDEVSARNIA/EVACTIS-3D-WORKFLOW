@@ -1,0 +1,117 @@
+name: Windows installers
+
+# Builds signed (test certificate until the Evactis certificate is provided) NSIS and
+# MSI installers for Studio and Viewer, then installs, launches and uninstalls each
+# one silently with the product's network access blocked.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
+
+jobs:
+  build:
+    name: Build installers
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: pnpm install --frozen-lockfile
+      - name: Build front ends
+        run: pnpm turbo run build
+      - name: Rust tests (Windows)
+        run: cargo test --workspace --locked
+      - name: Signing certificate
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ($env:WINDOWS_CERTIFICATE_PFX) {
+            $pfx = Join-Path $env:RUNNER_TEMP 'evactis.pfx'
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX))
+            $pw = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+            $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw
+            Remove-Item $pfx
+            $thumb = $cert.Thumbprint
+          } else {
+            Write-Host 'No Evactis certificate configured: signing with a temporary TEST certificate.'
+            $thumb = & scripts/windows/new-test-cert.ps1
+          }
+          "EVX_SIGN_THUMBPRINT=$thumb" >> $env:GITHUB_ENV
+          "EVX_TIMESTAMP_URL=http://timestamp.digicert.com" >> $env:GITHUB_ENV
+      - name: Build signed installers
+        shell: pwsh
+        run: scripts/windows/build-installers.ps1
+      - name: Verify signatures
+        shell: pwsh
+        run: |
+          Get-ChildItem out/installers/* | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            Write-Host "$($_.Name): $($s.Status) — $($s.SignerCertificate.Subject)"
+            if (-not $s.SignerCertificate) { throw "$($_.Name) is not signed" }
+          }
+          # Public key of the signer, so the smoke-test runner can trust a TEST signature.
+          $c = (Get-AuthenticodeSignature (Get-ChildItem out/installers/*.msi | Select-Object -First 1).FullName).SignerCertificate
+          [IO.File]::WriteAllBytes('out/installers/signer.cer', $c.Export('Cert'))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: out/installers/
+          retention-days: 14
+
+  smoke:
+    name: Install → launch → uninstall (${{ matrix.os }})
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installers
+          path: out/installers
+      - name: Trust the signer (test certificate only)
+        shell: pwsh
+        run: |
+          $c = [Security.Cryptography.X509Certificates.X509Certificate2]::new((Resolve-Path out/installers/signer.cer))
+          if ($c.Subject -like '*TEST*') {
+            Import-Certificate -FilePath out/installers/signer.cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
+            Import-Certificate -FilePath out/installers/signer.cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null
+          }
+      - name: Smoke tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $i = 'out/installers'
+          foreach ($app in 'Studio', 'Viewer') {
+            scripts/windows/smoke-test.ps1 -App $app -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-$app-*-setup.exe").FullName
+            scripts/windows/smoke-test.ps1 -App $app -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-$app-*-en-US.msi").FullName
+          }
+          scripts/windows/smoke-test.ps1 -App Viewer -PerUser -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-Viewer-*-setup.exe").FullName
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-logs-${{ matrix.os }}
+          path: out/smoke/
+          retention-days: 14
