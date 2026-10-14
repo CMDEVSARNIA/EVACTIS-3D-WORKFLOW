@@ -16,7 +16,7 @@ for (const f of readdirSync(dir).filter((n) => n.endsWith('.ps1'))) {
     .split('\n')
     .forEach((line, i) => {
       const at = `${relative(repo, join(dir, f))}:${i + 1}`;
-      if (/[^\x00-\x7F]/.test(line)) {
+      if (/[^\t\n\r\x20-\x7E]/.test(line)) {
         console.error(`${at}: non-ASCII character`);
         bad++;
       }
