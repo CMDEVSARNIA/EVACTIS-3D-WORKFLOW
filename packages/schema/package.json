@@ -5,7 +5,10 @@
   "description": "EVACTIS 3DWORKFLOW environment document: types, Zod validators, schemaVersion and migrations.",
   "license": "UNLICENSED",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/zod-config.ts",
+    "./dist/zod-config.js"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

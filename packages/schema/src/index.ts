@@ -1,3 +1,4 @@
+import './zod-config.ts';
 import type { z } from 'zod';
 import { EnvironmentObjectSchema, type Environment } from './environment.ts';
 import { migrateEnvironment } from './migrations.ts';

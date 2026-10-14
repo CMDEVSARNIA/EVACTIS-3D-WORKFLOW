@@ -1,3 +1,4 @@
+import './zod-config.ts';
 import { z } from 'zod';
 
 /** Stable identifier used for every entity in an environment. */

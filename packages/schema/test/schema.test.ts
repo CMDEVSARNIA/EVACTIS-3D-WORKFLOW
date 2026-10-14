@@ -260,3 +260,10 @@ describe('i18n helpers', () => {
     expect(findMissingTranslations(env)).toEqual([]);
   });
 });
+
+describe('security', () => {
+  it('runs Zod without eval (jitless) so strict CSP never reports a violation', async () => {
+    const { z } = await import('zod');
+    expect(z.config().jitless).toBe(true);
+  });
+});
