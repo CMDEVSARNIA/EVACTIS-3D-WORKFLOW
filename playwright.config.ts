@@ -1,0 +1,44 @@
+import { defineConfig, devices } from '@playwright/test';
+
+/**
+ * End-to-end and visual tests. Every test runs in "network is blocked" mode (see
+ * e2e/offline.ts): requests to anything but the local test server fail the test.
+ */
+const PORT = 4173;
+
+export default defineConfig({
+  testDir: 'e2e',
+  outputDir: 'test-results',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: 0,
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}-{platform}{ext}',
+  expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01, threshold: 0.2, animations: 'disabled' } },
+  use: {
+    baseURL: `http://127.0.0.1:${PORT}`,
+    serviceWorkers: 'block',
+    launchOptions: {
+      args: [
+        '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
+        '--proxy-server=http://127.0.0.1:9',
+        '--proxy-bypass-list=127.0.0.1',
+        '--disable-background-networking',
+        '--disable-component-update',
+        '--disable-domain-reliability',
+        '--no-pings',
+      ],
+    },
+    trace: 'retain-on-failure',
+  },
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], deviceScaleFactor: 1 } }],
+  webServer: [
+    ['packages/brand/sheet-dist', PORT],
+    ['apps/studio/dist', PORT + 1],
+    ['apps/viewer-desktop/dist', PORT + 2],
+  ].map(([dir, port]) => ({
+    command: `node tools/static-server.mjs ${dir} ${port}`,
+    url: `http://127.0.0.1:${port}/index.html`,
+    reuseExistingServer: !process.env.CI,
+  })),
+});

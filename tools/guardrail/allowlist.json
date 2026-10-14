@@ -1,0 +1,25 @@
+{
+  "$comment": "URLs allowed to appear in build output. Each must be a constant that is never requested: XML namespace identifiers, error-message links, or loopback/IPC origins. Adding an entry needs a reason and review.",
+  "entries": [
+    { "pattern": "^http://www\\.w3\\.org/2000/svg$", "reason": "SVG XML namespace identifier" },
+    { "pattern": "^http://www\\.w3\\.org/1999/xlink$", "reason": "XLink XML namespace identifier" },
+    {
+      "pattern": "^http://www\\.w3\\.org/XML/1998/namespace$",
+      "reason": "XML namespace identifier (React DOM)"
+    },
+    {
+      "pattern": "^http://www\\.w3\\.org/1998/Math/MathML$",
+      "reason": "MathML namespace identifier (React DOM)"
+    },
+    { "pattern": "^http://www\\.w3\\.org/1999/xhtml$", "reason": "XHTML namespace identifier" },
+    {
+      "pattern": "^https://react\\.dev/errors/",
+      "reason": "Text of React production error messages; never fetched"
+    },
+    {
+      "pattern": "^https?://(ipc|asset|tauri)\\.localhost",
+      "reason": "Tauri in-process IPC/asset origins on Windows (no network)"
+    },
+    { "pattern": "^https?://127\\.0\\.0\\.1(:\\d+)?(/|$)", "reason": "Loopback only" }
+  ]
+}
