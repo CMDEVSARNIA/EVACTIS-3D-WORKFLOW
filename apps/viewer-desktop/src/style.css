@@ -1,0 +1,44 @@
+html,
+body,
+#app {
+  block-size: 100%;
+  margin: 0;
+}
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.viewer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+.viewer-lockup {
+  block-size: 52px;
+}
+.viewer-stage {
+  align-self: center;
+  max-inline-size: 60rem;
+  padding: 0 clamp(16px, 6vw, 96px);
+}
+.viewer-stage .evx-heading {
+  margin-block: 16px 24px;
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+.viewer-empty {
+  font-size: 1.125rem;
+}
+.viewer-offline,
+.viewer-version {
+  color: var(--evx-fg-subtle);
+  font-size: 0.875rem;
+}
+.viewer-toolbar {
+  --evx-btn-size: 64px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+}

@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+@import '@evactis-3dworkflow/brand/tokens.css';
+@import '@evactis-3dworkflow/brand/fonts.css';
+@import '@evactis-3dworkflow/brand/button.css';
+@import '@evactis-3dworkflow/brand/chrome.css';
+
+/* Brand tokens as Tailwind theme values (bg-navy, text-green, font-sans …). */
+@theme {
+  --color-navy: var(--evx-navy);
+  --color-green: var(--evx-green);
+  --color-green-strong: var(--evx-green-strong);
+  --color-ink: var(--evx-ink);
+  --color-surface-dark: var(--evx-surface-dark);
+  --color-paper: var(--evx-paper);
+  --font-sans: var(--evx-font-body);
+}
+
+html,
+body,
+#root {
+  block-size: 100%;
+}

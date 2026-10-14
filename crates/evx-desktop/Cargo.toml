@@ -1,0 +1,13 @@
+[package]
+name = "evx-desktop"
+description = "Tauri shell shared by EVACTIS 3DWORKFLOW Studio and Viewer: window, offline navigation guard, launch arguments, smoke test."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+evx-core.workspace = true
+serde.workspace = true
+tauri.workspace = true
