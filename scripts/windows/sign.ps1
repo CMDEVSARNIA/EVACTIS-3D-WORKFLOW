@@ -4,7 +4,7 @@
   for every .exe, .msi and the NSIS uninstaller. Works with no network access.
 
 .DESCRIPTION
-  Key sources (no cloud signing service is used, by Evactis decision — ADR 0008):
+  Key sources (no cloud signing service is used, by Evactis decision - ADR 0008):
     EVX_SIGN_THUMBPRINT  SHA-1 thumbprint of a certificate in CurrentUser\My. This is
                          how a USB hardware token (e.g. SafeNet eToken) exposes the
                          Evactis certificate; signtool asks the token for the PIN.
@@ -12,7 +12,7 @@
                          public CAs no longer issue code-signing keys as files).
   EVX_TIMESTAMP_URL is optional. When it is unset (fully offline signing) files are
   signed without a timestamp; run scripts/windows/timestamp-later.ps1 on any connected
-  machine before distribution — only file hashes leave the building, never the key.
+  machine before distribution - only file hashes leave the building, never the key.
 
   Files already signed by the same certificate are left alone, so a staged build can
   sign and timestamp the app executable before the installers are assembled.
@@ -43,7 +43,7 @@ $stArgs = @('sign', '/fd', 'sha256') + $key + @('/d', 'EVACTIS 3DWORKFLOW')
 if ($env:EVX_TIMESTAMP_URL) {
   $stArgs += @('/tr', $env:EVX_TIMESTAMP_URL, '/td', 'sha256')
 } else {
-  Write-Warning "Signing WITHOUT a timestamp (offline): $File — run timestamp-later.ps1 before distribution."
+  Write-Warning "Signing WITHOUT a timestamp (offline): $File - run timestamp-later.ps1 before distribution."
 }
 $stArgs += $File
 

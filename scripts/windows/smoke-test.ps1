@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Install → launch → uninstall smoke test for one installer, with the product's
+  Install -> launch -> uninstall smoke test for one installer, with the product's
   network access blocked (scripts/windows/offline.ps1).
 
 .EXAMPLE
