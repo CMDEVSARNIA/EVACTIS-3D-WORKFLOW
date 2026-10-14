@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.turbo/
+target/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+/test-results/
+/playwright-report/
+/blob-report/
+apps/*/src-tauri/gen/
+# Local signing material never enters the repo
+*.pfx
+*.p12
+*.cer
+.env
+.env.*
+packages/brand/sheet-dist/

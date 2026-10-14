@@ -1,0 +1,44 @@
+{
+  "name": "evactis-3dworkflow",
+  "private": true,
+  "description": "EVACTIS 3DWORKFLOW — offline-first facility environment authoring (Studio), playback (Viewer) and optional client-hosted Site Server.",
+  "license": "UNLICENSED",
+  "author": "Evactis <https://evactis.ca>",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "guardrail:urls": "node tools/guardrail/scan-urls.mjs",
+    "guardrail:deps": "node tools/guardrail/check-licenses.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
+    "test:rust": "cargo test -p evx-core",
+    "brand:generate": "pnpm --filter @evactis-3dworkflow/brand run generate",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run brand:check && pnpm run installers:check && turbo run typecheck test build && pnpm run test:rust && pnpm run guardrail:urls && pnpm run guardrail:deps && pnpm run test:e2e",
+    "brand:check": "pnpm --filter @evactis-3dworkflow/brand run generate:check",
+    "installers:templates": "node tools/windows/make-installer-templates.mjs",
+    "installers:check": "node tools/windows/make-installer-templates.mjs --check",
+    "guardrail:deps:write": "node tools/guardrail/check-licenses.mjs --write"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.20.5",
+    "@types/pngjs": "6.0.5",
+    "eslint": "9.39.5",
+    "globals": "16.5.0",
+    "pngjs": "7.0.0",
+    "prettier": "3.6.2",
+    "turbo": "2.11.8",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2"
+  },
+  "type": "module"
+}

@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = ["crates/evx-core", "crates/evx-desktop", "apps/studio/src-tauri", "apps/viewer-desktop/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Evactis"]
+license = "LicenseRef-Evactis-Proprietary"
+publish = false
+
+[workspace.dependencies]
+evx-core = { path = "crates/evx-core" }
+evx-desktop = { path = "crates/evx-desktop" }
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.145"
+tauri = { version = "=2.12.3", features = [] }
+tauri-build = { version = "=2.7.2", features = [] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
