@@ -17,3 +17,4 @@ apps/*/src-tauri/gen/
 .env
 .env.*
 packages/brand/sheet-dist/
+packages/viewer/demo-dist/

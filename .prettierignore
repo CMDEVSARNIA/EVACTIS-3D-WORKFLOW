@@ -22,3 +22,5 @@ Cargo.lock
 *.wxs
 packages/brand/src/generated/
 packages/brand/src/tokens.css
+demo-dist
+e2e/__screenshots__/

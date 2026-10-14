@@ -23,4 +23,8 @@ test('the page CSP refuses external requests on its own', async ({ page, network
   await page.goto('/index.html');
   expect(await tryFetch(page, 'https://example.com/telemetry')).toBe('blocked');
   expect(networkGuard.attempts).toEqual([]);
+  // One report per policy (the page's <meta> CSP and the server header).
+  await expect.poll(() => networkGuard.csp.length).toBeGreaterThan(0);
+  for (const v of networkGuard.csp) expect(v).toBe('connect-src https://example.com/telemetry');
+  networkGuard.csp.length = 0; // expected violations; any other fails the test
 });

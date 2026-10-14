@@ -1,7 +1,7 @@
 {
   "name": "evactis-3dworkflow",
   "private": true,
-  "description": "EVACTIS 3DWORKFLOW — offline-first facility environment authoring (Studio), playback (Viewer) and optional client-hosted Site Server.",
+  "description": "EVACTIS 3DWORKFLOW \u2014 offline-first facility environment authoring (Studio), playback (Viewer) and optional client-hosted Site Server.",
   "license": "UNLICENSED",
   "author": "Evactis <https://evactis.ca>",
   "packageManager": "pnpm@10.28.0",
@@ -21,11 +21,13 @@
     "test:e2e:update": "playwright test --update-snapshots",
     "test:rust": "cargo test -p evx-core",
     "brand:generate": "pnpm --filter @evactis-3dworkflow/brand run generate",
-    "check": "pnpm run format:check && pnpm run lint && pnpm run brand:check && pnpm run installers:check && turbo run typecheck test build && pnpm run test:rust && pnpm run guardrail:urls && pnpm run guardrail:deps && pnpm run test:e2e",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run brand:check && pnpm run installers:check && pnpm run guardrail:scripts && turbo run typecheck test build && pnpm run test:rust && pnpm run guardrail:urls && pnpm run guardrail:size && pnpm run guardrail:deps && pnpm run test:e2e",
     "brand:check": "pnpm --filter @evactis-3dworkflow/brand run generate:check",
     "installers:templates": "node tools/windows/make-installer-templates.mjs",
     "installers:check": "node tools/windows/make-installer-templates.mjs --check",
-    "guardrail:deps:write": "node tools/guardrail/check-licenses.mjs --write"
+    "guardrail:deps:write": "node tools/guardrail/check-licenses.mjs --write",
+    "guardrail:size": "node tools/guardrail/size-budget.mjs",
+    "guardrail:scripts": "node tools/guardrail/check-scripts.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/sheet-dist/**',
+      '**/demo-dist/**',
       '**/target/**',
       '**/gen/**',
       'test-results/**',

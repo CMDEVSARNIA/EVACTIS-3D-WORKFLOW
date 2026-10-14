@@ -31,11 +31,23 @@ export default defineConfig({
     },
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], deviceScaleFactor: 1 } }],
+  projects: [
+    {
+      name: 'chromium',
+      testIgnore: /viewer-mobile/,
+      use: { ...devices['Desktop Chrome'], deviceScaleFactor: 1 },
+    },
+    {
+      name: 'mobile',
+      testMatch: /viewer-(mobile|shared)/,
+      use: { ...devices['Pixel 7'], deviceScaleFactor: 1 },
+    },
+  ],
   webServer: [
     ['packages/brand/sheet-dist', PORT],
     ['apps/studio/dist', PORT + 1],
     ['apps/viewer-desktop/dist', PORT + 2],
+    ['packages/viewer/demo-dist', PORT + 3],
   ].map(([dir, port]) => ({
     command: `node tools/static-server.mjs ${dir} ${port}`,
     url: `http://127.0.0.1:${port}/index.html`,

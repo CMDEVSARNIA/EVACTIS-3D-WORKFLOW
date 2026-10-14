@@ -21,6 +21,8 @@ const DEFAULT_DIRS = [
   'packages/brand/dist',
   'packages/schema/dist',
   'packages/desktop-bridge/dist',
+  'packages/viewer/dist',
+  'packages/viewer/demo-dist',
 ];
 const SCANNED = new Set([
   '.js',
