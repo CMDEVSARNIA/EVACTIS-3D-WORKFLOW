@@ -123,6 +123,7 @@ makes network calls at runtime.
 
 1. **Logo = mark-as-"E" + "VACTIS"**, as on evactis.ca, not mark followed by a full
    "EVACTIS" (which would read "EEVACTIS"). The product lockup follows the same rule.
+   *Confirmed by Evactis, 2026-10-14.*
 2. **Wordmark typeface**: no vector wordmark was supplied, so "VACTIS" is rebuilt in
    Poppins ExtraBold outlines, tracked to match the website capture. Replace with the
    official vector if Evactis has one (ADR 0005).
