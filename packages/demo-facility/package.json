@@ -1,0 +1,25 @@
+{
+  "name": "@evactis-3dworkflow/demo-facility",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Seeded demo facility for EVACTIS 3DWORKFLOW: procedural panoramas, multi-resolution tiles and a validated environment document.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    "./environment": "./src/environment.ts",
+    "./scenes": "./src/scenes.ts"
+  },
+  "scripts": {
+    "build": "node src/generate.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@evactis-3dworkflow/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "jpeg-js": "0.4.4",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}
