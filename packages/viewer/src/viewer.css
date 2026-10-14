@@ -1,0 +1,160 @@
+@import '@evactis-3dworkflow/brand/tokens.css';
+@import '@evactis-3dworkflow/brand/button.css';
+@import '@evactis-3dworkflow/brand/markers.css';
+@import '@evactis-3dworkflow/brand/chrome.css';
+
+.evx-viewer {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  background: var(--evx-ink);
+  color: var(--evx-white);
+  font-family: var(--evx-font-body);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  outline: none;
+}
+.evx-viewer:active {
+  cursor: grabbing;
+}
+.evx-viewer:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--evx-green);
+}
+.evx-viewer__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.evx-viewer__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.evx-viewer__snapshot {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.evx-viewer__hotspots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.evx-viewer__hotspot {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  pointer-events: auto;
+  will-change: transform;
+}
+.evx-viewer__hotspot.evx-btn {
+  --evx-btn-size: 56px;
+}
+.evx-viewer__hotspot.evx-marker {
+  --evx-marker-size: 64px;
+}
+.evx-viewer__hotspot.evx-marker--info {
+  --evx-marker-size: 48px;
+}
+.evx-viewer__hotspot.evx-sign {
+  --evx-sign-size: 56px;
+}
+.evx-viewer__hotspot--offscreen {
+  opacity: 0;
+  pointer-events: none;
+}
+.evx-viewer__label {
+  min-block-size: 44px;
+  padding: 0.5em 0.9em;
+  border: 0;
+  border-radius: 8px;
+  background: rgb(10 47 91 / 0.9);
+  color: var(--evx-white);
+  font: 600 0.9375rem/1.2 var(--evx-font-body);
+  box-shadow: var(--evx-shadow-soft);
+  cursor: pointer;
+}
+.evx-viewer__label:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+.evx-viewer__areas {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.evx-viewer__area {
+  fill: rgb(113 176 67 / 0);
+  stroke: rgb(113 176 67 / 0);
+  stroke-width: 2;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.evx-viewer__area.evx-viewer__hotspot--offscreen {
+  display: none;
+}
+.evx-viewer__area:hover,
+.evx-viewer__area:focus-visible {
+  fill: rgb(113 176 67 / 0.18);
+  stroke: var(--evx-green);
+  outline: none;
+}
+.evx-viewer__live {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.evx-viewer__dialog {
+  inline-size: min(92vw, 44rem);
+  max-block-size: 86vh;
+  padding: 28px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 12px;
+  background: var(--evx-ink);
+  color: var(--evx-text-muted);
+  font-family: var(--evx-font-body);
+  cursor: auto;
+  user-select: text;
+}
+.evx-viewer__dialog::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.evx-viewer__dialog-title {
+  margin: 0 0 12px;
+  color: var(--evx-white);
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.evx-viewer__media {
+  display: block;
+  max-inline-size: 100%;
+  max-block-size: 60vh;
+  margin-inline: auto;
+}
+.evx-viewer__frame {
+  inline-size: 100%;
+  block-size: 60vh;
+  border: 0;
+  background: var(--evx-white);
+}
+.evx-viewer__choices {
+  display: grid;
+  gap: 10px;
+}
+.evx-viewer__feedback[data-correct='true'] {
+  color: var(--evx-green);
+}
+.evx-viewer__dialog-close {
+  margin-block-start: 20px;
+}

@@ -1,0 +1,26 @@
+@import '@evactis-3dworkflow/brand/fonts.css';
+
+html,
+body {
+  block-size: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.demo-stage {
+  position: fixed;
+  inset: 0;
+}
+.demo-toolbar {
+  --evx-btn-size: 56px;
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.demo-toolbar > * {
+  pointer-events: auto;
+}
