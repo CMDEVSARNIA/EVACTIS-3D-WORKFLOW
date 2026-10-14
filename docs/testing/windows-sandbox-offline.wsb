@@ -1,0 +1,14 @@
+<!-- Windows Sandbox with networking disabled, for air-gapped install acceptance tests.
+     Put installers and scripts\windows in C:\evx-test on the host first. -->
+<Configuration>
+  <Networking>Disable</Networking>
+  <vGPU>Enable</vGPU>
+  <ClipboardRedirection>Disable</ClipboardRedirection>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\evx-test</HostFolder>
+      <SandboxFolder>C:\evx-test</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+</Configuration>
