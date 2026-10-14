@@ -1,0 +1,23 @@
+/* Generated from src/tokens.ts by `pnpm brand:generate`. Do not edit. */
+:root {
+  --evx-navy: #0A2F5B;
+  --evx-green: #71B043;
+  --evx-green-strong: #5D9518;
+  --evx-ink: #0A0A0A;
+  --evx-surface-dark: #101809;
+  --evx-paper: #FAFAFA;
+  --evx-white: #FFFFFF;
+  --evx-text-muted: #CCCCCC;
+  --evx-text-subtle: #A3A3A3;
+  --evx-bullet-tile: #1F2911;
+  --evx-safe-green: #00843D;
+  --evx-fire-red: #C8102E;
+  --evx-warning-yellow: #F2C230;
+  --evx-warning-border: #1A1A1A;
+  --evx-frame-grey: #C8C7C4;
+  --evx-font-body: 'Inter Variable', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --evx-font-heading: 'Inter Variable', 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --evx-btn-size: 80px;
+  --evx-btn-radius: 18%;
+  --evx-shadow-soft: 0 4px 10px rgb(0 0 0 / 0.35), 0 1px 2px rgb(0 0 0 / 0.3);
+}

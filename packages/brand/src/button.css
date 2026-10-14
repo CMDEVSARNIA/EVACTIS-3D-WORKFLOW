@@ -1,0 +1,116 @@
+/*
+ * Evactis Viewer button. Geometry measured from brand/evactis-button-kit.png
+ * (80 px at 1x): 18 % corner radius, icon ≈ 55 % of the face, indicator bar 11 %
+ * from the bottom. Set --evx-btn-size to scale; it never drops below the 44 px
+ * touch-target minimum.
+ */
+.evx-btn {
+  --_size: max(44px, var(--evx-btn-size, 80px));
+  --evx-icon-accent: var(--evx-green, #71b043);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--_size);
+  block-size: var(--_size);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--evx-btn-radius, 18%);
+  background: var(--evx-navy, #0a2f5b);
+  color: var(--evx-white, #fff);
+  /* Soft drop shadow from the sheet, plus a hairline edge that keeps the button's
+     silhouette readable over dark panoramas. */
+  box-shadow:
+    var(--evx-shadow-soft, 0 4px 10px rgb(0 0 0 / 0.35)),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.evx-btn > svg {
+  inline-size: 55%;
+  block-size: 55%;
+  transform: translateY(-7%);
+  pointer-events: none;
+}
+
+.evx-btn__bar {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-end: 11%;
+  inline-size: 26%;
+  block-size: max(3px, 5%);
+  border-radius: 999px;
+  background: var(--evx-green-strong, #5d9518);
+  transform: translateX(-50%);
+  transition:
+    inline-size 140ms ease,
+    background-color 120ms ease;
+}
+
+/* Hover / focus: green outline, full-width green bar. */
+.evx-btn:hover,
+.evx-btn:focus-visible,
+.evx-btn[data-state='hover'] {
+  outline: none;
+  box-shadow:
+    var(--evx-shadow-soft, 0 4px 10px rgb(0 0 0 / 0.35)),
+    inset 0 0 0 calc(var(--_size) * 0.04) var(--evx-green, #71b043);
+}
+.evx-btn:hover .evx-btn__bar,
+.evx-btn:focus-visible .evx-btn__bar,
+.evx-btn[data-state='hover'] .evx-btn__bar {
+  inline-size: 62%;
+  background: var(--evx-green, #71b043);
+}
+
+/* Active / selected: green fill, navy bar, white accent. */
+.evx-btn[aria-pressed='true'],
+.evx-btn[data-state='active'] {
+  --evx-icon-accent: var(--evx-white, #fff);
+  background: var(--evx-green-strong, #5d9518);
+  box-shadow:
+    var(--evx-shadow-soft, 0 4px 10px rgb(0 0 0 / 0.35)),
+    inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+.evx-btn[aria-pressed='true'] .evx-btn__bar,
+.evx-btn[data-state='active'] .evx-btn__bar {
+  inline-size: 26%;
+  background: var(--evx-navy, #0a2f5b);
+}
+.evx-btn[aria-pressed='true']:hover,
+.evx-btn[aria-pressed='true']:focus-visible {
+  box-shadow:
+    var(--evx-shadow-soft, 0 4px 10px rgb(0 0 0 / 0.35)),
+    inset 0 0 0 calc(var(--_size) * 0.04) var(--evx-navy, #0a2f5b);
+}
+.evx-btn[aria-pressed='true']:hover .evx-btn__bar,
+.evx-btn[aria-pressed='true']:focus-visible .evx-btn__bar {
+  inline-size: 62%;
+}
+
+.evx-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (forced-colors: active) {
+  .evx-btn {
+    border: 2px solid ButtonText;
+  }
+  .evx-btn:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evx-btn,
+  .evx-btn__bar {
+    transition: none;
+  }
+}

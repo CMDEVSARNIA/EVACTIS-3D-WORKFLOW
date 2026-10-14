@@ -1,0 +1,127 @@
+@import '../src/tokens.css';
+@import '../src/fonts.css';
+@import '../src/button.css';
+@import '../src/markers.css';
+@import '../src/chrome.css';
+
+html,
+body {
+  margin: 0;
+  background: #2c3034;
+}
+body {
+  font-family: var(--evx-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 1200 × 1300, same geometry and backdrop as brand/evactis-button-kit.png. */
+.sheet {
+  position: relative;
+  inline-size: 1200px;
+  block-size: 1300px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #d8d3c7 0%, #848179 50%, #2c3034 100%);
+}
+.sheet__head {
+  position: absolute;
+  inset-inline-start: 38px;
+  inset-block-start: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+.sheet__logo {
+  block-size: 58px;
+}
+.sheet__title {
+  margin: 12px 0 0;
+  color: var(--evx-navy);
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.sheet__subtitle {
+  margin: 4px 0 0;
+  color: #3f6a8f;
+  font-size: 13px;
+}
+.sheet > .evx-btn,
+.sheet > .evx-marker,
+.sheet > .evx-sign {
+  position: absolute;
+}
+.label {
+  position: absolute;
+  color: #3b3b3b;
+  font-size: 13px;
+  line-height: 1;
+}
+.label--light {
+  color: #2a2a2a;
+}
+
+/* Extras below the sheet: product lockup (new element) and website-style chrome. */
+.extras {
+  inline-size: 1200px;
+  box-sizing: border-box;
+  padding: 48px 48px 64px;
+  background: #ffffff;
+}
+.extras h2 {
+  margin: 0 0 12px;
+  color: var(--evx-navy);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.extras .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 32px;
+  margin-block-end: 36px;
+}
+.extras .on-paper {
+  padding: 24px 32px;
+  border-block-start: 4px solid var(--evx-green-strong);
+  background: var(--evx-paper);
+}
+.extras .on-ink {
+  padding: 28px;
+  background: var(--evx-ink);
+}
+.extras img {
+  display: block;
+}
+.chrome-demo {
+  padding: 56px 48px;
+  border-radius: 12px;
+}
+.chrome-demo .evx-heading {
+  margin-block: 18px 22px;
+  font-size: 56px;
+}
+.chrome-demo p.lead {
+  max-inline-size: 40ch;
+  font-size: 19px;
+}
+.chrome-demo .ctas {
+  display: flex;
+  gap: 16px;
+  margin-block-start: 28px;
+}
+
+/* Legibility page. */
+#backdrop {
+  position: absolute;
+  inset: 0;
+}
+.kit {
+  position: relative;
+  inline-size: 1200px;
+  block-size: 760px;
+}
+.kit .evx-marker__halo {
+  animation: none;
+}

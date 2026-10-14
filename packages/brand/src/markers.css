@@ -1,0 +1,119 @@
+/* Round hotspot markers. See markers.ts. */
+.evx-marker {
+  --_size: var(--evx-marker-size, 104px);
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--_size);
+  block-size: var(--_size);
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.4));
+  -webkit-tap-highlight-color: transparent;
+}
+.evx-marker--info {
+  --_size: var(--evx-marker-size, 80px);
+}
+
+.evx-marker__face {
+  position: relative;
+  z-index: 1;
+  grid-area: 1 / 1;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.evx-marker__face > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* Evac-route: grey ring by default, thick green ring on hover/focus/active. */
+.evx-marker--evac-route .evx-marker__face--active {
+  visibility: hidden;
+}
+.evx-marker--evac-route:is(:hover, :focus-visible, [aria-pressed='true'], [data-state='active'])
+  .evx-marker__face--active {
+  visibility: visible;
+}
+.evx-marker--evac-route:is(:hover, :focus-visible, [aria-pressed='true'], [data-state='active'])
+  .evx-marker__face--default {
+  visibility: hidden;
+}
+.evx-marker--evac-route:is(:hover, :focus-visible, [aria-pressed='true'], [data-state='active']) {
+  transform: scale(1.06);
+}
+
+/* Info: plain, or green ring + pulsing green halo while unvisited. */
+.evx-marker--info .evx-marker__face--attention,
+.evx-marker--info .evx-marker__halo {
+  visibility: hidden;
+}
+.evx-marker--info[data-attention='true'] .evx-marker__face--attention,
+.evx-marker--info[data-attention='true'] .evx-marker__halo {
+  visibility: visible;
+}
+.evx-marker--info[data-attention='true'] .evx-marker__face--default {
+  visibility: hidden;
+}
+.evx-marker__halo {
+  grid-area: 1 / 1;
+  inline-size: 135%;
+  block-size: 135%;
+  border: 2.5px solid rgb(113 176 67 / 0.7);
+  border-radius: 50%;
+  background: rgb(113 176 67 / 0.16);
+  animation: evx-halo-pulse 1.8s ease-out infinite;
+}
+.evx-marker--info:focus-visible {
+  outline: 3px solid var(--evx-green, #71b043);
+  outline-offset: 4px;
+}
+
+@keyframes evx-halo-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evx-marker__halo {
+    animation: none;
+  }
+  .evx-marker--evac-route:hover {
+    transform: none;
+  }
+}
+
+/* Safety-sign hotspots (style A / B). */
+.evx-sign {
+  display: inline-block;
+  inline-size: var(--evx-sign-size, 96px);
+  min-inline-size: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.4));
+}
+.evx-sign > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+.evx-sign:focus-visible {
+  outline: 3px solid var(--evx-green, #71b043);
+  outline-offset: 4px;
+}

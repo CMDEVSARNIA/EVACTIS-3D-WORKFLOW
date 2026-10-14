@@ -1,0 +1,130 @@
+/*
+ * Studio / Viewer chrome in the evactis.ca look: dark mode by default (ink
+ * background, dark-green radial glows, white headings, grey body, green square-dot
+ * bullets) and a light mode matching the website's header bar.
+ *
+ * Opt in with class="evx-chrome" on a root element. Dark is the default, as on
+ * evactis.ca; data-theme="light" switches to the light mode (a user choice).
+ */
+.evx-chrome {
+  --evx-bg: var(--evx-ink);
+  --evx-glow: var(--evx-surface-dark);
+  --evx-fg: var(--evx-white);
+  --evx-fg-body: var(--evx-text-muted);
+  --evx-fg-subtle: var(--evx-text-subtle);
+  --evx-accent: var(--evx-green);
+  --evx-rule: rgb(255 255 255 / 0.12);
+  --evx-panel: rgb(255 255 255 / 0.04);
+  --evx-bullet-bg: var(--evx-bullet-tile);
+  color-scheme: dark;
+  background:
+    radial-gradient(60rem 60rem at 85% -10%, var(--evx-glow) 0 55%, transparent 55.2%),
+    radial-gradient(40rem 40rem at -10% 110%, var(--evx-glow) 0 50%, transparent 50.2%),
+    var(--evx-bg);
+  color: var(--evx-fg-body);
+  font-family: var(--evx-font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.evx-chrome[data-theme='light'] {
+  --evx-bg: var(--evx-paper);
+  --evx-glow: #eef4e8;
+  --evx-fg: var(--evx-navy);
+  --evx-fg-body: #2b2f36;
+  --evx-fg-subtle: #5b616b;
+  --evx-accent: var(--evx-green-strong);
+  --evx-rule: rgb(10 47 91 / 0.14);
+  --evx-panel: var(--evx-white);
+  --evx-bullet-bg: #e6efdc;
+  color-scheme: light;
+}
+
+/* Heavy, tight, all-caps headings ("SEE THE SPACE. UNDERSTAND THE PLAN."). */
+.evx-heading {
+  margin: 0;
+  color: var(--evx-fg);
+  font-family: var(--evx-font-heading);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+}
+
+/* Eyebrow label: small, letter-spaced green caps after a short green rule. */
+.evx-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9em;
+  margin: 0;
+  color: var(--evx-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.evx-eyebrow::before {
+  content: '';
+  inline-size: 2.6em;
+  block-size: 2px;
+  background: var(--evx-green-strong);
+}
+
+/* Green square-dot bullets. */
+.evx-bullets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evx-bullets > li {
+  position: relative;
+  padding-inline-start: 2.6em;
+  margin-block: 0.9em;
+  color: var(--evx-fg-subtle);
+}
+.evx-bullets > li::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0.2em;
+  inline-size: 1.25em;
+  block-size: 1.25em;
+  border-radius: 0.25em;
+  background: radial-gradient(circle, var(--evx-green) 0 0.27em, transparent 0.29em), var(--evx-bullet-bg);
+}
+
+/* Primary call to action (website "Request a Consultation"). */
+.evx-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 44px;
+  padding: 0.75em 1.5em;
+  border: 0;
+  border-radius: 8px;
+  background: var(--evx-green-strong);
+  color: var(--evx-white);
+  font: 600 1rem/1.2 var(--evx-font-body);
+  cursor: pointer;
+}
+.evx-cta--ghost {
+  border: 1px solid var(--evx-rule);
+  background: transparent;
+  color: var(--evx-fg);
+}
+.evx-cta:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+
+/* Website-style header bar with the green top rule. */
+.evx-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-block-start: 4px solid var(--evx-green-strong);
+  background: var(--evx-paper);
+}

@@ -1,0 +1,56 @@
+{
+  "name": "@evactis-3dworkflow/brand",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evactis brand system for EVACTIS 3DWORKFLOW: tokens, logo, product lockup, button kit, hotspot markers, safety signs and bundled fonts.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./tokens.css": "./src/tokens.css",
+    "./fonts.css": "./src/fonts.css",
+    "./button.css": "./src/button.css",
+    "./markers.css": "./src/markers.css",
+    "./chrome.css": "./src/chrome.css",
+    "./logo-mark.svg": "./logo-mark.svg",
+    "./logo-lockup.svg": "./logo-lockup.svg",
+    "./product-lockup.svg": "./product-lockup.svg",
+    "./svg/*": "./svg/*",
+    "./fonts/*": "./fonts/*",
+    "./generated/*": "./generated/*",
+    "./logo-lockup-plate.svg": "./logo-lockup-plate.svg",
+    "./product-lockup-plate.svg": "./product-lockup-plate.svg",
+    "./product-lockup-stacked.svg": "./product-lockup-stacked.svg"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && vite build sheet --config sheet/vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "generate": "node scripts/generate.ts",
+    "generate:check": "node scripts/generate.ts --check",
+    "sheet:build": "vite build sheet --config sheet/vite.config.ts",
+    "sheet:dev": "vite sheet --config sheet/vite.config.ts"
+  },
+  "devDependencies": {
+    "@evactis-3dworkflow/schema": "workspace:*",
+    "@fontsource-variable/inter": "5.2.8",
+    "@fontsource/poppins": "5.2.7",
+    "@resvg/resvg-js": "2.6.2",
+    "@types/opentype.js": "1.3.10",
+    "@types/pngjs": "6.0.5",
+    "jsdom": "27.4.0",
+    "opentype.js": "1.3.4",
+    "pngjs": "7.0.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "3.2.7"
+  }
+}
