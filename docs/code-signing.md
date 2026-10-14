@@ -26,8 +26,16 @@ key never leaves the token and the token needs no network.
 ```powershell
 $env:EVX_SIGN_THUMBPRINT = '<token certificate thumbprint>'
 scripts\windows\build-installers.ps1 -Offline        # signs every exe, msi and the uninstaller
-signtool verify /pa /v out\installers\*.msi
 ```
+
+Then the release checklist (option A):
+
+1. Copy `out\installers` to removable media; take it to any connected PC with the
+   Windows SDK (no token, no Evactis account needed).
+2. `scripts\windows\timestamp-later.ps1 -Path <folder>` — timestamps each setup .exe and
+   .msi and verifies it.
+3. Copy the folder back; `signtool verify /pa /v` on each file must report a timestamp.
+4. Distribute only the timestamped files.
 
 signtool asks the token for its PIN (enable the token client's single-logon option to
 enter it once per build).
@@ -36,11 +44,14 @@ enter it once per build).
 
 A timestamp proves a file was signed while the certificate was valid; without one the
 signature **stops validating when the certificate expires** (CA/Browser Forum rules are shortening maximum validity, so plan for roughly yearly renewal). Timestamps come from a public timestamp authority, so a fully
-offline build cannot obtain them. Choose per release:
+offline build cannot obtain them.
+
+**Evactis standard (2026-10-14): option A** for every release. B or C only by explicit
+exception (e.g. a client whose AppLocker/WDAC rules need timestamped inner files).
 
 | Option | Network | Result |
 | --- | --- | --- |
-| **A. Deferred timestamp (recommended)** | One brief hop on *any* connected PC; no key or token involved — only signature hashes are sent | Copy `out\installers` there, run `scripts\windows\timestamp-later.ps1 -Path <folder>`, copy back. Installers and MSIs stay valid indefinitely. The program files *inside* them are not timestamped (see below). |
+| **A. Deferred timestamp (standard)** | One brief hop on *any* connected PC; no key or token involved — only signature hashes are sent | Copy `out\installers` there, run `scripts\windows\timestamp-later.ps1 -Path <folder>`, copy back. Installers and MSIs stay valid indefinitely. The program files *inside* them are not timestamped (see below). |
 | **B. Staged timestamp** | Same hop, twice | Build with `pnpm tauri build --no-bundle`, sign the app .exe, timestamp it (A), then run `pnpm tauri bundle` with signing on; `sign.ps1` skips the already-signed exe. Everything, inner files included, is timestamped. |
 | **C. Never connect** | None | Everything works, but after the certificate expires Windows reports the signatures as expired. Re-sign and re-issue before expiry. |
 

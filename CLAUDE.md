@@ -146,7 +146,7 @@ makes network calls at runtime.
    not ISO artwork.
 10. **Code signing is offline, no cloud** (Evactis, 2026-10-14): OV certificate on a USB
     hardware token at a signing station; builds and signing run with networking off;
-    timestamps optional via a hash-only hop (`docs/code-signing.md`, ADR 0008). CI only
+    release installers timestamped afterwards via a hash-only hop (option A, standard) (`docs/code-signing.md`, ADR 0008). CI only
     ever uses a TEST certificate.
 
 ## Future work (out of scope for now)

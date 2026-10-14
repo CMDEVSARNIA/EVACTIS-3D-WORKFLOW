@@ -14,8 +14,9 @@ keys on certified hardware, so a downloadable PFX is not available either.
   `build-installers.ps1 -Offline` blocks the toolchain's network and fails on any cache
   miss. CI runs this offline rebuild on every push.
 - Timestamping is decoupled: offline signing omits it, and
-  `timestamp-later.ps1` adds it from any connected PC by sending only hashes (options
-  in `docs/code-signing.md`).
+  `timestamp-later.ps1` adds it from any connected PC by sending only hashes. Evactis
+  chose **option A** (timestamp the finished setup .exe and .msi files) as the standard
+  for every release (2026-10-14); see `docs/code-signing.md`.
 - CI signs with a TEST certificate only; GitHub secrets never hold the Evactis key.
 
 **Consequences.** Releases are produced at the signing station, not by CI. Without a
