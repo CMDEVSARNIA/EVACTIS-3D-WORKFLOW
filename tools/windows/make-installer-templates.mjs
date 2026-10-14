@@ -110,9 +110,9 @@ function wix(app) {
     `                {{#each file_associations as |association| ~}}
                 {{#each association.ext as |ext| ~}}
                 <RegistryKey Root="HKLM" Key="Software\\Classes\\.{{ext}}">
-                    <RegistryValue Type="string" Value="Evactis.3DWORKFLOW.{{ext}}" />
+                    <RegistryValue Type="string" Value="{{association.name}}" />
                 </RegistryKey>
-                <RegistryKey Root="HKLM" Key="Software\\Classes\\Evactis.3DWORKFLOW.{{ext}}">
+                <RegistryKey Root="HKLM" Key="Software\\Classes\\{{association.name}}">
                     <RegistryValue Type="string" Value="{{association.description}}" />
                     <RegistryKey Key="DefaultIcon">
                         <RegistryValue Type="string" Value="[INSTALLDIR]filetypes\\{{ext}}.ico" />

@@ -30,6 +30,12 @@ $failures = [System.Collections.Generic.List[string]]::new()
 function Check([bool]$ok, [string]$what) {
   if ($ok) { Write-Host "  PASS  $what" } else { Write-Host "  FAIL  $what"; $failures.Add($what) }
 }
+$expectedProgId = if ($App -eq 'Studio') { 'Evactis.3DWORKFLOW.Project' } else { 'Evactis.3DWORKFLOW.Environment' }
+# `cmd assoc` only shows machine-wide associations, so read the registry directly.
+function Get-Association {
+  $root = if ($PerUser) { 'HKCU:\Software\Classes' } else { 'HKLM:\Software\Classes' }
+  (Get-ItemProperty "$root\.$ext" -ErrorAction SilentlyContinue).'(default)'
+}
 function Find-Uninstall {
   $roots = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
   Get-ChildItem $roots -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object { $_.DisplayName -eq $name }
@@ -59,8 +65,13 @@ try {
     Check ($entry.Publisher -eq 'Evactis') "publisher is Evactis (got '$($entry.Publisher)')"
     Check ([bool]$entry.DisplayVersion) "version shown ($($entry.DisplayVersion))"
   }
-  $assoc = (cmd /c "assoc .$ext" 2>$null)
-  Check ([bool]$assoc) ".$ext is associated ($assoc)"
+  $progId = Get-Association
+  Check ($progId -eq $expectedProgId) ".$ext is associated with $expectedProgId (got '$progId')"
+  $classes = if ($PerUser) { 'HKCU:\Software\Classes' } else { 'HKLM:\Software\Classes' }
+  $icon = (Get-ItemProperty "$classes\$expectedProgId\DefaultIcon" -ErrorAction SilentlyContinue).'(default)'
+  Check ($icon -like "*filetypes\$ext.ico*") "file type icon is the branded .$ext icon ($icon)"
+  $open = (Get-ItemProperty "$classes\$expectedProgId\shell\open\command" -ErrorAction SilentlyContinue).'(default)'
+  Check ($open -like "*$exeName*") "double-click opens $exeName ($open)"
 
   # ---- launch: the app renders its UI, reports through IPC and exits ----
   $report = Join-Path (Resolve-Path $LogDir) "$tag-report.json"
@@ -86,6 +97,7 @@ try {
   Check (-not (Test-Path $exe)) 'program files removed'
   Check (-not (Test-Path $shortcut)) 'Start menu shortcut removed'
   Check ($null -eq (Find-Uninstall)) 'Apps & features entry removed'
+  Check (-not (Get-Association)) ".$ext association removed"
 } finally {
   & "$PSScriptRoot\offline.ps1" -Disable
 }
