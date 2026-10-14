@@ -55,6 +55,7 @@
       }
     ],
     "createUpdaterArtifacts": false,
+    "useLocalToolsDir": true,
     "windows": {
       "webviewInstallMode": {
         "type": "offlineInstaller",

@@ -35,23 +35,13 @@ jobs:
         run: pnpm turbo run build
       - name: Rust tests (Windows)
         run: cargo test --workspace --locked
-      - name: Signing certificate
+      - name: Test signing certificate
+        # Release signing never happens in CI: the Evactis key lives on a USB hardware
+        # token at an offline signing station (ADR 0008). CI proves the pipeline with a
+        # throw-away TEST certificate.
         shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
-          if ($env:WINDOWS_CERTIFICATE_PFX) {
-            $pfx = Join-Path $env:RUNNER_TEMP 'evactis.pfx'
-            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX))
-            $pw = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
-            $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw
-            Remove-Item $pfx
-            $thumb = $cert.Thumbprint
-          } else {
-            Write-Host 'No Evactis certificate configured: signing with a temporary TEST certificate.'
-            $thumb = & scripts/windows/new-test-cert.ps1
-          }
+          $thumb = & scripts/windows/new-test-cert.ps1
           "EVX_SIGN_THUMBPRINT=$thumb" >> $env:GITHUB_ENV
           "EVX_TIMESTAMP_URL=http://timestamp.digicert.com" >> $env:GITHUB_ENV
       - name: Build signed installers
@@ -68,6 +58,17 @@ jobs:
           # Public key of the signer, so the smoke-test runner can trust a TEST signature.
           $c = (Get-AuthenticodeSignature (Get-ChildItem out/installers/*.msi | Select-Object -First 1).FullName).SignerCertificate
           [IO.File]::WriteAllBytes('out/installers/signer.cer', $c.Export('Cert'))
+      - name: Offline rebuild (toolchain network blocked, no timestamp)
+        # Proves that with warm caches the full build + sign runs with no network,
+        # as on an air-gapped Evactis build/signing station.
+        shell: pwsh
+        run: |
+          scripts/windows/build-installers.ps1 -Offline -OutDir out/offline-check
+          Get-ChildItem out/offline-check/* | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            if (-not $s.SignerCertificate) { throw "$($_.Name) was not signed offline" }
+            Write-Host "$($_.Name): signed offline ($($s.Status))"
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: windows-installers
