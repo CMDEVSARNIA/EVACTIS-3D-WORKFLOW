@@ -1,7 +1,6 @@
 # 0005 — Logo mark, wordmark and product lockup
 
-**Status.** Logo construction (mark as the "E" + "VACTIS") confirmed by Evactis on
-2026-10-14. Product lockup artwork still awaiting visual sign-off.
+**Status.** Accepted by Evactis, 2026-10-14 (logo construction and product lockup).
 
 **Mark.** Traced by measuring edges on the alpha channel of
 `brand/evactis-logo-mark.png` (sub-pixel crossings along scan lines), giving 4 paths:

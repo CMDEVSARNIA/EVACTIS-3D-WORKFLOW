@@ -1,6 +1,6 @@
 # 0004 — Project layout and the `.evxproj` file association
 
-**Status.** Proposed — needs Evactis confirmation (hard to change once projects exist).
+**Status.** Accepted by Evactis, 2026-10-14.
 
 **Context.** The brief says projects are "a `.evxproj` directory with the environment
 JSON and media" *and* that double-clicking `.evxproj` opens Studio. Windows Explorer

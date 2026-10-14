@@ -11,6 +11,20 @@ scripts/windows/build-installers.ps1                             # → out\insta
 
 Unsigned local builds: skip `EVX_SIGN_THUMBPRINT`. CI: `.github/workflows/windows.yml`.
 
+### Fully offline build and signing
+
+1. On a connected machine, once per dependency change: `scripts\windows\prepare-offline-build.ps1`
+   (fills the pnpm store, Cargo registry and `target\.tauri` tools: NSIS, WiX, WebView2
+   offline installer).
+2. Move the repository folder, `%LOCALAPPDATA%\pnpm\store` and `%USERPROFILE%\.cargo` to
+   the offline station (or disconnect this machine).
+3. `scripts\windows\build-installers.ps1 -Offline` — Cargo/pnpm run offline and every
+   toolchain HTTP request goes to a dead proxy, so a missing cache fails instead of
+   downloading. Signing with the USB token works offline; timestamps are added later
+   if wanted (`docs/code-signing.md`).
+
+CI runs step 3 after every build to keep this path working.
+
 Installer behaviour (both apps): branded EN/FR wizard (language selector, licence,
 install mode, location, Start-menu folder, desktop shortcut option, finish); default
 `C:\Program Files\EVACTIS\3DWORKFLOW\<App>`; per-user option; Start-menu folder

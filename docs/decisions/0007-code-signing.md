@@ -1,5 +1,7 @@
 # 0007 — Code signing
 
+**Status.** Superseded by [0008](0008-offline-code-signing.md): no cloud or CI-held key.
+
 **Decision.** Every `.exe`, `.msi` and the NSIS uninstaller are Authenticode-signed
 (SHA-256, RFC 3161 timestamp) through `bundle.windows.signCommand` →
 `scripts/windows/sign.ps1`. CI uses the Evactis certificate when the

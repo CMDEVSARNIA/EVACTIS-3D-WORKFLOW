@@ -70,7 +70,8 @@ makes network calls at runtime.
   installer bitmaps. `pnpm installers:templates` — regenerate NSIS/WiX templates.
 - `pnpm test:e2e:update` — refresh visual baselines (Linux; review the diff first).
 - `cargo test --workspace` — all Rust tests (Linux needs webkit2gtk-4.1 dev packages).
-- Windows installers: `scripts/windows/build-installers.ps1`; smoke test:
+- Windows installers: `scripts/windows/build-installers.ps1` (`-Offline` for air-gapped
+  builds after `prepare-offline-build.ps1`); smoke test:
   `scripts/windows/smoke-test.ps1` (see `docs/windows-installers.md`).
 - Set `TURBO_TELEMETRY_DISABLED=1` (Turborepo collects telemetry by default; CI sets it).
 
@@ -104,7 +105,8 @@ makes network calls at runtime.
   - [x] Brand sheet + visual and legibility tests (gradient + 3 synthetic panoramas)
   - [x] Tauri v2 shells for Studio and Viewer, offline navigation guard, `--smoke-test`
   - [x] Windows CI: signed (test cert) NSIS + MSI, silent install → launch → uninstall
-  - [ ] Visual sign-off of brand sheet and product lockup by Evactis
+  - [x] Visual sign-off of brand sheet and product lockup by Evactis (2026-10-14)
+  - [x] Offline build + signing path (USB token, no cloud; ADR 0008)
   - [ ] First green run of the Windows workflow on GitHub Actions
   - [ ] Full air-gap acceptance in Windows Sandbox (`docs/windows-installers.md`)
 - [ ] Phase 2 — Viewer core
@@ -129,7 +131,7 @@ makes network calls at runtime.
    official vector if Evactis has one (ADR 0005).
 3. **`.evxproj` is a file**: a project is a folder containing `<name>.evxproj` (manifest
    JSON) + `media/`. Windows cannot associate a folder by extension, so the manifest is
-   what double-clicks open (ADR 0004).
+   what double-clicks open (ADR 0004). *Confirmed by Evactis, 2026-10-14.*
 4. **WebView2**: installers embed the offline WebView2 installer (installed only if
    missing); the Phase 10 portable Viewer will use a fixed-version runtime (ADR 0003).
 5. **"Networking disabled" in CI** = product processes firewalled + dead system proxy,
@@ -142,6 +144,10 @@ makes network calls at runtime.
    (3:1 non-text), not 4.5:1. Kept to match the kit; flagged for review.
 9. **Safety-sign pictograms** are original drawings in ISO 7010 colour/shape families,
    not ISO artwork.
+10. **Code signing is offline, no cloud** (Evactis, 2026-10-14): OV certificate on a USB
+    hardware token at a signing station; builds and signing run with networking off;
+    timestamps optional via a hash-only hop (`docs/code-signing.md`, ADR 0008). CI only
+    ever uses a TEST certificate.
 
 ## Future work (out of scope for now)
 

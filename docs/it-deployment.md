@@ -22,7 +22,8 @@ checks, no licence server. Installs succeed with networking fully disabled.
 | `EVACTIS-3DWORKFLOW-<App>-<ver>-x64-setup.exe` | Interactive install (EN/FR wizard), per-machine or per-user. |
 | `EVACTIS-3DWORKFLOW-<App>-<ver>-x64-en-US.msi` / `-fr-FR.msi` | Managed, per-machine deployment (GPO, Intune, SCCM/ConfigMgr). |
 
-Both are Authenticode-signed by Evactis and timestamped.
+Both are Authenticode-signed by Evactis (offline, on a hardware token; see
+`docs/code-signing.md` for timestamping).
 
 ## MSI — silent install and removal
 
