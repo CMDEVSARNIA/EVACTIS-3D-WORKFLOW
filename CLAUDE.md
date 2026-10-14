@@ -50,6 +50,8 @@ makes network calls at runtime.
 | `brand/` | Reference images (logo, button kit, website captures). Do not edit. |
 | `packages/schema` | Environment document: Zod schema, `schemaVersion`, migrations, reference checks, i18n helpers. |
 | `packages/brand` | Tokens, logo/lockups, icons, button/marker/sign components, fonts, brand sheet, asset generator. |
+| `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots. Demo page in `demo/`. |
+| `packages/demo-facility` | Seeded demo facility: procedural panoramas + tiles + validated environment (`pnpm build` renders it). |
 | `packages/desktop-bridge` | UI side of the desktop shell (app info, smoke-test report, network watch). |
 | `crates/evx-core` | UI-free Rust core (identity, launch args, navigation guard, project location, smoke report). |
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
@@ -69,6 +71,7 @@ makes network calls at runtime.
 - `pnpm brand:generate` — regenerate tokens.css, logos, kit SVGs, fonts, app/file icons,
   installer bitmaps. `pnpm installers:templates` — regenerate NSIS/WiX templates.
 - `pnpm test:e2e:update` — refresh visual baselines (Linux; review the diff first).
+- `pnpm --filter @evactis-3dworkflow/viewer dev` — Viewer demo facility at http://127.0.0.1:1430.
 - `cargo test --workspace` — all Rust tests (Linux needs webkit2gtk-4.1 dev packages).
 - Windows installers: `scripts/windows/build-installers.ps1` (`-Offline` for air-gapped
   builds after `prepare-offline-build.ps1`); smoke test:
@@ -109,7 +112,15 @@ makes network calls at runtime.
   - [x] Offline build + signing path (USB token, no cloud; ADR 0008)
   - [ ] First green run of the Windows workflow on GitHub Actions
   - [ ] Full air-gap acceptance in Windows Sandbox (`docs/windows-installers.md`)
-- [ ] Phase 2 — Viewer core
+- [x] **Phase 2 — Viewer core** (awaiting review)
+  - [x] Equirect + multi-resolution cube tiles, render on demand
+  - [x] Mouse, touch (drag/pinch), wheel, keyboard and gyro control
+  - [x] Fade / zoom / walk transitions (reduced motion aware)
+  - [x] Action system, conditions, variables, audiences, quiz questions
+  - [x] Public API `createViewer(el, environment, options)` with events and methods
+  - [x] Relative, local-only asset loading; no eval; strict CSP clean
+  - [x] Seeded demo facility (6 procedural scenes, 2 floors) navigable on desktop and mobile in network-blocked Playwright, with screenshot tests
+  - [x] Core bundle budget (< 300 KB gz; currently ~167 KB)
 - [ ] Phase 3 — Local media pipeline (Studio)
 - [ ] Phase 4 — Studio core editing
 - [ ] Phase 5 — Safety and emergency layer
@@ -148,6 +159,10 @@ makes network calls at runtime.
     hardware token at a signing station; builds and signing run with networking off;
     release installers timestamped afterwards via a hash-only hop (option A, standard) (`docs/code-signing.md`, ADR 0008). CI only
     ever uses a TEST certificate.
+11. **Viewer hotspots behind the camera** stay keyboard-focusable; focusing one turns the
+    view to it (accessibility over strict "hide what you can't see").
+12. **Demo panoramas are procedural** (ray-cast rooms), so the repository holds no
+    photographs and the demo is regenerated deterministically on build.
 
 ## Future work (out of scope for now)
 

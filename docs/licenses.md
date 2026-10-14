@@ -17,6 +17,13 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 - [npm production dependencies](licenses/npm-production.md) (Studio and Viewer UIs)
 - [Rust crates in the Windows build](licenses/rust-crates.md)
 
+## Key runtime libraries
+
+| Library | Use | Licence | Network at runtime |
+| --- | --- | --- | --- |
+| three 0.186.1 | Viewer panorama rendering (WebGL) | MIT | None. Documentation comments are stripped from the shipped bundle; one citation remains inside a shader comment string (allowlisted). |
+| zod 4.1.13 | Environment validation | MIT | None. Configured `jitless` so it never probes `eval`/`new Function`. |
+
 ## Fonts (bundled — never loaded from Google Fonts or a CDN)
 
 | Font | Use | Licence | Embedding / redistribution |
@@ -40,7 +47,7 @@ TypeScript (Apache-2.0), Vite (MIT), Vitest (MIT), Playwright (Apache-2.0), ESLi
 (MIT), typescript-eslint (MIT), Prettier (MIT), Turborepo (MPL-2.0; telemetry disabled
 via `TURBO_TELEMETRY_DISABLED=1`), Tailwind CSS (MIT), React plugin for Vite (MIT),
 jsdom (MIT), Testing Library (MIT), resvg-js (MPL-2.0), opentype.js (MIT), pngjs
-(MIT), Tauri CLI (Apache-2.0 OR MIT), Rust toolchain (Apache-2.0 OR MIT).
+(MIT), jpeg-js (BSD-3-Clause; demo panorama encoding), esbuild (MIT; library minification), Tauri CLI (Apache-2.0 OR MIT), Rust toolchain (Apache-2.0 OR MIT).
 
 ## Vendored source
 
