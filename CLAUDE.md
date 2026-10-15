@@ -185,9 +185,19 @@ makes network calls at runtime.
 17. **A developer's FFmpeg on `PATH` is not licence-checked at runtime**: running it
     locally is not distribution. The copy Studio ships is checked at build and smoke time.
 
+## Requirements added by Evactis
+
+- **Insta360 originals drop straight into Studio** (Evactis, 2026-10-15): `.insp` photos
+  and `.insv` videos must import without a manual export from Insta360's app, so Studio
+  needs dual-fisheye stitching. Plan: Insta360's developer kit if its terms allow fully
+  offline use and redistribution (Evactis to apply), plus a built-in photo stitcher as
+  fallback. Blocked on: camera model, sample originals + matching Insta360 exports
+  (non-sensitive location), SDK decision. Until then, originals get a clear EN/FR
+  message instead of "unsupported".
+
 ## Future work (out of scope for now)
 
-- Panorama stitching from raw multi-lens images (assume stitched equirects).
+- Stitching for cameras other than Insta360 (assume stitched equirects).
 - Building automation / live sensor feeds — `Equipment.attributes` is reserved for a
   later local integration.
 - Any Evactis-hosted cloud service, payments, or licensing server. If licensing is
