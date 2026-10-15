@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/evx-core", "crates/evx-desktop", "apps/studio/src-tauri", "apps/viewer-desktop/src-tauri"]
+members = ["crates/evx-core", "crates/evx-desktop", "crates/evx-media", "apps/studio/src-tauri", "apps/viewer-desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -12,6 +12,7 @@ publish = false
 [workspace.dependencies]
 evx-core = { path = "crates/evx-core" }
 evx-desktop = { path = "crates/evx-desktop" }
+evx-media = { path = "crates/evx-media" }
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.145"
 tauri = { version = "=2.12.3", features = [] }
