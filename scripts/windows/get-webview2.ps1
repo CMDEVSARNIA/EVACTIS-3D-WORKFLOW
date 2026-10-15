@@ -14,7 +14,7 @@
 
   Output: target\webview2\MicrosoftEdgeWebView2RuntimeInstallerX64.exe
   Prints the full path, which build-installers.ps1 passes to NSIS/WiX through
-  EVX_WEBVIEW2_INSTALLER.
+  TAURI_EVX_WEBVIEW2_INSTALLER.
 #>
 param([switch]$Offline)
 $ErrorActionPreference = 'Stop'

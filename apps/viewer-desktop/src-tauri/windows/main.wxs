@@ -324,7 +324,7 @@
 
         {{#if product_name}}
         <!-- Embedded offline installer -->
-        <Binary Id="MicrosoftEdgeWebView2RuntimeInstaller.exe" SourceFile="$(env.EVX_WEBVIEW2_INSTALLER)"/>
+        <Binary Id="MicrosoftEdgeWebView2RuntimeInstaller.exe" SourceFile="$(env.TAURI_EVX_WEBVIEW2_INSTALLER)"/>
         <CustomAction Id='InvokeStandalone' BinaryKey='MicrosoftEdgeWebView2RuntimeInstaller.exe' Execute="deferred" ExeCommand='/silent /install' Return='check' />
         <InstallExecuteSequence>
             <Custom Action='InvokeStandalone' Before='InstallFinalize'>

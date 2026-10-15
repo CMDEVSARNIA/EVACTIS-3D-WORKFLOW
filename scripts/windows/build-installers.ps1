@@ -32,8 +32,10 @@ if ($Offline) {
 $env:TURBO_TELEMETRY_DISABLED = '1'
 
 # WebView2 offline installer, embedded by our NSIS/WiX templates (ADR 0003). Downloaded
-# once when online; -Offline only verifies the staged copy.
-$env:EVX_WEBVIEW2_INSTALLER = & "$PSScriptRoot\get-webview2.ps1" -Offline:$Offline | Select-Object -Last 1
+# once when online; -Offline only verifies the staged copy. The name must start with
+# TAURI: the bundler runs WiX with an empty environment except SYSTEMROOT, TMP, TEMP and
+# TAURI* variables (clear_env_for_wix in tauri-bundler).
+$env:TAURI_EVX_WEBVIEW2_INSTALLER = & "$PSScriptRoot\get-webview2.ps1" -Offline:$Offline | Select-Object -Last 1
 
 $signing = [bool]($env:EVX_SIGN_THUMBPRINT -or $env:EVX_SIGN_PFX)
 if (-not $signing) { Write-Warning 'No signing key configured: building UNSIGNED installers.' }

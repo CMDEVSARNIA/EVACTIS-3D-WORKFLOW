@@ -27,7 +27,7 @@ resolves the `offlineInstaller` file name with an HTTP `HEAD` request to Microso
 `bundle/windows/util.rs`). That made builds with networking disabled impossible. Both
 apps now set `webviewInstallMode: skip`, so the bundler makes no request, and our
 generated NSIS/WiX templates (`tools/windows/make-installer-templates.mjs`) always embed
-the file named by `EVX_WEBVIEW2_INSTALLER` at build time. `scripts/windows/get-webview2.ps1`
+the file named by `TAURI_EVX_WEBVIEW2_INSTALLER` at build time. `scripts/windows/get-webview2.ps1`
 downloads it once on a connected machine (also run by `prepare-offline-build.ps1`) into
 `target\webview2\` and refuses any file not signed by Microsoft Corporation; with
 `-Offline` it only verifies the staged copy. Installed behaviour is unchanged: silent,

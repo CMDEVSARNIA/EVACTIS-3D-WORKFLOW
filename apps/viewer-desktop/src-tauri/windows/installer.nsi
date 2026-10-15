@@ -63,7 +63,7 @@ ${StrLoc}
 !define INSTALLWEBVIEW2MODE "offlineInstaller"
 !define WEBVIEW2INSTALLERARGS "/silent"
 !define WEBVIEW2BOOTSTRAPPERPATH "{{webview2_bootstrapper_path}}"
-!define WEBVIEW2INSTALLERPATH "$%EVX_WEBVIEW2_INSTALLER%"
+!define WEBVIEW2INSTALLERPATH "$%TAURI_EVX_WEBVIEW2_INSTALLER%"
 !define MINIMUMWEBVIEW2VERSION "{{minimum_webview2_version}}"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCTNAME}"
 !define MANUKEY "Software\${MANUFACTURER}"
