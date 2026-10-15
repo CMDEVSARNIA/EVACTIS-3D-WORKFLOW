@@ -34,7 +34,8 @@
   --evx-fg: var(--evx-navy);
   --evx-fg-body: #2b2f36;
   --evx-fg-subtle: #5b616b;
-  --evx-accent: var(--evx-green-strong);
+  /* Small green text (eyebrows) on paper needs the darker text green for 4.5:1. */
+  --evx-accent: var(--evx-green-text);
   --evx-rule: rgb(10 47 91 / 0.14);
   --evx-panel: var(--evx-white);
   --evx-bullet-bg: #e6efdc;
@@ -105,7 +106,10 @@
   border-radius: 8px;
   background: var(--evx-green-strong);
   color: var(--evx-white);
-  font: 600 1rem/1.2 var(--evx-font-body);
+  /* Bold 19 px is "large text" in WCAG terms: white on green-strong is 3.6:1, which
+     passes the 3:1 large-text rule but not 4.5:1 for normal text. The website's CTA is
+     large and bold too. */
+  font: 700 1.1875rem/1.2 var(--evx-font-body);
   cursor: pointer;
 }
 .evx-cta--ghost {

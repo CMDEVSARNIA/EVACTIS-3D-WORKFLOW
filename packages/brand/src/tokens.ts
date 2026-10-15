@@ -10,6 +10,9 @@ export const colors = {
   green: '#71B043',
   /** Selected button fill, primary CTA ("Request a Consultation"), wordmark "I". */
   greenStrong: '#5D9518',
+  /** Derived, not sampled: green-strong darkened for small text on light backgrounds
+   *  (4.9:1 on paper, WCAG AA). Green-strong itself is 3.5:1 there. */
+  greenText: '#4A7A13',
   /** Website dark background. */
   ink: '#0A0A0A',
   /** Dark green radial glow behind website sections. */
@@ -62,6 +65,7 @@ export const cssVariables: Record<string, string> = {
   '--evx-navy': colors.navy,
   '--evx-green': colors.green,
   '--evx-green-strong': colors.greenStrong,
+  '--evx-green-text': colors.greenText,
   '--evx-ink': colors.ink,
   '--evx-surface-dark': colors.surfaceDark,
   '--evx-paper': colors.paper,

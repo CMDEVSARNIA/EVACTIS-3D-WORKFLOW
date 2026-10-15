@@ -27,6 +27,7 @@ height of the arrow head on every side.
 | `--evx-navy` | `#0A2F5B` | Logo E, wordmark, button fill (all three sources agree) |
 | `--evx-green` | `#71B043` | Logo arrow; kit hover outline/bar `#71B143` |
 | `--evx-green-strong` | `#5D9518` | Kit active fill + default bar, website CTA, wordmark "I", top rule |
+| `--evx-green-text` | `#4A7A13` | *Derived, not sampled*: green-strong darkened for small green text on light backgrounds (4.9:1 on paper). Green-strong is 3.5:1 there, below WCAG AA. |
 | `--evx-ink` | `#0A0A0A` | Website dark background |
 | `--evx-surface-dark` | `#101809` | Website green radial glow |
 | `--evx-paper` | `#FAFAFA` | Website header bar |
