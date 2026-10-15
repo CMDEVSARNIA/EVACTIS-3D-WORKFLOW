@@ -157,10 +157,10 @@
                 <RegistryKey Root="HKLM" Key="Software\Classes\.{{ext}}">
                     <RegistryValue Type="string" Value="{{association.name}}" />
                 </RegistryKey>
-                <RegistryKey Root="HKLM" Key="Software\Classes\{{association.name}}">
+                <RegistryKey Root="HKLM" Key="Software\Classes\\{{association.name}}">
                     <RegistryValue Type="string" Value="{{association.description}}" />
                     <RegistryKey Key="DefaultIcon">
-                        <RegistryValue Type="string" Value="[INSTALLDIR]filetypes\{{ext}}.ico" />
+                        <RegistryValue Type="string" Value="[INSTALLDIR]filetypes\\{{ext}}.ico" />
                     </RegistryKey>
                     <RegistryKey Key="shell\open\command">
                         <RegistryValue Type="string" Value="&quot;[!Path]&quot; &quot;%1&quot;" />

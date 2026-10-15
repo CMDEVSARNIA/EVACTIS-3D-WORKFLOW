@@ -53,7 +53,8 @@ foreach ($app in @(@{ Dir = 'studio'; Name = 'Studio' }, @{ Dir = 'viewer-deskto
   try {
     $extra = @()
     if ($signing) { $extra = @('--config', $signConf) }
-    pnpm tauri build --ci @extra
+    # --verbose: the bundler otherwise hides candle/light/makensis errors.
+    pnpm tauri build --ci --verbose @extra
     if ($LASTEXITCODE -ne 0) {
       # The bundler hides the sign command's output; sign.ps1 keeps its own log.
       if (Test-Path $env:EVX_SIGN_LOG) { Get-Content $env:EVX_SIGN_LOG | Write-Host }
