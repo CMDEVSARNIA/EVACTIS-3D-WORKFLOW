@@ -72,6 +72,12 @@ pub fn probe(path: &Path) -> Result<Probe> {
         "mp4" | "mov" | "m4v" | "mkv" | "webm" => Ok(Probe::Video),
         "glb" => Ok(Probe::Glb),
         "ply" | "splat" | "ksplat" | "spz" => Ok(Probe::Splat { format: e }),
+        // Insta360 originals hold the two unstitched fisheye images. Direct import is an
+        // Evactis requirement (CLAUDE.md); until stitching exists, say what to do instead.
+        "insp" | "insv" => Err(MediaError::Unstitched(format!(
+            "this is an original Insta360 file (.{e}) and is not stitched yet: export it from \
+             Insta360 Studio as an equirectangular JPG or MP4, then import that file"
+        ))),
         "" => Err(MediaError::Invalid("the file has no extension".into())),
         other => Err(MediaError::Invalid(format!(
             ".{other} files are not supported"

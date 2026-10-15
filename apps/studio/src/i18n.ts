@@ -77,6 +77,8 @@ export const STRINGS = {
       ffmpeg: 'Video processing failed: ',
       cancelled: 'Cancelled.',
       duplicate: 'Already in the library.',
+      unstitched:
+        'This is an original Insta360 file and is not stitched yet. In Insta360 Studio, export it as an equirectangular JPG (photo) or MP4 (video), then import that file. Direct import of Insta360 originals is planned.',
       project: 'Project error: ',
       'no-project': 'Open a project first.',
       unknown: 'Something went wrong: ',
@@ -181,6 +183,8 @@ export const STRINGS = {
       ffmpeg: 'Le traitement vidéo a échoué : ',
       cancelled: 'Annulé.',
       duplicate: 'Déjà dans la médiathèque.',
+      unstitched:
+        'Ceci est un fichier Insta360 d’origine, pas encore assemblé. Dans Insta360 Studio, exportez-le en JPG (photo) ou MP4 (vidéo) équirectangulaire, puis importez ce fichier. L’importation directe des fichiers Insta360 d’origine est prévue.',
       project: 'Erreur de projet : ',
       'no-project': 'Ouvrez d’abord un projet.',
       unknown: 'Une erreur est survenue : ',

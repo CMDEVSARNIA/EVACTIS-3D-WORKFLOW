@@ -10,6 +10,8 @@ pub enum MediaError {
     Cancelled,
     /// The same file is already in the project library.
     Duplicate(String),
+    /// An original from a 360 camera that still needs stitching (e.g. Insta360 .insp/.insv).
+    Unstitched(String),
 }
 
 impl fmt::Display for MediaError {
@@ -21,6 +23,7 @@ impl fmt::Display for MediaError {
             Self::Ffmpeg(m) => write!(f, "video processing failed: {m}"),
             Self::Cancelled => write!(f, "cancelled"),
             Self::Duplicate(id) => write!(f, "already in the library (asset {id})"),
+            Self::Unstitched(m) => write!(f, "{m}"),
         }
     }
 }
@@ -49,6 +52,7 @@ impl MediaError {
             Self::Ffmpeg(_) => "ffmpeg",
             Self::Cancelled => "cancelled",
             Self::Duplicate(_) => "duplicate",
+            Self::Unstitched(_) => "unstitched",
         }
     }
 }

@@ -251,6 +251,22 @@ fn rejects_non_panoramas_and_leaves_nothing_behind() {
 }
 
 #[test]
+fn insta360_originals_explain_the_export_step() {
+    let f = fixture();
+    for name in [
+        "IMG_20261015_101500_00_001.insp",
+        "VID_20261015_101600_00_002.insv",
+    ] {
+        let src = f.inbox.join(name);
+        std::fs::write(&src, b"\xFF\xD8 not a stitched panorama").unwrap();
+        let err = run(&f, &src, &ImportOptions::default()).0.unwrap_err();
+        assert_eq!(err.code(), "unstitched", "{name}");
+        assert!(err.to_string().contains("Insta360 Studio"), "{err}");
+    }
+    assert!(media_entries(&f.root).is_empty());
+}
+
+#[test]
 fn stereo_panoramas_get_left_eye_previews_and_no_tiles() {
     let f = fixture();
     let src = f.inbox.join("stairs-3d.png");

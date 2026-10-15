@@ -253,6 +253,9 @@ describe('formatting helpers', () => {
     expect(projectId('—')).toBe('project');
     expect(formatBytes(1536, 'en')).toBe('1.5 KB');
     expect(describeError(en, { code: 'duplicate', message: 'x' })).toBe(en.errors.duplicate);
+    expect(describeError(STRINGS.fr, { code: 'unstitched', message: 'english detail' })).toBe(
+      STRINGS.fr.errors.unstitched,
+    );
     expect(describeError(en, new Error('boom'))).toBe(en.errors.unknown + 'Error: boom');
   });
 });

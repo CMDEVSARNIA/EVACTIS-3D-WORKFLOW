@@ -290,6 +290,8 @@ fn media_remove(state: State<'_, Studio>, id: String) -> Result<(), CommandError
 
 const MEDIA_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "tif", "tiff", "hdr", "mp4", "mov", "m4v", "mkv", "webm", "glb", "ply", "splat", "ksplat", "spz",
+    // Insta360 originals: accepted by the picker so Studio can explain the export step.
+    "insp", "insv",
 ];
 
 fn path_string(p: impl AsRef<Path>) -> String {

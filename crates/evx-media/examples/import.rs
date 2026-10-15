@@ -44,12 +44,16 @@ fn main() {
             let root = PathBuf::from(root);
             std::fs::create_dir_all(&root).expect("create project folder");
             let src = root.join("compass.png");
-            compass(width.parse().expect("width")).save(&src).expect("write compass");
+            compass(width.parse().expect("width"))
+                .save(&src)
+                .expect("write compass");
             (src, root)
         }
         [file, root] => (PathBuf::from(file), PathBuf::from(root)),
         _ => {
-            eprintln!("usage: import <file> <project-root> | import --compass <width> <project-root>");
+            eprintln!(
+                "usage: import <file> <project-root> | import --compass <width> <project-root>"
+            );
             std::process::exit(2);
         }
     };

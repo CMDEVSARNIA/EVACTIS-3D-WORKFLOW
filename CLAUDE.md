@@ -191,7 +191,7 @@ makes network calls at runtime.
   and `.insv` videos must import without a manual export from Insta360's app, so Studio
   needs dual-fisheye stitching. Plan: Insta360's developer kit if its terms allow fully
   offline use and redistribution (Evactis to apply), plus a built-in photo stitcher as
-  fallback. Blocked on: camera model, sample originals + matching Insta360 exports
+  fallback. Camera: **Insta360 X5**. Blocked on: sample originals + matching Insta360 exports
   (non-sensitive location), SDK decision. Until then, originals get a clear EN/FR
   message instead of "unsupported".
 
