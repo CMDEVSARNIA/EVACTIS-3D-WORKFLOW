@@ -5,6 +5,7 @@
 //! ```text
 //! cargo run -p evx-media --example import -- <file> <project-root>
 //! cargo run -p evx-media --example import -- --compass <width> <project-root>
+//! cargo run -p evx-media --example import -- --write-compass <width> <file.jpg>
 //! ```
 //!
 //! `--compass` first writes an equirectangular test panorama whose colour encodes the
@@ -48,6 +49,13 @@ fn main() {
                 .save(&src)
                 .expect("write compass");
             (src, root)
+        }
+        // Only write the test panorama (used by the Linux real-app smoke test).
+        [flag, width, file] if flag == "--write-compass" => {
+            compass(width.parse().expect("width"))
+                .save(file)
+                .expect("write compass");
+            return;
         }
         [file, root] => (PathBuf::from(file), PathBuf::from(root)),
         _ => {

@@ -38,3 +38,47 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  real-app:
+    # The built desktop apps (not the browser test build), started inside a network
+    # namespace with no interfaces: the UI must render, Studio must import a 12K
+    # panorama and a 360 video and show them in its library, and nothing may attempt
+    # or be refused a network request. Screenshots are uploaded for review.
+    name: Real apps offline (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: System packages (Tauri on Linux, virtual display, test media)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libxdo-dev libssl-dev \
+            xvfb imagemagick ffmpeg
+      - name: Allow unprivileged network namespaces (Ubuntu 24.04 restricts them)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: pnpm install --frozen-lockfile
+      - name: Build both apps and the import example (release)
+        run: |
+          pnpm turbo run build
+          pnpm --filter @evactis-3dworkflow/studio tauri build --no-bundle
+          pnpm --filter @evactis-3dworkflow/viewer-desktop tauri build --no-bundle
+          cargo build --release -p evx-media --example import
+      - name: Real-app smoke (no network interfaces)
+        run: scripts/linux/real-app-smoke.sh target/real-app-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-app-screenshots
+          path: |
+            target/real-app-smoke/*.png
+            target/real-app-smoke/*.json
+            target/real-app-smoke/*.log
+          retention-days: 14

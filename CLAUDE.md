@@ -33,7 +33,8 @@ makes network calls at runtime.
 - Logo: the mark doubles as the "E" of EVACTIS, followed by "VACTIS" (green "I"), as on
   evactis.ca. Product lockup adds "3DWORKFLOW" (green "3D") — `product-lockup*.svg`.
 - Colours (sampled): navy `#0A2F5B`, green `#71B043`, green-strong `#5D9518`, ink
-  `#0A0A0A`, surface-dark `#101809`, paper `#FAFAFA`; safety: green `#00843D`, red
+  `#0A0A0A`, surface-dark `#101809`, paper `#FAFAFA`; derived text-green `#4A7A13` (small green text on light
+  backgrounds only); safety: green `#00843D`, red
   `#C8102E`, yellow `#F2C230` + `#1A1A1A` border. Tokens: `packages/brand/src/tokens.ts`.
 - Type: Inter (bundled, OFL) for body and heavy all-caps headings; eyebrow labels are
   small letter-spaced green caps after a short green rule; green square-dot bullets.
@@ -60,7 +61,8 @@ makes network calls at runtime.
 | `apps/viewer-desktop` | 3DWORKFLOW Viewer desktop: Tauri v2 + vanilla TS. |
 | `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
-| `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator. |
+| `scripts/linux` | Real-app smoke test: built Studio/Viewer in a network namespace with no interfaces, screenshots. |
+| `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator, smoke-report checker. |
 | `e2e/` | Playwright tests; all run in network-blocked mode (`e2e/offline.ts`). |
 | `docs/` | Decisions (`docs/decisions/`), licences, IT deployment, brand usage, signage note. |
 
@@ -74,6 +76,10 @@ makes network calls at runtime.
 - `pnpm test:e2e:update` — refresh visual baselines (Linux; review the diff first).
 - `pnpm --filter @evactis-3dworkflow/viewer dev` — Viewer demo facility at http://127.0.0.1:1430.
 - `cargo test --workspace` — all Rust tests (Linux needs webkit2gtk-4.1 dev packages).
+- `scripts/linux/real-app-smoke.sh` — run the built apps with no network interfaces (Studio
+  imports a 12K panorama + 360 video); screenshots in `target/real-app-smoke/`. CI job
+  "Real apps offline (Linux)" runs it on every push. Build first with
+  `pnpm --filter <app> tauri build --no-bundle` and `cargo build --release -p evx-media --example import`.
 - Windows installers: `scripts/windows/build-installers.ps1` (`-Offline` for air-gapped
   builds after `prepare-offline-build.ps1`); smoke test:
   `scripts/windows/smoke-test.ps1` (see `docs/windows-installers.md`).
@@ -185,6 +191,17 @@ makes network calls at runtime.
     original `.hdr` is kept.
 17. **A developer's FFmpeg on `PATH` is not licence-checked at runtime**: running it
     locally is not distribution. The copy Studio ships is checked at build and smoke time.
+
+## Assumptions (hardening, before Phase 4)
+
+18. **CTA buttons use large bold text** (700, 19 px): white on green-strong is 3.6:1,
+    which meets WCAG AA only as "large text" (3:1). Matches the website CTA. The brand
+    sheet baseline was updated (buttons only; logos unchanged). *Flag for Evactis review.*
+19. **Light mode uses a derived darker green (`#4A7A13`) for small green text**
+    (eyebrows): green-strong is 3.5:1 on paper, below 4.5:1. Dark mode (default, as on
+    the website) is unchanged. *Flag for Evactis review.*
+20. **Contrast is enforced by test** (`e2e/contrast.ts`): every visible text in Studio
+    (both themes, both languages, About dialog) and the Viewer shell must meet WCAG AA.
 
 ## Requirements added by Evactis
 
