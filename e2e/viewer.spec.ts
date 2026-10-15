@@ -64,7 +64,8 @@ test.describe('Viewer core (desktop)', () => {
     await page.evaluate(() => window.viewer.setView({ yaw: -20 }));
     await page.getByRole('button', { name: 'Welcome' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
-    expect(await page.evaluate(() => window.viewer.variables.welcomed)).toBe(true);
+    // The dialog's close event is a queued task; the action chain resumes after it.
+    await expect.poll(() => page.evaluate(() => window.viewer.variables.welcomed)).toBe(true);
     await page.evaluate(() => window.viewer.setView({ yaw: 160 }));
     const answer = page.evaluate(() => new Promise((r) => window.viewer.on('answer', (a) => r(a))));
     await page.getByRole('button', { name: 'Quick question' }).click();

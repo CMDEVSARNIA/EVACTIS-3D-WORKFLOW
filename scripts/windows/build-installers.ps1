@@ -32,8 +32,14 @@ if ($Offline) {
 $env:TURBO_TELEMETRY_DISABLED = '1'
 
 # Signing hook for the bundler. Kept out of tauri.conf.json so unsigned local builds work.
+# It runs under the same PowerShell that runs this script: launching Windows PowerShell
+# 5.1 from pwsh 7 inherits pwsh's PSModulePath, and 5.1 then cannot load the module that
+# provides Get-AuthenticodeSignature.
+$shell = (Get-Process -Id $PID).Path
 $signConf = Join-Path $env:TEMP 'evx-sign.conf.json'
-@{ bundle = @{ windows = @{ signCommand = @{ cmd = 'powershell.exe'; args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "$sign", '%1') } } } } |
+$env:EVX_SIGN_LOG = Join-Path $env:TEMP 'evx-sign.log'
+Remove-Item $env:EVX_SIGN_LOG -ErrorAction SilentlyContinue
+@{ bundle = @{ windows = @{ signCommand = @{ cmd = $shell; args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "$sign", '%1') } } } } |
   ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 $signConf
 $signing = [bool]($env:EVX_SIGN_THUMBPRINT -or $env:EVX_SIGN_PFX)
 if (-not $signing) { Write-Warning 'No signing key configured: building UNSIGNED installers.' }
@@ -44,7 +50,11 @@ foreach ($app in @(@{ Dir = 'studio'; Name = 'Studio' }, @{ Dir = 'viewer-deskto
     $extra = @()
     if ($signing) { $extra = @('--config', $signConf) }
     pnpm tauri build --ci @extra
-    if ($LASTEXITCODE -ne 0) { throw "tauri build failed for $($app.Name)" }
+    if ($LASTEXITCODE -ne 0) {
+      # The bundler hides the sign command's output; sign.ps1 keeps its own log.
+      if (Test-Path $env:EVX_SIGN_LOG) { Get-Content $env:EVX_SIGN_LOG | Write-Host }
+      throw "tauri build failed for $($app.Name)"
+    }
   } finally { Pop-Location }
 
   $version = (Get-Content (Join-Path $repo "apps\$($app.Dir)\package.json") | ConvertFrom-Json).version

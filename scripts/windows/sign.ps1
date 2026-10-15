@@ -20,6 +20,17 @@
 param([Parameter(Mandatory)][string]$File)
 $ErrorActionPreference = 'Stop'
 
+# The bundler does not show this script's output, so keep a log the build can print.
+function Write-Log([string]$Message) {
+  Write-Host $Message
+  if ($env:EVX_SIGN_LOG) { Add-Content -Path $env:EVX_SIGN_LOG -Value "[sign] $Message" }
+}
+trap {
+  Write-Log "ERROR signing ${File}: $_"
+  exit 1
+}
+Write-Log "Signing $File (PowerShell $($PSVersionTable.PSVersion))"
+
 $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
   Sort-Object FullName -Descending | Select-Object -First 1
 if (-not $signtool) { throw 'signtool.exe not found (install the Windows 10/11 SDK)' }
@@ -29,7 +40,7 @@ if ($env:EVX_SIGN_THUMBPRINT) {
   $key = @('/sha1', $env:EVX_SIGN_THUMBPRINT)
   $existing = (Get-AuthenticodeSignature $File).SignerCertificate
   if ($existing -and $existing.Thumbprint -eq $env:EVX_SIGN_THUMBPRINT) {
-    Write-Host "Already signed, skipping: $File"
+    Write-Log "Already signed, skipping: $File"
     exit 0
   }
 } elseif ($env:EVX_SIGN_PFX) {
@@ -48,9 +59,13 @@ if ($env:EVX_TIMESTAMP_URL) {
 $stArgs += $File
 
 for ($i = 1; $i -le 3; $i++) {
-  & $signtool.FullName @stArgs
+  # 'Continue' here: under 'Stop', PowerShell 5.1 turns signtool's stderr into a throw.
+  $ErrorActionPreference = 'Continue'
+  $out = & $signtool.FullName @stArgs 2>&1 | Out-String
+  $ErrorActionPreference = 'Stop'
+  Write-Log $out.Trim()
   if ($LASTEXITCODE -eq 0) { exit 0 }
-  Write-Warning "signtool failed (attempt $i), retrying"
+  Write-Log "signtool failed with exit code $LASTEXITCODE (attempt $i)"
   Start-Sleep -Seconds (2 * $i)
 }
 throw "Signing failed: $File"
