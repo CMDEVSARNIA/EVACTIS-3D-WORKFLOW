@@ -3,12 +3,13 @@
 //! - creates the main window and refuses navigation to anything but bundled content
 //! - exposes `app_info` (name, version, file to open) to the UI
 //! - implements `--smoke-test <report.json>` for the Windows install smoke test
+//! - routes app-specific commands (e.g. Studio's media library) to the app's handler
 
 use std::{path::PathBuf, time::Duration};
 
 use evx_core::{identity::PUBLISHER, launch, net, smoke::SmokeReport};
 use serde::Serialize;
-use tauri::{AppHandle, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::{ipc::Invoke, AppHandle, State, WebviewUrl, WebviewWindowBuilder, Wry};
 
 /// Per-app window settings.
 pub struct AppSpec {
@@ -32,6 +33,7 @@ struct AppInfo {
     identifier: String,
     open_path: Option<String>,
     smoke_test: bool,
+    smoke_import: Option<String>,
 }
 
 #[tauri::command]
@@ -43,6 +45,7 @@ fn app_info(app: AppHandle, launch: State<'_, Launch>) -> AppInfo {
         identifier: app.config().identifier.clone(),
         open_path: launch.args.open.as_ref().map(|p| p.display().to_string()),
         smoke_test: launch.args.smoke_test.is_some(),
+        smoke_import: launch.args.smoke_import.as_ref().map(|p| p.display().to_string()),
     }
 }
 
@@ -54,6 +57,8 @@ fn smoke_report(
     user_agent: String,
     location: String,
     blocked_requests: Vec<String>,
+    checks: Option<Vec<String>>,
+    error: Option<String>,
 ) -> Result<(), String> {
     let Some(path) = launch.args.smoke_test.as_ref() else { return Ok(()) };
     let report = SmokeReport {
@@ -63,24 +68,60 @@ fn smoke_report(
         user_agent,
         location,
         blocked_requests,
-        error: None,
+        error,
+        checks: checks.unwrap_or_default(),
     };
     report.write(path).map_err(|e| e.to_string())?;
     app.exit(if report.passed() { 0 } else { 1 });
     Ok(())
 }
 
-const SMOKE_TIMEOUT: Duration = Duration::from_secs(90);
+fn shared_handler() -> impl Fn(Invoke<Wry>) -> bool + Send + Sync + 'static {
+    tauri::generate_handler![app_info, smoke_report]
+}
 
-pub fn run(context: tauri::Context<tauri::Wry>, spec: AppSpec) {
+const SMOKE_TIMEOUT: Duration = Duration::from_secs(90);
+/// A smoke run that also imports media (Studio) gets longer: a 12K panorama on a
+/// small CI runner takes tens of seconds.
+const SMOKE_IMPORT_TIMEOUT: Duration = Duration::from_secs(600);
+
+/// App-specific commands: their names (for routing) and the generated handler.
+pub struct Commands<H> {
+    pub names: &'static [&'static str],
+    pub handler: H,
+}
+
+/// No app-specific commands (the Viewer, for now).
+pub fn no_commands() -> Commands<fn(Invoke<Wry>) -> bool> {
+    Commands { names: &[], handler: |_| false }
+}
+
+pub type SetupHook = Box<dyn FnOnce(&mut tauri::App<Wry>) -> Result<(), Box<dyn std::error::Error>> + Send>;
+
+pub fn run<H>(context: tauri::Context<Wry>, spec: AppSpec, commands: Commands<H>, setup: Option<SetupHook>)
+where
+    H: Fn(Invoke<Wry>) -> bool + Send + Sync + 'static,
+{
     let args = launch::parse(std::env::args().skip(1));
     let smoke: Option<PathBuf> = args.smoke_test.clone();
+    let timeout = if args.smoke_import.is_some() { SMOKE_IMPORT_TIMEOUT } else { SMOKE_TIMEOUT };
     let AppSpec { name, width, height } = spec;
+    let shared = shared_handler();
+    let Commands { names, handler } = commands;
 
     tauri::Builder::default()
         .manage(Launch { name, args })
-        .invoke_handler(tauri::generate_handler![app_info, smoke_report])
+        .invoke_handler(move |invoke: Invoke<Wry>| {
+            if names.contains(&invoke.message.command()) {
+                handler(invoke)
+            } else {
+                shared(invoke)
+            }
+        })
         .setup(move |app| {
+            if let Some(hook) = setup {
+                hook(app)?;
+            }
             let allow_dev = cfg!(debug_assertions);
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title(name)
@@ -93,8 +134,9 @@ pub fn run(context: tauri::Context<tauri::Wry>, spec: AppSpec) {
                 let handle = app.handle().clone();
                 let version = app.package_info().version.to_string();
                 std::thread::spawn(move || {
-                    std::thread::sleep(SMOKE_TIMEOUT);
-                    let _ = SmokeReport::failure(name, &version, "UI did not report within 90 s")
+                    std::thread::sleep(timeout);
+                    let msg = format!("UI did not report within {} s", timeout.as_secs());
+                    let _ = SmokeReport::failure(name, &version, msg)
                         .write(&path);
                     handle.exit(2);
                 });

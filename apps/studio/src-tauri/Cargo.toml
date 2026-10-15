@@ -19,5 +19,16 @@ path = "src/main.rs"
 tauri-build.workspace = true
 
 [dependencies]
+evx-core.workspace = true
 evx-desktop.workspace = true
-tauri.workspace = true
+evx-media.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = { workspace = true, features = ["protocol-asset"] }
+
+# Native open/folder dialogs (Windows: COM file dialogs; Linux: the GTK Tauri already uses).
+[target.'cfg(windows)'.dependencies]
+rfd = { version = "=0.16.0", default-features = false }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rfd = { version = "=0.16.0", default-features = false, features = ["gtk3"] }

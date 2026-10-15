@@ -32,13 +32,25 @@ export interface AppInfo {
   identifier: string;
   openPath: string | null;
   smokeTest: boolean;
+  /** Studio smoke runs: a media file to import into a scratch project. */
+  smokeImport: string | null;
 }
 
 export async function appInfo(): Promise<AppInfo | null> {
   return isTauri() ? invoke<AppInfo>('app_info') : null;
 }
 
-export async function reportSmoke(info: AppInfo | null, blocked: string[]): Promise<void> {
+export interface SmokeExtra {
+  /** What was verified beyond start-up, e.g. a media import. */
+  checks?: string[];
+  error?: string;
+}
+
+export async function reportSmoke(
+  info: AppInfo | null,
+  blocked: string[],
+  extra: SmokeExtra = {},
+): Promise<void> {
   if (!info?.smokeTest) return;
   // Give fonts and images a moment so late requests are caught too.
   await new Promise((r) => setTimeout(r, 1500));
@@ -46,5 +58,7 @@ export async function reportSmoke(info: AppInfo | null, blocked: string[]): Prom
     userAgent: navigator.userAgent,
     location: location.href,
     blockedRequests: blocked,
+    checks: extra.checks ?? [],
+    error: extra.error ?? null,
   });
 }

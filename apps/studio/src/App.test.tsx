@@ -26,6 +26,7 @@ describe('Studio start screen', () => {
           identifier: 'ca.evactis.3dworkflow.studio',
           openPath: null,
           smokeTest: false,
+          smokeImport: null,
         }}
       />,
     );

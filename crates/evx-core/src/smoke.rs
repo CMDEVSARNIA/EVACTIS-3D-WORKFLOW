@@ -16,6 +16,9 @@ pub struct SmokeReport {
     /// Network requests the UI saw attempted (must be empty).
     pub blocked_requests: Vec<String>,
     pub error: Option<String>,
+    /// What the run verified beyond start-up (e.g. a media import), for the log.
+    #[serde(default)]
+    pub checks: Vec<String>,
 }
 
 impl SmokeReport {
@@ -28,6 +31,7 @@ impl SmokeReport {
             location: String::new(),
             blocked_requests: vec![],
             error: Some(error.into()),
+            checks: vec![],
         }
     }
 
@@ -58,6 +62,7 @@ mod tests {
             location: "http://tauri.localhost/".into(),
             blocked_requests: vec![],
             error: None,
+            checks: vec!["import: ok".into()],
         };
         ok.write(&path).unwrap();
         let back: SmokeReport = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();

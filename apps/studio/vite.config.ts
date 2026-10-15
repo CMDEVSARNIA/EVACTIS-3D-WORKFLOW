@@ -7,7 +7,7 @@ import { cspPlugin } from '../../tools/guardrail/csp.mjs';
 export default defineConfig({
   base: './',
   clearScreen: false,
-  plugins: [react(), tailwindcss(), cspPlugin()],
+  plugins: [react(), tailwindcss(), cspPlugin({ localFiles: true })],
   server: { host: '127.0.0.1', port: 1420, strictPort: true },
   build: { target: 'es2022', assetsInlineLimit: 0, sourcemap: false },
   test: { environment: 'jsdom' },

@@ -10,6 +10,8 @@ use std::path::PathBuf;
 pub struct LaunchArgs {
     pub open: Option<PathBuf>,
     pub smoke_test: Option<PathBuf>,
+    /// Studio only: with --smoke-test, import this file into a scratch project.
+    pub smoke_import: Option<PathBuf>,
 }
 
 /// Parses arguments, excluding the program name. Unknown flags are ignored so that
@@ -26,6 +28,10 @@ where
             out.smoke_test = it.next().map(PathBuf::from);
         } else if let Some(v) = arg.strip_prefix("--smoke-test=") {
             out.smoke_test = Some(PathBuf::from(v));
+        } else if arg == "--smoke-import" {
+            out.smoke_import = it.next().map(PathBuf::from);
+        } else if let Some(v) = arg.strip_prefix("--smoke-import=") {
+            out.smoke_import = Some(PathBuf::from(v));
         } else if !arg.starts_with('-') && out.open.is_none() {
             out.open = Some(PathBuf::from(arg));
         }
@@ -43,6 +49,9 @@ mod tests {
         assert_eq!(a.open, Some(PathBuf::from("C:\\Sites\\Riverside.evx")));
         assert_eq!(a.smoke_test, Some(PathBuf::from("out.json")));
         assert_eq!(parse(["--smoke-test=r.json"]).smoke_test, Some(PathBuf::from("r.json")));
+        let i = parse(["--smoke-test", "r.json", "--smoke-import", "D:\\12k.jpg"]);
+        assert_eq!(i.smoke_import, Some(PathBuf::from("D:\\12k.jpg")));
+        assert_eq!(i.open, None);
     }
 
     #[test]

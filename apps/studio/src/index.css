@@ -20,3 +20,115 @@ body,
 #root {
   block-size: 100%;
 }
+
+/* Studio surfaces, built on the chrome tokens so dark and light modes both follow. */
+.evx-panel {
+  border: 1px solid var(--evx-rule);
+  border-radius: 0.75rem;
+  background: var(--evx-panel);
+  padding: 1.25rem 1.5rem;
+}
+
+.evx-field {
+  border: 1px solid var(--evx-rule);
+  border-radius: 0.5rem;
+  background: var(--evx-panel);
+  color: var(--evx-fg);
+  padding: 0.65rem 0.85rem;
+  font: inherit;
+}
+.evx-field:focus-visible {
+  outline: 3px solid var(--evx-accent);
+  outline-offset: 2px;
+}
+
+.evx-alert {
+  border-inline-start: 4px solid var(--evx-fire-red);
+  border-radius: 0.25rem;
+  background: rgb(200 16 46 / 0.12);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+/* Shown while files are dragged over the window (Tauri drag-drop events). */
+.evx-dropzone {
+  display: none;
+  border: 2px dashed var(--evx-accent);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+}
+.evx-dropzone--active {
+  display: block;
+  background: rgb(113 176 67 / 0.08);
+}
+
+.evx-progress {
+  block-size: 0.5rem;
+  border-radius: 999px;
+  background: var(--evx-rule);
+  overflow: hidden;
+}
+.evx-progress > span {
+  display: block;
+  block-size: 100%;
+  background: var(--evx-accent);
+  transition: inline-size 120ms linear;
+}
+
+.evx-asset {
+  display: grid;
+  inline-size: 100%;
+  gap: 0.35rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 0.75rem;
+  background: var(--evx-panel);
+  color: inherit;
+  padding: 0.6rem 0.6rem 0.8rem;
+  text-align: start;
+  cursor: pointer;
+}
+.evx-asset:hover {
+  border-color: var(--evx-accent);
+}
+.evx-asset[aria-pressed='true'] {
+  border-color: var(--evx-accent);
+  box-shadow: 0 0 0 2px var(--evx-accent);
+}
+.evx-asset:focus-visible {
+  outline: 3px solid var(--evx-accent);
+  outline-offset: 2px;
+}
+.evx-asset > img,
+.evx-asset__placeholder {
+  aspect-ratio: 2 / 1;
+  inline-size: 100%;
+  border-radius: 0.45rem;
+  object-fit: cover;
+}
+.evx-asset__placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--evx-rule);
+  font-weight: 700;
+}
+.evx-asset__name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evx-asset__meta {
+  color: var(--evx-fg-subtle);
+  font-size: 0.85rem;
+}
+
+.evx-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 1rem;
+  font-size: 0.9rem;
+}
+.evx-details > dt {
+  color: var(--evx-fg-subtle);
+}
