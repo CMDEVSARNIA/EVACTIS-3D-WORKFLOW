@@ -3,28 +3,51 @@
  * load or send anything outside its own package. Injected at build time only, so the
  * Vite dev server's hot-reload socket keeps working during development.
  */
-export const CSP = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self'",
-  "media-src 'self' blob:",
-  "connect-src 'self' ipc: http://ipc.localhost",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'none'",
-].join('; ');
+const BASE = {
+  'default-src': ["'self'"],
+  'script-src': ["'self'"],
+  'style-src': ["'self'", "'unsafe-inline'"],
+  'img-src': ["'self'", 'data:', 'blob:'],
+  'font-src': ["'self'"],
+  'media-src': ["'self'", 'blob:'],
+  'connect-src': ["'self'", 'ipc:', 'http://ipc.localhost'],
+  'object-src': ["'none'"],
+  'base-uri': ["'self'"],
+  'form-action': ["'none'"],
+};
 
-/** Vite plugin adding the CSP <meta> to built HTML. */
-export function cspPlugin() {
+/**
+ * Tauri's local-file protocol: `asset:` (Linux/macOS) and `http://asset.localhost`
+ * (Windows WebView2). Both are served from disk by the webview itself, never the
+ * network, and Rust limits them to the open project's media folder.
+ */
+const LOCAL_FILES = ['asset:', 'http://asset.localhost'];
+
+/** @param {{ localFiles?: boolean }} [options] */
+export function buildCsp({ localFiles = false } = {}) {
+  return Object.entries(BASE)
+    .map(([k, v]) => {
+      const extra = localFiles && (k === 'img-src' || k === 'media-src') ? LOCAL_FILES : [];
+      return [k, ...v, ...extra].join(' ');
+    })
+    .join('; ');
+}
+
+export const CSP = buildCsp();
+
+/**
+ * Vite plugin adding the CSP <meta> to built HTML.
+ * @param {{ localFiles?: boolean }} [options] allow the desktop local-file protocol
+ */
+export function cspPlugin(options) {
+  const content = buildCsp(options);
   return {
     name: 'evactis-csp',
     apply: 'build',
     transformIndexHtml: () => [
       {
         tag: 'meta',
-        attrs: { 'http-equiv': 'Content-Security-Policy', content: CSP },
+        attrs: { 'http-equiv': 'Content-Security-Policy', content },
         injectTo: 'head-prepend',
       },
     ],

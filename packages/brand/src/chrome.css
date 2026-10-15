@@ -127,4 +127,9 @@
   padding: 0.75rem 1.25rem;
   border-block-start: 4px solid var(--evx-green-strong);
   background: var(--evx-paper);
+  /* The bar is always light (as on evactis.ca): controls inside it use navy in both
+     themes instead of inheriting the dark chrome's white foreground. */
+  --evx-fg: var(--evx-navy);
+  --evx-rule: rgb(10 47 91 / 0.22);
+  color: var(--evx-navy);
 }
