@@ -14,8 +14,8 @@ Unsigned local builds: skip `EVX_SIGN_THUMBPRINT`. CI: `.github/workflows/window
 ### Fully offline build and signing
 
 1. On a connected machine, once per dependency change: `scripts\windows\prepare-offline-build.ps1`
-   (fills the pnpm store, Cargo registry and `target\.tauri` tools: NSIS, WiX, WebView2
-   offline installer).
+   (fills the pnpm store, Cargo registry, `target\webview2` (WebView2 offline installer,
+   Microsoft signature checked) and `target\.tauri` tools: NSIS, WiX).
 2. Move the repository folder, `%LOCALAPPDATA%\pnpm\store` and `%USERPROFILE%\.cargo` to
    the offline station (or disconnect this machine).
 3. `scripts\windows\build-installers.ps1 -Offline` — Cargo/pnpm run offline and every

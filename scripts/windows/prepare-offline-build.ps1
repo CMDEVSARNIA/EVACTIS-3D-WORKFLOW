@@ -7,8 +7,10 @@
   Run once on a connected machine, from a clone of the repository:
     - pnpm store       (all npm packages for the lockfile)
     - Cargo registry   (all crates for Cargo.lock)
-    - Tauri tools dir  (NSIS, WiX, NSIS plugins, WebView2 offline installer) in
-                       target\.tauri, because tauri.conf.json sets useLocalToolsDir
+    - Tauri tools dir  (NSIS, WiX, NSIS plugins) in target\.tauri, because
+                       tauri.conf.json sets useLocalToolsDir
+    - WebView2 Runtime offline installer in target\webview2 (get-webview2.ps1),
+                       checked to be signed by Microsoft
   Then copy the repository folder, %LOCALAPPDATA%\pnpm\store and %USERPROFILE%\.cargo
   to the offline build machine (or build on this machine after disconnecting it) and
   run:  scripts\windows\build-installers.ps1 -Offline

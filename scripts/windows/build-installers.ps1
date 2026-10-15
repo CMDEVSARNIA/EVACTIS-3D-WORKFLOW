@@ -31,6 +31,10 @@ if ($Offline) {
 }
 $env:TURBO_TELEMETRY_DISABLED = '1'
 
+# WebView2 offline installer, embedded by our NSIS/WiX templates (ADR 0003). Downloaded
+# once when online; -Offline only verifies the staged copy.
+$env:EVX_WEBVIEW2_INSTALLER = & "$PSScriptRoot\get-webview2.ps1" -Offline:$Offline | Select-Object -Last 1
+
 # Signing hook for the bundler. Kept out of tauri.conf.json so unsigned local builds work.
 # It runs under the same PowerShell that runs this script: launching Windows PowerShell
 # 5.1 from pwsh 7 inherits pwsh's PSModulePath, and 5.1 then cannot load the module that

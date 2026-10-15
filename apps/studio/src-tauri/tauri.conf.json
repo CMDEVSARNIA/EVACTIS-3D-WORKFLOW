@@ -62,8 +62,7 @@
     "useLocalToolsDir": true,
     "windows": {
       "webviewInstallMode": {
-        "type": "offlineInstaller",
-        "silent": true
+        "type": "skip"
       },
       "allowDowngrades": false,
       "digestAlgorithm": "sha256",

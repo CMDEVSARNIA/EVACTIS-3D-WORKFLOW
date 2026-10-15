@@ -293,7 +293,7 @@
             {{/each~}}
         </Feature>
 
-        {{#if install_webview}}
+        {{#if product_name}}
         <!-- WebView2 -->
         <Property Id="INSTALLED_WEBVIEW2_VERSION">
             <RegistrySearch Id="Webview2VersionSystemx64" Root="HKLM" Key="SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" Name="pv" Type="raw" />
@@ -322,10 +322,10 @@
         </InstallExecuteSequence>
         {{/if}}
 
-        {{#if webview2_installer_path}}
+        {{#if product_name}}
         <!-- Embedded offline installer -->
-        <Binary Id="MicrosoftEdgeWebView2RuntimeInstaller.exe" SourceFile="{{webview2_installer_path}}"/>
-        <CustomAction Id='InvokeStandalone' BinaryKey='MicrosoftEdgeWebView2RuntimeInstaller.exe' Execute="deferred" ExeCommand='{{webview_installer_args}} /install' Return='check' />
+        <Binary Id="MicrosoftEdgeWebView2RuntimeInstaller.exe" SourceFile="$(env.EVX_WEBVIEW2_INSTALLER)"/>
+        <CustomAction Id='InvokeStandalone' BinaryKey='MicrosoftEdgeWebView2RuntimeInstaller.exe' Execute="deferred" ExeCommand='/silent /install' Return='check' />
         <InstallExecuteSequence>
             <Custom Action='InvokeStandalone' Before='InstallFinalize'>
                 <![CDATA[NOT(REMOVE OR INSTALLED_WEBVIEW2_VERSION)]]>
