@@ -116,7 +116,9 @@ function wix(app) {
     `<Shortcut Id="ApplicationStartMenuShortcut"
                     Name="${app.shortcut}"`,
   );
-  // Non-advertised associations so each type gets its own branded icon.
+  // Non-advertised associations so each type gets its own branded icon. [#Path] is the
+  // full long path of the exe; upstream's [!Path] is the 8.3 short path, which breaks on
+  // volumes without short names and is what IT/application-control tools would see.
   s = patch(
     s,
     `                {{#each file_associations as |association| ~}}
@@ -139,7 +141,7 @@ function wix(app) {
                         <RegistryValue Type="string" Value="[INSTALLDIR]filetypes\\\\{{ext}}.ico" />
                     </RegistryKey>
                     <RegistryKey Key="shell\\open\\command">
-                        <RegistryValue Type="string" Value="&quot;[!Path]&quot; &quot;%1&quot;" />
+                        <RegistryValue Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
                     </RegistryKey>
                 </RegistryKey>
                 {{/each~}}

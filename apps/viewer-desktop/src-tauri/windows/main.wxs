@@ -163,7 +163,7 @@
                         <RegistryValue Type="string" Value="[INSTALLDIR]filetypes\\{{ext}}.ico" />
                     </RegistryKey>
                     <RegistryKey Key="shell\open\command">
-                        <RegistryValue Type="string" Value="&quot;[!Path]&quot; &quot;%1&quot;" />
+                        <RegistryValue Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
                     </RegistryKey>
                 </RegistryKey>
                 {{/each~}}
