@@ -1,0 +1,12 @@
+{
+  "$comment": "Cube-face layout for multi-resolution tiles, shared by the Viewer (cube.ts) and every tile generator (Rust evx-media, demo facility). Camera looks down -Z, X right, Y up. A point on a face is forward + u*right + v*up, u and v in [-1, 1]; image row 0 is v = +1. Tile path: {basePath}/{face}/{level}/{row}_{col}.{format}. Never change: existing projects depend on it.",
+  "faces": ["f", "r", "b", "l", "u", "d"],
+  "basis": {
+    "f": { "forward": [0, 0, -1], "right": [1, 0, 0], "up": [0, 1, 0] },
+    "r": { "forward": [1, 0, 0], "right": [0, 0, 1], "up": [0, 1, 0] },
+    "b": { "forward": [0, 0, 1], "right": [-1, 0, 0], "up": [0, 1, 0] },
+    "l": { "forward": [-1, 0, 0], "right": [0, 0, -1], "up": [0, 1, 0] },
+    "u": { "forward": [0, 1, 0], "right": [1, 0, 0], "up": [0, 0, 1] },
+    "d": { "forward": [0, -1, 0], "right": [1, 0, 0], "up": [0, 0, -1] }
+  }
+}

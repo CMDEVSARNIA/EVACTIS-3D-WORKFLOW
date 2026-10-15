@@ -1,15 +1,16 @@
 import type { Vec3 } from '../math.ts';
+import layout from './cube-basis.json' with { type: 'json' };
 
 /**
  * Cube-face layout for multi-resolution tiles. Each face sits at distance 1 from the
  * viewer; a point on a face is `forward + u·right + v·up` with u, v ∈ [-1, 1].
- * Image row 0 is the top of the face (v = +1). Shared by the renderer and every tile
- * generator (demo facility, Studio) so they can never disagree.
+ * Image row 0 is the top of the face (v = +1). The layout lives in cube-basis.json so
+ * the renderer and every tile generator (demo facility, Studio's Rust tiler) share it.
  *
  * Tile path: `${basePath}/${face}/${level}/${row}_${col}.${format}`.
  */
 export type Face = 'f' | 'r' | 'b' | 'l' | 'u' | 'd';
-export const FACES: Face[] = ['f', 'r', 'b', 'l', 'u', 'd'];
+export const FACES = layout.faces as Face[];
 
 export interface FaceBasis {
   forward: Vec3;
@@ -17,14 +18,8 @@ export interface FaceBasis {
   up: Vec3;
 }
 
-export const FACE_BASIS: Record<Face, FaceBasis> = {
-  f: { forward: [0, 0, -1], right: [1, 0, 0], up: [0, 1, 0] },
-  r: { forward: [1, 0, 0], right: [0, 0, 1], up: [0, 1, 0] },
-  b: { forward: [0, 0, 1], right: [-1, 0, 0], up: [0, 1, 0] },
-  l: { forward: [-1, 0, 0], right: [0, 0, -1], up: [0, 1, 0] },
-  u: { forward: [0, 1, 0], right: [1, 0, 0], up: [0, 0, 1] },
-  d: { forward: [0, -1, 0], right: [1, 0, 0], up: [0, 0, -1] },
-};
+/** Loaded from cube-basis.json, which the Rust tiler (evx-media) reads too. */
+export const FACE_BASIS = layout.basis as Record<Face, FaceBasis>;
 
 /** Point on a face for face coordinates u (right) and v (up), both in [-1, 1]. */
 export function facePoint(face: Face, u: number, v: number): Vec3 {
