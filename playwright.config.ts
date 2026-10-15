@@ -48,9 +48,18 @@ export default defineConfig({
     ['apps/studio/dist', PORT + 1],
     ['apps/viewer-desktop/dist', PORT + 2],
     ['packages/viewer/demo-dist', PORT + 3],
-  ].map(([dir, port]) => ({
-    command: `node tools/static-server.mjs ${dir} ${port}`,
-    url: `http://127.0.0.1:${port}/index.html`,
-    reuseExistingServer: !process.env.CI,
-  })),
+  ]
+    .map(([dir, port]) => ({
+      command: `node tools/static-server.mjs ${dir} ${port}`,
+      url: `http://127.0.0.1:${port}/index.html`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    }))
+    .concat({
+      // Tiles made by the Studio pipeline (Rust), shown by the Viewer demo page.
+      command: `node e2e/fixtures/studio-tiles.mjs && node tools/static-server.mjs target/e2e-studio-tiles ${PORT + 4}`,
+      url: `http://127.0.0.1:${PORT + 4}/index.html`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 300_000,
+    }),
 });
