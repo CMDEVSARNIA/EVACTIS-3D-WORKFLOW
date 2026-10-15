@@ -23,6 +23,10 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | --- | --- | --- | --- |
 | three 0.186.1 | Viewer panorama rendering (WebGL) | MIT | None. Documentation comments are stripped from the shipped bundle; one citation remains inside a shader comment string (allowlisted). |
 | zod 4.1.13 | Environment validation | MIT | None. Configured `jitless` so it never probes `eval`/`new Function`. |
+| image 0.25.8 (+ zune-jpeg, png, tiff, hdr decoders) | Studio media import: decode, resize, encode tiles | MIT OR Apache-2.0 | None (no network code). |
+| kamadak-exif 0.6.1 | Studio: capture date, GPS, camera from EXIF | BSD-2-Clause | None. |
+| rayon 1.11.0 | Studio: parallel tile rendering | MIT OR Apache-2.0 | None. |
+| rfd 0.16.0 | Studio: native open / folder dialogs (Windows COM dialogs; GTK on Linux) | MIT | None. Used directly instead of tauri-plugin-dialog, which also bundles tauri-plugin-fs. |
 
 ## Fonts (bundled — never loaded from Google Fonts or a CDN)
 
@@ -39,7 +43,7 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | Microsoft Visual C++ runtime | Statically linked (`+crt-static`) | Part of the MSVC toolchain licence | No redistributable is shipped or downloaded. |
 | NSIS 3 (via Tauri bundler) | Build-time; stub embedded in setup .exe | zlib/libpng licence | |
 | WiX Toolset 3 (via Tauri bundler) | Build-time only | MS-RL | Not redistributed. |
-| ffmpeg (LGPL build) | Phase 3 — not yet included | LGPL-2.1+ | To be recorded with exact build and source offer. |
+| FFmpeg — `ffmpeg.exe`, `ffprobe.exe` (BtbN/FFmpeg-Builds static win64 **LGPL** build) | Studio only, `<install>\ffmpeg\`; run as separate processes for 360 video import | GNU LGPL (2.1 or later; v3 when built with `--enable-version3`) — `ffmpeg\LICENSE.txt` ships beside it | `scripts/windows/get-ffmpeg.ps1` refuses any build configured with `--enable-gpl` or `--enable-nonfree`; the Windows smoke test re-checks the installed copy. The exact archive, URL and SHA-256 are recorded in `ffmpeg\SOURCE.txt`, which also carries Evactis's written offer of the corresponding source (see ADR 0010, assumption 14). Signed with the Evactis key so application-control policies accept it. Every invocation is limited to `-protocol_whitelist file,pipe`. |
 
 ## Build and test tools (not shipped)
 

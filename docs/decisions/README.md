@@ -14,3 +14,4 @@ accepted record; supersede it with a new one.
 | [0007](0007-code-signing.md) | Test certificate in CI until the Evactis certificate exists | Superseded by 0008 |
 | [0008](0008-offline-code-signing.md) | Offline signing on a USB hardware token; no cloud; offline builds | Accepted (Evactis, 2026-10-14) |
 | [0009](0009-viewer-core-architecture.md) | Viewer core: Three.js on demand, shared cube tiles, DOM hotspots | Accepted |
+| [0010](0010-local-media-pipeline.md) | Local media pipeline: Rust tiler, content-hash library, LGPL FFmpeg sidecar | Accepted |

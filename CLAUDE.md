@@ -53,6 +53,7 @@ makes network calls at runtime.
 | `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots. Demo page in `demo/`. |
 | `packages/demo-facility` | Seeded demo facility: procedural panoramas + tiles + validated environment (`pnpm build` renders it). |
 | `packages/desktop-bridge` | UI side of the desktop shell (app info, smoke-test report, network watch). |
+| `crates/evx-media` | Studio media pipeline: validation, EXIF, cube tiling, previews, HDR, stereo, video via LGPL FFmpeg, GLB/splat checks. No network code. |
 | `crates/evx-core` | UI-free Rust core (identity, launch args, navigation guard, project location, smoke report). |
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
 | `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. |
@@ -121,7 +122,13 @@ makes network calls at runtime.
   - [x] Relative, local-only asset loading; no eval; strict CSP clean
   - [x] Seeded demo facility (6 procedural scenes, 2 floors) navigable on desktop and mobile in network-blocked Playwright, with screenshot tests
   - [x] Core bundle budget (< 300 KB gz; currently ~167 KB)
-- [ ] Phase 3 — Local media pipeline (Studio)
+- [ ] **Phase 3 — Local media pipeline (Studio)** (in progress)
+  - [x] `evx-media`: validate, copy + SHA-256 IDs, EXIF, cube tiles (shared layout JSON), previews, HDR, stereo, GLB/splat checks, atomic staging, cancel
+  - [x] 360 video via FFmpeg (LGPL-only encoder chain, file/pipe protocols only)
+  - [x] Studio: create/open project, library grid + details, import by picker or drag-drop, progress, cancel, EN/FR errors
+  - [x] 12K panorama imported, tiled and shown in the Studio library with networking removed (Linux, real binary, `--smoke-import`)
+  - [ ] Windows: LGPL FFmpeg bundled and the 12K + video import smoke passing in CI
+  - [ ] Phase 1 carry-over: first green Windows workflow
 - [ ] Phase 4 — Studio core editing
 - [ ] Phase 5 — Safety and emergency layer
 - [ ] Phase 6 — Rich features
@@ -163,6 +170,20 @@ makes network calls at runtime.
     view to it (accessibility over strict "hide what you can't see").
 12. **Demo panoramas are procedural** (ray-cast rooms), so the repository holds no
     photographs and the demo is regenerated deterministically on build.
+
+## Assumptions (Phase 3)
+
+13. **Stereo panoramas get no tiles yet**: previews come from the left eye; VR (Phase 9)
+    uses the full source.
+14. **FFmpeg source offer**: Studio ships an LGPL FFmpeg; `ffmpeg\SOURCE.txt` carries a
+    written offer to provide the corresponding source on physical media for three years.
+    *Needs Evactis confirmation (legal), or ship the source archive in each release kit.*
+15. **Playback video is capped at 4096 px wide** (H.264 decoder compatibility); originals
+    are kept in the project for later re-conversion.
+16. **HDR panoramas are tone-mapped automatically** (Reinhard, log-average exposure); the
+    original `.hdr` is kept.
+17. **A developer's FFmpeg on `PATH` is not licence-checked at runtime**: running it
+    locally is not distribution. The copy Studio ships is checked at build and smoke time.
 
 ## Future work (out of scope for now)
 
