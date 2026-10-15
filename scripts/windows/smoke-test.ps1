@@ -44,7 +44,12 @@ function Find-Uninstall {
 Write-Host "== $tag : $Installer"
 Check ((Get-AuthenticodeSignature $Installer).Status -eq 'Valid') 'installer Authenticode signature is valid'
 
-& "$PSScriptRoot\offline.ps1" -Programs @($Installer, $exe)
+# Studio also runs its bundled ffmpeg/ffprobe; they are blocked like the app itself.
+$ffmpeg = Join-Path $installDir 'ffmpeg\ffmpeg.exe'
+$ffprobe = Join-Path $installDir 'ffmpeg\ffprobe.exe'
+$blocked = @($Installer, $exe)
+if ($App -eq 'Studio') { $blocked += @($ffmpeg, $ffprobe) }
+& "$PSScriptRoot\offline.ps1" -Programs $blocked
 try {
   # ---- install (silent) ----
   if ($isMsi) {
@@ -84,6 +89,35 @@ try {
     Check ($r.uiReady -eq $true) "UI rendered in WebView2 ($($r.userAgent))"
     Check (@($r.blockedRequests).Count -eq 0) "no network requests attempted ($(@($r.blockedRequests) -join ', '))"
   } else { Check $false 'smoke report written' }
+
+  # ---- Studio media pipeline: bundled LGPL ffmpeg, a 12K panorama and a 360 video ----
+  if ($App -eq 'Studio') {
+    Check (Test-Path $ffmpeg) 'bundled ffmpeg installed'
+    Check (Test-Path (Join-Path $installDir 'ffmpeg\LICENSE.txt')) 'ffmpeg licence text installed'
+    if (Test-Path $ffmpeg) {
+      $build = (& $ffmpeg -hide_banner -version) -join "`n"
+      Check (($build -notmatch '--enable-gpl') -and ($build -notmatch '--enable-nonfree')) 'bundled ffmpeg is an LGPL build'
+      $media = Resolve-Path $LogDir
+      $pano = Join-Path $media "$tag-plant-room-12k.jpg"
+      $video = Join-Path $media "$tag-walkthrough-360.mkv"
+      & $ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'testsrc2=size=12288x6144' -frames:v 1 -q:v 3 $pano
+      & $ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'testsrc2=size=1024x512:rate=15:duration=2' -c:v mpeg4 $video
+      foreach ($file in @($pano, $video)) {
+        $leaf = Split-Path $file -Leaf
+        $rep = Join-Path $media "$tag-import-$leaf.json"
+        Remove-Item $rep -ErrorAction SilentlyContinue
+        $run = Start-Process $exe -ArgumentList @('--smoke-test', "`"$rep`"", '--smoke-import', "`"$file`"") -PassThru
+        if (-not $run.WaitForExit(600000)) { $run.Kill(); Check $false "import of $leaf finished within 600 s" }
+        Check ($run.ExitCode -eq 0) "import of $leaf exit code 0 (got $($run.ExitCode))"
+        if (Test-Path $rep) {
+          $r = Get-Content $rep | ConvertFrom-Json
+          Check ($null -eq $r.error) "imported $leaf ($($r.error))"
+          Check (@($r.blockedRequests).Count -eq 0) "no network requests during import ($(@($r.blockedRequests) -join ', '))"
+          foreach ($line in @($r.checks)) { Write-Host "        $line" }
+        } else { Check $false "import report for $leaf written" }
+      }
+    }
+  }
 
   # ---- uninstall (silent) ----
   if ($isMsi) {

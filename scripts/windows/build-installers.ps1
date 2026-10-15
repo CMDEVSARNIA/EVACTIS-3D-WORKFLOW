@@ -35,24 +35,52 @@ $env:TURBO_TELEMETRY_DISABLED = '1'
 # once when online; -Offline only verifies the staged copy.
 $env:EVX_WEBVIEW2_INSTALLER = & "$PSScriptRoot\get-webview2.ps1" -Offline:$Offline | Select-Object -Last 1
 
-# Signing hook for the bundler. Kept out of tauri.conf.json so unsigned local builds work.
-# It runs under the same PowerShell that runs this script: launching Windows PowerShell
-# 5.1 from pwsh 7 inherits pwsh's PSModulePath, and 5.1 then cannot load the module that
-# provides Get-AuthenticodeSignature.
-$shell = (Get-Process -Id $PID).Path
-$signConf = Join-Path $env:TEMP 'evx-sign.conf.json'
-$env:EVX_SIGN_LOG = Join-Path $env:TEMP 'evx-sign.log'
-Remove-Item $env:EVX_SIGN_LOG -ErrorAction SilentlyContinue
-@{ bundle = @{ windows = @{ signCommand = @{ cmd = $shell; args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "$sign", '%1') } } } } |
-  ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 $signConf
 $signing = [bool]($env:EVX_SIGN_THUMBPRINT -or $env:EVX_SIGN_PFX)
 if (-not $signing) { Write-Warning 'No signing key configured: building UNSIGNED installers.' }
+$env:EVX_SIGN_LOG = Join-Path $env:TEMP 'evx-sign.log'
+Remove-Item $env:EVX_SIGN_LOG -ErrorAction SilentlyContinue
+
+# LGPL ffmpeg/ffprobe for Studio's 360 video import (ADR 0010). Signed with the same
+# key as the apps so application-control policies (AppLocker, WDAC) accept them.
+$ffmpegDir = & "$PSScriptRoot\get-ffmpeg.ps1" -Offline:$Offline | Select-Object -Last 1
+if ($signing) {
+  foreach ($f in @('ffmpeg.exe', 'ffprobe.exe')) {
+    & $sign (Join-Path $ffmpegDir $f)
+    if ($LASTEXITCODE -ne 0) { throw "Signing $f failed" }
+  }
+}
+
+# Per-app config overlay passed with --config (kept out of tauri.conf.json so plain
+# local builds stay simple):
+#  - signing hook, run under the same PowerShell as this script: Windows PowerShell 5.1
+#    started from pwsh 7 inherits pwsh's PSModulePath and then cannot load the module
+#    that provides Get-AuthenticodeSignature;
+#  - Studio: the ffmpeg files as resources. The app's own resources are repeated so the
+#    result is the same whether the bundler merges or replaces the map.
+$shell = (Get-Process -Id $PID).Path
+function New-Overlay($app) {
+  $bundle = @{}
+  if ($signing) {
+    $bundle.windows = @{ signCommand = @{ cmd = $shell; args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "$sign", '%1') } }
+  }
+  if ($app.Dir -eq 'studio') {
+    $base = Get-Content (Join-Path $repo 'apps\studio\src-tauri\tauri.conf.json') -Raw | ConvertFrom-Json
+    $resources = [ordered]@{}
+    foreach ($p in $base.bundle.resources.PSObject.Properties) { $resources[$p.Name] = $p.Value }
+    foreach ($f in @('ffmpeg.exe', 'ffprobe.exe', 'LICENSE.txt', 'SOURCE.txt')) {
+      $resources["../../../target/ffmpeg/$f"] = "ffmpeg/$f"
+    }
+    $bundle.resources = $resources
+  }
+  $path = Join-Path $env:TEMP "evx-$($app.Dir).conf.json"
+  @{ bundle = $bundle } | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8 $path
+  return $path
+}
 
 foreach ($app in @(@{ Dir = 'studio'; Name = 'Studio' }, @{ Dir = 'viewer-desktop'; Name = 'Viewer' })) {
   Push-Location (Join-Path $repo "apps\$($app.Dir)")
   try {
-    $extra = @()
-    if ($signing) { $extra = @('--config', $signConf) }
+    $extra = @('--config', (New-Overlay $app))
     # --verbose: the bundler otherwise hides candle/light/makensis errors.
     pnpm tauri build --ci --verbose @extra
     if ($LASTEXITCODE -ne 0) {

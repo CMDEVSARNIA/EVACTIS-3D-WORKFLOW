@@ -11,6 +11,8 @@
                        tauri.conf.json sets useLocalToolsDir
     - WebView2 Runtime offline installer in target\webview2 (get-webview2.ps1),
                        checked to be signed by Microsoft
+    - LGPL ffmpeg/ffprobe for Studio in target\ffmpeg (get-ffmpeg.ps1), checked to
+                       be built without --enable-gpl / --enable-nonfree
   Then copy the repository folder, %LOCALAPPDATA%\pnpm\store and %USERPROFILE%\.cargo
   to the offline build machine (or build on this machine after disconnecting it) and
   run:  scripts\windows\build-installers.ps1 -Offline
