@@ -111,7 +111,7 @@ makes network calls at runtime.
   - [x] Windows CI: signed (test cert) NSIS + MSI, silent install → launch → uninstall
   - [x] Visual sign-off of brand sheet and product lockup by Evactis (2026-10-14)
   - [x] Offline build + signing path (USB token, no cloud; ADR 0008)
-  - [ ] First green run of the Windows workflow on GitHub Actions
+  - [x] First green run of the Windows workflow on GitHub Actions (2026-10-15: build, signatures, offline rebuild, 5 install variants × windows-2022/2025)
   - [ ] Full air-gap acceptance in Windows Sandbox (`docs/windows-installers.md`)
 - [x] **Phase 2 — Viewer core** (awaiting review)
   - [x] Equirect + multi-resolution cube tiles, render on demand
@@ -122,13 +122,14 @@ makes network calls at runtime.
   - [x] Relative, local-only asset loading; no eval; strict CSP clean
   - [x] Seeded demo facility (6 procedural scenes, 2 floors) navigable on desktop and mobile in network-blocked Playwright, with screenshot tests
   - [x] Core bundle budget (< 300 KB gz; currently ~167 KB)
-- [ ] **Phase 3 — Local media pipeline (Studio)** (in progress)
+- [x] **Phase 3 — Local media pipeline (Studio)** (awaiting review)
   - [x] `evx-media`: validate, copy + SHA-256 IDs, EXIF, cube tiles (shared layout JSON), previews, HDR, stereo, GLB/splat checks, atomic staging, cancel
   - [x] 360 video via FFmpeg (LGPL-only encoder chain, file/pipe protocols only)
   - [x] Studio: create/open project, library grid + details, import by picker or drag-drop, progress, cancel, EN/FR errors
   - [x] 12K panorama imported, tiled and shown in the Studio library with networking removed (Linux, real binary, `--smoke-import`)
-  - [ ] Windows: LGPL FFmpeg bundled and the 12K + video import smoke passing in CI
-  - [ ] Phase 1 carry-over: first green Windows workflow
+  - [x] Windows: LGPL FFmpeg bundled; 12K panorama (~10 s) + 360 video import pass in the installed app with Studio and FFmpeg firewalled (windows-2022/2025)
+  - [x] Studio-made tiles render in the right directions in the Viewer (e2e compass test)
+  - [x] Phase 1 carry-over: first green Windows workflow
 - [ ] Phase 4 — Studio core editing
 - [ ] Phase 5 — Safety and emergency layer
 - [ ] Phase 6 — Rich features
