@@ -488,6 +488,12 @@ textarea.evx-field {
   stroke: var(--evx-fire-red);
 }
 
+/* The route banner is for the delivered Viewer; in Studio the inspector shows the route,
+   and the banner would cover most of the small preview. The arrows stay. */
+.evx-preview .evx-viewer__route {
+  display: none;
+}
+
 /* Safety tab: preview and plan side by side when there is room. */
 .evx-safety-views {
   display: grid;
