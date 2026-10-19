@@ -76,6 +76,8 @@ export async function contrastProblems(page: Page, root = 'body'): Promise<Contr
       const box = el.getBoundingClientRect();
       if (s.visibility === 'hidden' || s.display === 'none' || !box.width || !box.height) continue;
       if (el.closest('[disabled], [aria-disabled="true"]')) continue;
+      // Fully transparent (e.g. a hotspot behind the camera): nobody can see it.
+      if (opacity(el) === 0) continue;
       const bg = background(el);
       const fg = parse(s.color);
       const fgOnBg = over([fg[0], fg[1], fg[2], fg[3] * opacity(el)], bg);

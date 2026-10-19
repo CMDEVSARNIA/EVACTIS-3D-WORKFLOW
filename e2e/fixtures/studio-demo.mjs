@@ -31,7 +31,29 @@ for (const dir of ['media', 'plans'])
 const file = 'Evactis Demo Centre.evxproj';
 writeFileSync(join(project, file), readFileSync(join(demo, 'environment.json')));
 writeFileSync(join(project, 'project.json'), JSON.stringify({ file }));
-writeFileSync(join(project, 'fixtures.json'), '[]');
+// Files to "import" in the Content tab, imported by the real pipeline (Rust): the demo's
+// alarm sound, procedures PDF and album photos.
+execFileSync('cargo', ['build', '--quiet', '-p', 'evx-media', '--example', 'import'], {
+  cwd: repo,
+  stdio: 'inherit',
+});
+const example = join(repo, 'target/debug/examples/import' + (shell ? '.exe' : ''));
+const fixtures = [
+  ['audio', 'media/audio/alarm.wav', 'Fire alarm.wav'],
+  ['document', 'docs/emergency-procedures.pdf', 'Emergency procedures.pdf'],
+  ['photo', 'media/album/entrance.jpg', 'Entrance.jpg'],
+  ['photo', 'media/album/assembly.jpg', 'Assembly sign.jpg'],
+].map(([purpose, from, file]) => {
+  const inbox = join(out, '.inbox');
+  mkdirSync(inbox, { recursive: true });
+  cpSync(join(demo, from), join(inbox, file));
+  const asset = JSON.parse(
+    execFileSync(example, [`--${purpose}`, join(inbox, file), project], { encoding: 'utf8' }),
+  );
+  return { path: `fixture:${file}`, purpose, asset };
+});
+rmSync(join(out, '.inbox'), { recursive: true, force: true });
+writeFileSync(join(project, 'fixtures.json'), JSON.stringify(fixtures, null, 2));
 
 execFileSync(
   'pnpm',
