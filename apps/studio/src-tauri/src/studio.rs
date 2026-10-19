@@ -15,7 +15,7 @@ use evx_media::{
 };
 use serde::Serialize;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicBool, AtomicU32, Ordering},
@@ -23,7 +23,10 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tauri::{ipc::Channel, AppHandle, Manager, State, WebviewWindow};
+use tauri::{
+    ipc::{Channel, InvokeBody, Request, Response},
+    AppHandle, Manager, State, WebviewWindow,
+};
 
 /// Must list every command in `handler()` below; the desktop shell routes by name.
 pub const COMMANDS: &[&str] = &[
@@ -44,6 +47,10 @@ pub const COMMANDS: &[&str] = &[
     "pick_project",
     "pick_media",
     "smoke_workspace",
+    "project_read_media",
+    "pick_save",
+    "pick_export_folder",
+    "export_file",
 ];
 
 pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
@@ -65,6 +72,10 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         pick_project,
         pick_media,
         smoke_workspace,
+        project_read_media,
+        pick_save,
+        pick_export_folder,
+        export_file,
     ]
 }
 
@@ -74,6 +85,10 @@ pub struct Studio {
     jobs: Mutex<HashMap<u32, Arc<AtomicBool>>>,
     next_job: AtomicU32,
     smoke: bool,
+    /// Where the UI may write exports: files the user picked in a save dialog and
+    /// folders picked for an export, in this session only.
+    export_files: Mutex<HashSet<PathBuf>>,
+    export_dirs: Mutex<HashSet<PathBuf>>,
 }
 
 impl Studio {
@@ -362,6 +377,117 @@ fn path_string(p: impl AsRef<Path>) -> String {
     p.as_ref().display().to_string()
 }
 
+/// Bytes of a file in the open project's media folder (floor plans for printing).
+/// Paths are relative (`media/<id>/<file>`) and may not leave that folder.
+#[tauri::command]
+fn project_read_media(state: State<'_, Studio>, path: String) -> Result<Response, CommandError> {
+    let root = state.root()?;
+    let bad = || CommandError::new("invalid", format!("not a project media path: {path}"));
+    if !path.starts_with("media/") || path.contains('\\') || path.split('/').any(|p| p == ".." || p.is_empty()) {
+        return Err(bad());
+    }
+    let media = library::media_dir(&root).canonicalize().map_err(|e| CommandError::project(e.to_string()))?;
+    let file = root.join(&path).canonicalize().map_err(|_| bad())?;
+    if !file.starts_with(&media) || !file.is_file() {
+        return Err(bad());
+    }
+    std::fs::read(&file).map(Response::new).map_err(|e| CommandError::new("io", e.to_string()))
+}
+
+/// Save dialog for an export; the chosen file becomes writable by `export_file`.
+#[tauri::command]
+async fn pick_save(
+    window: WebviewWindow,
+    state: State<'_, Studio>,
+    title: String,
+    default_name: String,
+    filter: String,
+    extension: String,
+) -> Result<Option<String>, CommandError> {
+    let picked = rfd::AsyncFileDialog::new()
+        .set_parent(&window)
+        .set_title(title)
+        .set_file_name(default_name)
+        .add_filter(filter, &[extension.as_str()])
+        .save_file()
+        .await
+        .map(|h| h.path().to_path_buf());
+    if let Some(p) = &picked {
+        state.export_files.lock().unwrap().insert(p.clone());
+    }
+    Ok(picked.map(path_string))
+}
+
+/// Folder dialog for a multi-file export (one PDF per floor and posting).
+#[tauri::command]
+async fn pick_export_folder(
+    window: WebviewWindow,
+    state: State<'_, Studio>,
+    title: String,
+) -> Result<Option<String>, CommandError> {
+    let picked = rfd::AsyncFileDialog::new().set_parent(&window).set_title(title).pick_folder().await;
+    let dir = picked.map(|h| h.path().to_path_buf());
+    if let Some(d) = &dir {
+        state.export_dirs.lock().unwrap().insert(d.clone());
+    }
+    Ok(dir.map(path_string))
+}
+
+/// File names Studio writes into an export folder: no separators, no dot-names.
+fn safe_file_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 180
+        && !name.starts_with('.')
+        && !name.chars().any(|c| matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') || c.is_control())
+}
+
+/// Writes an export (raw body = file bytes). The target must be a file picked in a save
+/// dialog, or a safe name inside a folder picked for export, in this session.
+/// Header `x-evx-path`: the target path, percent-encoded UTF-8.
+#[tauri::command]
+fn export_file(state: State<'_, Studio>, request: Request<'_>) -> Result<String, CommandError> {
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err(CommandError::new("invalid", "expected the file bytes"));
+    };
+    let encoded = request
+        .headers()
+        .get("x-evx-path")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(|| CommandError::new("invalid", "missing target path"))?;
+    let path = PathBuf::from(percent_decode(encoded).ok_or_else(|| CommandError::new("invalid", "bad target path"))?);
+    let allowed = state.export_files.lock().unwrap().contains(&path)
+        || (path.parent().is_some_and(|d| state.export_dirs.lock().unwrap().contains(d))
+            && path.file_name().and_then(|n| n.to_str()).is_some_and(safe_file_name));
+    if !allowed {
+        return Err(CommandError::new("invalid", format!("{} was not chosen for export", path.display())));
+    }
+    let tmp = path.with_extension("evx-partial");
+    std::fs::write(&tmp, bytes)
+        .and_then(|_| std::fs::rename(&tmp, &path))
+        .map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            CommandError::new("io", e.to_string())
+        })?;
+    Ok(path_string(&path))
+}
+
+fn percent_decode(s: &str) -> Option<String> {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' {
+            let hex = std::str::from_utf8(b.get(i + 1..i + 3)?).ok()?;
+            out.push(u8::from_str_radix(hex, 16).ok()?);
+            i += 3;
+        } else {
+            out.push(b[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
 #[tauri::command]
 async fn pick_folder(window: WebviewWindow, title: String) -> Option<String> {
     rfd::AsyncFileDialog::new().set_parent(&window).set_title(title).pick_folder().await.map(|h| path_string(h.path()))
@@ -406,4 +532,20 @@ fn smoke_workspace(state: State<'_, Studio>) -> Result<String, CommandError> {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).map_err(|e| CommandError::project(e.to_string()))?;
     Ok(path_string(dir))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn export_names_and_paths() {
+        assert!(safe_file_name("Evacuation plan - Ground floor - letter.pdf"));
+        assert!(safe_file_name("Plan d’évacuation – Rez-de-chaussée.pdf"));
+        for bad in ["", "../x.pdf", "a/b.pdf", "a\\b.pdf", ".hidden", "c:x", "x?.pdf", "nul\u{0}"] {
+            assert!(!safe_file_name(bad), "{bad}");
+        }
+        assert_eq!(percent_decode("C%3A%5CPlans%5CR%C3%A9sum%C3%A9.pdf").unwrap(), "C:\\Plans\\Résumé.pdf");
+        assert!(percent_decode("%zz").is_none());
+    }
 }

@@ -32,6 +32,8 @@ const state = {
   library: [] as AssetRecord[],
   snapshots: [] as (Snapshot & { manifest: string })[],
   fixtures: null as Fixture[] | null,
+  /** Files "written" by exports, by path (read by the e2e tests). */
+  exports: new Map<string, Uint8Array>(),
 };
 
 declare global {
@@ -141,6 +143,14 @@ export const memoryApi: StudioApi = {
       .filter((f) => f.purpose === purpose && !state.library.some((a) => a.id === f.asset.id))
       .map((f) => f.path),
   smokeWorkspace: async () => '/e2e',
+  readMedia: async (path) => new Uint8Array(await (await fetch(`./${ROOT}/${path}`)).arrayBuffer()),
+  pickSave: async (_title, defaultName) => `/e2e/exports/${defaultName}`,
+  pickExportFolder: async () => '/e2e/exports',
+  writeExport: async (path, bytes) => {
+    state.exports.set(path, bytes);
+    return path;
+  },
+  joinPath: (dir, name) => `${dir}/${name}`,
   onFileDrop: async () => () => {},
   fileUrl: (root, relative) => `./${root}/${relative}`,
 };

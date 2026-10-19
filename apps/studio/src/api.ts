@@ -141,6 +141,20 @@ const tauriApi = {
   pickMedia: (title: string, filter: string, purpose: ImportPurpose = 'scene') =>
     invoke<string[]>('pick_media', { title, filter, purpose }),
   smokeWorkspace: () => invoke<string>('smoke_workspace'),
+  /** Bytes of a project media file (e.g. a floor plan, for printing). */
+  readMedia: async (path: string) =>
+    new Uint8Array(await invoke<ArrayBuffer>('project_read_media', { path })),
+  /** Save dialog for an export; returns the chosen path (now writable by writeExport). */
+  pickSave: (title: string, defaultName: string, filter: string, extension: string) =>
+    invoke<string | null>('pick_save', { title, defaultName, filter, extension }),
+  /** Folder dialog for a multi-file export. */
+  pickExportFolder: (title: string) => invoke<string | null>('pick_export_folder', { title }),
+  /** Writes an export to a path the user chose (raw bytes, no base64). */
+  writeExport: (path: string, bytes: Uint8Array) =>
+    invoke<string>('export_file', bytes, { headers: { 'x-evx-path': encodeURIComponent(path) } }),
+  /** Joins an export folder and a file name the way the platform does. */
+  joinPath: (dir: string, name: string) =>
+    `${dir}${dir.includes('\\') && !dir.includes('/') ? '\\' : '/'}${name}`,
   /** Files dragged onto the window; Tauri delivers their real paths. Returns unlisten. */
   onFileDrop: (handler: (e: FileDrop) => void) =>
     getCurrentWebview().onDragDropEvent((e) => {
