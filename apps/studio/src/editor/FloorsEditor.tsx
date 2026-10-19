@@ -4,7 +4,7 @@
  * Plan positions drive link suggestions and, later, the Viewer's mini-map and routes.
  */
 import type { Environment, PlanPoint } from '@evactis-3dworkflow/schema';
-import { useEffect, useId, useState, type MouseEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { api, type AssetRecord, type ImportEvent, type ProjectInfo } from '../api.ts';
 import { describeError } from '../format.ts';
 import type { Lang, Strings } from '../i18n.ts';
@@ -13,6 +13,49 @@ import type { DocumentState, DocumentStore } from './store.ts';
 import { refusal } from './useDocument.ts';
 
 type Mode = 'none' | 'place' | 'calibrate';
+
+/** A scene name on the plan, on a white tag sized to the text so walls do not show through. */
+function PlanLabel({
+  x,
+  y,
+  size,
+  maxX,
+  children,
+}: {
+  x: number;
+  y: number;
+  size: number;
+  /** Plan width: a label that would run past it goes on the marker's left instead. */
+  maxX: number;
+  children: string;
+}) {
+  const text = useRef<SVGTextElement>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const b = text.current?.getBBox?.();
+    if (b) setBox({ w: b.width, h: b.height });
+  }, [children, size]);
+  const pad = size * 0.3;
+  // `x` is just right of the marker; on the left, mirror it around the marker centre.
+  if (box && x + box.w + pad > maxX) x = x - size * 2 - box.w;
+  return (
+    <>
+      {box && (
+        <rect
+          className="evx-plan__tag"
+          x={x - pad}
+          y={y - box.h / 2 - pad / 2}
+          width={box.w + pad * 2}
+          height={box.h + pad}
+          rx={pad}
+        />
+      )}
+      <text ref={text} x={x} y={y} fontSize={size} dominantBaseline="central">
+        {children}
+      </text>
+    </>
+  );
+}
 
 function PlanCanvas({
   env,
@@ -68,13 +111,14 @@ function PlanCanvas({
         {placed.map((s) => (
           <g key={s.id} data-scene-id={s.id} className={s.id === placing ? 'evx-plan__active' : ''}>
             <circle cx={s.planPosition!.x} cy={s.planPosition!.y} r={r} />
-            <text
-              x={s.planPosition!.x + r * 1.4}
-              y={s.planPosition!.y + r * 0.45}
-              fontSize={r * 1.5}
+            <PlanLabel
+              x={s.planPosition!.x + r * 1.5}
+              y={s.planPosition!.y}
+              size={r * 1.5}
+              maxX={width}
             >
               {label(s.id)}
-            </text>
+            </PlanLabel>
           </g>
         ))}
         {points.length === 2 && (

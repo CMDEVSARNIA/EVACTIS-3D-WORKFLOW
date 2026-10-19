@@ -473,9 +473,11 @@ textarea.evx-field {
   fill: var(--evx-navy);
   font-family: var(--evx-font-body);
   font-weight: 700;
-  paint-order: stroke;
-  stroke: #fff;
-  stroke-width: 3;
+}
+.evx-plan .evx-plan__tag {
+  fill: #fff;
+  stroke: var(--evx-navy);
+  stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
 .evx-plan .evx-plan__active circle {
