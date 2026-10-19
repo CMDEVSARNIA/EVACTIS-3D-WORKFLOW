@@ -28,6 +28,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Install Chromium for Playwright
         run: pnpm exec playwright install --with-deps chromium
+      - name: Poppler (the print tests read the PDFs back)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils unzip
       - name: pnpm check
         run: pnpm check
       - uses: actions/upload-artifact@v4

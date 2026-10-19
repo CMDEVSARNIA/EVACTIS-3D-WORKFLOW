@@ -42,6 +42,7 @@
   "devDependencies": {
     "@evactis-3dworkflow/schema": "workspace:*",
     "@fontsource-variable/inter": "5.2.8",
+    "@fontsource/inter": "5.2.8",
     "@fontsource/poppins": "5.2.7",
     "@resvg/resvg-js": "2.6.2",
     "@types/opentype.js": "1.3.10",

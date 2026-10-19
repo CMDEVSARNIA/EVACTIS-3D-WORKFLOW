@@ -1,0 +1,218 @@
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { demoEnvironment } from '../../demo-facility/src/environment.ts';
+import {
+  PrintError,
+  crc32,
+  evacuationPlanPdf,
+  registerCsv,
+  registerPdf,
+  registerRows,
+  registerXlsx,
+} from '../src/index.ts';
+import { demoAssets } from './assets.ts';
+
+/** PDF checks use poppler (pdftotext, pdfinfo, pdffonts), as installed in CI. */
+const dir = mkdtempSync(join(tmpdir(), 'evx-print-'));
+const save = (name: string, bytes: Uint8Array) => {
+  const p = join(dir, name);
+  writeFileSync(p, bytes);
+  return p;
+};
+const run = (cmd: string, ...args: string[]) => execFileSync(cmd, args, { encoding: 'utf8' });
+const text = (pdf: string) => run('pdftotext', '-layout', pdf, '-');
+const env = demoEnvironment();
+const assets = demoAssets();
+
+describe('evacuation plans', () => {
+  it('prints letter and tabloid, bilingual, with "You are here", the date and the verify note', async () => {
+    for (const paper of ['letter', 'tabloid'] as const) {
+      const { bytes, report } = await evacuationPlanPdf(env, assets, {
+        floorId: 'f1',
+        postingId: 'post-lobby',
+        paper,
+        printedOn: '2026-10-19',
+      });
+      const pdf = save(`f1-${paper}.pdf`, bytes);
+      const info = run('pdfinfo', pdf);
+      expect(info).toMatch(paper === 'letter' ? /612 x 792 pts \(letter\)/ : /792 x 1224 pts/);
+      expect(info).toMatch(/Pages:\s+1/);
+      // Legible: nothing under 8 pt on letter, and everything scales up on tabloid.
+      expect(report.minFontPt).toBeGreaterThanOrEqual(paper === 'letter' ? 8 : 10.3);
+      const t = text(pdf);
+      for (const s of [
+        'EVACUATION PLAN',
+        'PLAN D’ÉVACUATION',
+        'YOU ARE HERE',
+        'VOUS ÊTES ICI',
+        'Main lobby',
+        'Hall principal',
+        'Verify on site before relying on this plan. Printed 2026-10-19.',
+        'Vérifiez sur place avant de vous fier à ce plan. Imprimé le 2026-10-19.',
+        'Assembly point A — front lawn',
+        'Evacuation route',
+        'Itinéraire de rechange',
+        'Fire extinguisher',
+        'Extincteur',
+      ])
+        expect(t, s).toContain(s);
+      expect(t).toMatch(/\b\d+ ?m\b/);
+      // Fonts are embedded subsets of Inter (no system font substitution on any PC).
+      const fonts = run('pdffonts', pdf);
+      expect(fonts.match(/Inter/g)?.length).toBeGreaterThanOrEqual(3);
+      expect(fonts).not.toMatch(/ no {2,}no /);
+      expect(report).toMatchObject({ equipment: 10, routes: 2, unconfirmed: [] });
+    }
+  });
+
+  it('prints the general plan without "You are here" and orients by the plan', async () => {
+    const { bytes, report } = await evacuationPlanPdf(env, assets, {
+      floorId: 'f2',
+      paper: 'letter',
+      printedOn: '2026-10-19',
+    });
+    const t = text(save('f2.pdf', bytes));
+    expect(t).not.toContain('YOU ARE HERE');
+    expect(t).toContain('Second floor');
+    expect(t).toContain('Deuxième étage');
+    expect(report.page).toEqual({ w: 612, h: 792 });
+  });
+
+  it('shows each audience its own layers; first responders get the extra items', async () => {
+    const staff = await evacuationPlanPdf(env, assets, {
+      floorId: 'f1',
+      paper: 'letter',
+      printedOn: '2026-10-19',
+      audience: 'staff',
+    });
+    const fr = await evacuationPlanPdf(env, assets, {
+      floorId: 'f1',
+      paper: 'letter',
+      printedOn: '2026-10-19',
+      audience: 'first-responders',
+    });
+    expect(fr.report.equipment - staff.report.equipment).toBe(4);
+    const t = text(save('f1-fr.pdf', fr.bytes));
+    expect(t).toContain('FDC');
+    expect(t).toContain('Fire department connection');
+    expect(text(save('f1-staff.pdf', staff.bytes))).not.toContain('FDC');
+  });
+
+  it('leaves out anything nobody confirmed, and says which', async () => {
+    const draft = structuredClone(env);
+    draft.equipment.find((e) => e.id === 'fe-101')!.confirmed = undefined;
+    draft.routes.find((r) => r.id === 'route-north')!.confirmed = undefined;
+    const { report, bytes } = await evacuationPlanPdf(draft, assets, {
+      floorId: 'f1',
+      paper: 'letter',
+      printedOn: '2026-10-19',
+    });
+    expect(report.unconfirmed.sort()).toEqual(['fe-101', 'route-north']);
+    expect(report).toMatchObject({ equipment: 9, routes: 1 });
+    expect(text(save('draft.pdf', bytes))).not.toContain('Itinéraire de rechange');
+  });
+
+  it('refuses floors without a plan and postings from another floor', async () => {
+    await expect(
+      evacuationPlanPdf(env, assets, {
+        floorId: 'f1',
+        postingId: 'post-office',
+        paper: 'letter',
+        printedOn: '2026-10-19',
+      }),
+    ).rejects.toBeInstanceOf(PrintError);
+    const noPlan = structuredClone(env);
+    delete noPlan.buildings[0]!.floors[1]!.plan;
+    await expect(
+      evacuationPlanPdf(noPlan, assets, {
+        floorId: 'f2',
+        paper: 'letter',
+        printedOn: '2026-10-19',
+      }),
+    ).rejects.toThrow('has no plan');
+  });
+
+  it('is reproducible: same input, same bytes', async () => {
+    const o = { floorId: 'f1', paper: 'letter' as const, printedOn: '2026-10-19' };
+    const a = await evacuationPlanPdf(env, assets, o);
+    const b = await evacuationPlanPdf(env, assets, o);
+    expect(Buffer.from(a.bytes).equals(Buffer.from(b.bytes))).toBe(true);
+  });
+});
+
+describe('equipment register', () => {
+  const rows = registerRows(env);
+
+  it('lists every item with floor, location, inspections and a scene link', () => {
+    expect(rows).toHaveLength(env.equipment.length);
+    const fe = rows.find((r) => r.tag === 'FE-101')!;
+    expect(fe).toMatchObject({
+      typeEn: 'Fire extinguisher',
+      typeFr: 'Extincteur',
+      floor: 'Ground floor / Rez-de-chaussée',
+      location: 'Main lobby',
+      scenes: 'Main lobby',
+      lastInspection: '2026-09-15',
+      nextInspection: '2026-10-15',
+      sceneLink: 'index.html?scene=lobby',
+      audience: 'Everyone / Tous',
+    });
+    expect(rows.find((r) => r.id === 'fdc')).toMatchObject({
+      audience: 'First Responders',
+      sceneLink: '',
+    });
+    // Ground floor first.
+    const floors = rows.map((r) => (r.floor.startsWith('Ground') ? 0 : 1));
+    expect([...floors].sort()).toEqual(floors);
+    expect(registerRows(env, { audience: 'staff' }).some((r) => r.id === 'fdc')).toBe(false);
+  });
+
+  it('exports CSV that spreadsheets open with accents intact', () => {
+    const csv = registerCsv(rows);
+    expect(csv.startsWith('﻿Tag / Étiquette,Type (EN),Type (FR),')).toBe(true);
+    expect(csv).toContain('\r\nFE-101,Fire extinguisher,Extincteur,');
+    expect(csv).toContain('"Ground floor / Rez-de-chaussée"'.replace(/"/g, ''));
+    expect(csv.split('\r\n')).toHaveLength(rows.length + 2);
+  });
+
+  it('exports a valid XLSX workbook', () => {
+    const x = registerXlsx(rows);
+    const file = save('register.xlsx', x);
+    expect(run('unzip', '-t', file)).toContain('No errors detected');
+    const list = run('unzip', '-l', file);
+    for (const part of [
+      '[Content_Types].xml',
+      'xl/workbook.xml',
+      'xl/worksheets/sheet1.xml',
+      'xl/styles.xml',
+    ])
+      expect(list).toContain(part);
+    const sheet = run('unzip', '-p', file, 'xl/worksheets/sheet1.xml');
+    expect(sheet).toContain('<t xml:space="preserve">FE-101</t>');
+    expect(sheet).toContain('Rez-de-chaussée');
+    expect(sheet).toContain('state="frozen"');
+    expect(crc32(new TextEncoder().encode('123456789'))).toBe(0xcbf43926);
+  });
+
+  it('prints the register as a PDF table with the verify note and page numbers', async () => {
+    const { bytes, minFontPt } = await registerPdf(env, rows, assets.fonts, {
+      printedOn: '2026-10-19',
+    });
+    const pdf = save('register.pdf', bytes);
+    expect(run('pdfinfo', pdf)).toMatch(/792 x 612 pts/);
+    const t = text(pdf);
+    for (const s of [
+      'EQUIPMENT REGISTER',
+      'FE-101',
+      'Extincteur',
+      'Verify on site',
+      'Page 1 of',
+      '2026-10-19',
+    ])
+      expect(t, s).toContain(s);
+    expect(minFontPt).toBeGreaterThanOrEqual(8);
+  });
+});

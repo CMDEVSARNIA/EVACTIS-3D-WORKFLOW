@@ -3,8 +3,9 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 // External URLs in source are how "phone home" code starts. Only XML namespace
-// identifiers and loopback/IPC origins may appear; anything else needs review.
-const EXTERNAL_URL = String.raw`/(https?|wss?):\/\/(?!www\.w3\.org\/|127\.0\.0\.1|(ipc|asset|tauri)\.localhost)/`;
+// identifiers (W3C, Office Open XML) and loopback/IPC origins may appear; anything else
+// needs review.
+const EXTERNAL_URL = String.raw`/(https?|wss?):\/\/(?!www\.w3\.org\/|schemas\.openxmlformats\.org\/|127\.0\.0\.1|(ipc|asset|tauri)\.localhost)/`;
 
 export default tseslint.config(
   {

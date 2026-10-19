@@ -27,12 +27,15 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | kamadak-exif 0.6.1 | Studio: capture date, GPS, camera from EXIF | BSD-2-Clause | None. |
 | rayon 1.11.0 | Studio: parallel tile rendering | MIT OR Apache-2.0 | None. |
 | rfd 0.16.0 | Studio: native open / folder dialogs (Windows COM dialogs; GTK on Linux) | MIT | None. Used directly instead of tauri-plugin-dialog, which also bundles tauri-plugin-fs. |
+| pdf-lib 1.17.1 (+ pako, @pdf-lib/standard-fonts, @pdf-lib/upng) | Studio: printed evacuation plans and register PDFs (`packages/print`) | MIT (pako: MIT AND Zlib) | None. No network code (its `fetch` mentions are documentation comments). |
+| @pdf-lib/fontkit 1.1.1 | Embeds subsets of the bundled Inter in those PDFs | MIT | None. |
 
 ## Fonts (bundled — never loaded from Google Fonts or a CDN)
 
 | Font | Use | Licence | Embedding / redistribution |
 | --- | --- | --- | --- |
 | Inter (variable, Latin + Latin Ext.), via `@fontsource-variable/inter` 5.2.8 | UI body and headings in Studio, Viewer, brand sheet | SIL OFL 1.1 — `packages/brand/fonts/Inter-OFL.txt` | Allowed: OFL permits bundling and redistribution with software, including commercial, provided the licence travels with the font and the font is not sold by itself. |
+| Inter static Regular/SemiBold/Bold/ExtraBold (Latin), via `@fontsource/inter` 5.2.8 — `packages/brand/fonts/print/` | Embedded (subset) in printed PDFs; PDF fonts must be static | SIL OFL 1.1 — same licence file as above | Allowed: OFL permits embedding in documents. |
 | Poppins ExtraBold, via `@fontsource/poppins` 5.2.7 | Converted to outlines for the "VACTIS" wordmark and "3DWORKFLOW" in the lockups. The font file itself is not shipped. | SIL OFL 1.1 — `packages/brand/fonts/Poppins-OFL.txt` | Allowed: OFL places no restriction on artwork (logos) created with the font. |
 
 ## Binaries and runtimes

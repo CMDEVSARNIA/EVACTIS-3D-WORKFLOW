@@ -22,6 +22,10 @@
       "reason": "XHTML namespace identifier"
     },
     {
+      "pattern": "^http://schemas\\.openxmlformats\\.org/",
+      "reason": "Office Open XML namespace identifiers in exported XLSX registers; never fetched"
+    },
+    {
       "pattern": "^https://react\\.dev/errors/",
       "reason": "Text of React production error messages; never fetched"
     },

@@ -1,0 +1,29 @@
+{
+  "name": "@evactis-3dworkflow/print",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Printed evacuation plans (PDF) and equipment registers (CSV, XLSX, PDF) for EVACTIS 3DWORKFLOW, generated locally.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@evactis-3dworkflow/schema": "workspace:*",
+    "@pdf-lib/fontkit": "1.1.1",
+    "pdf-lib": "1.17.1"
+  },
+  "devDependencies": {
+    "@evactis-3dworkflow/brand": "workspace:*",
+    "@evactis-3dworkflow/demo-facility": "workspace:*",
+    "@types/node": "22.20.5",
+    "@types/pngjs": "6.0.5",
+    "pngjs": "7.0.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

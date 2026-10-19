@@ -8,7 +8,9 @@
  *   src/tokens.css                 CSS custom properties
  *   *.svg                          logo mark, logo lockup, product lockups
  *   svg/{icons,buttons,markers,signs}/*.svg
- *   fonts/                         bundled Inter woff2 + OFL licence
+ *   fonts/                         bundled Inter woff2 + OFL licence; fonts/print/ static
+ *                                  Inter weights for PDFs
+ *   generated/print/               sign and lockup PNGs for printed plans
  *   apps/{studio,viewer-desktop}/src-tauri/icons/   app + file-type icons
  *   apps/{studio,viewer-desktop}/src-tauri/windows/ NSIS + WiX bitmaps
  */
@@ -179,6 +181,15 @@ emit(
   readFileSync(join(pkg, 'node_modules/@fontsource/poppins/LICENSE')),
 );
 
+// Printed plans (PDF) embed fonts, and PDF fonts must be static: the same Inter in four
+// static weights (OFL, same licence file as above).
+const interStatic = join(pkg, 'node_modules/@fontsource/inter/files');
+for (const w of [400, 600, 700, 800])
+  emit(
+    `fonts/print/inter-latin-${w}-normal.woff`,
+    readFileSync(join(interStatic, `inter-latin-${w}-normal.woff`)),
+  );
+
 // ---------------------------------------------------------------------------
 // 4. Windows icons and installer bitmaps
 // ---------------------------------------------------------------------------
@@ -283,6 +294,13 @@ emit('generated/installer-preview/nsis-sidebar.png', renderSvg(nsisSidebar, 328)
 emit('generated/installer-preview/wix-banner.png', renderSvg(wixBanner, 986).png);
 emit('generated/installer-preview/wix-dialog.png', renderSvg(wixDialog, 986).png);
 emit('generated/app-icon.png', png(256));
+// Printed plans: safety signs and the product lockup as images (PDF has no SVG).
+for (const name of SIGN_NAMES)
+  emit(`generated/print/sign-${name}.png`, renderSvg(signSvg(name, 'A'), 256).png);
+emit(
+  'generated/print/product-lockup.png',
+  renderSvg(readFileSync(join(pkg, 'product-lockup.svg'), 'utf8'), 1200).png,
+);
 
 if (check) {
   if (stale.length) {
