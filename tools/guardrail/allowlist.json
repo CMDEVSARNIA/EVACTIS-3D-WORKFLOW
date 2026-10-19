@@ -30,6 +30,14 @@
       "reason": "Text of React production error messages; never fetched"
     },
     {
+      "pattern": "^https://github\\.com/ashtuchkin/iconv-lite/wiki/",
+      "reason": "Text of iconv-lite console warnings (bundled with pdf-lib's font code, Studio print chunk); never fetched"
+    },
+    {
+      "pattern": "^https://github\\.com/Hopding/pdf-lib$",
+      "reason": "pdf-lib's default PDF Producer string; packages/print overrides Producer/Creator, and it is never fetched"
+    },
+    {
       "pattern": "^https?://(ipc|asset|tauri)\\.localhost",
       "reason": "Tauri in-process IPC/asset origins on Windows (no network)"
     },

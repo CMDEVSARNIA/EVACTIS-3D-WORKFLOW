@@ -399,12 +399,15 @@ export function TourEditor({
               failedText={e.previewFailed}
               onPanoramaClick={place}
               onHotspotClick={(id) => {
+                // Equipment signs are edited in the Safety tab.
+                if (id.startsWith('equipment:')) return;
                 setHotspotId(id);
                 setMode('select');
               }}
-              onHotspotMove={(id, at) =>
-                edit(e.labels.moveHotspot, (d) => ops.moveHotspot(d, id, at), `move:${id}`)
-              }
+              onHotspotMove={(id, at) => {
+                if (!id.startsWith('equipment:'))
+                  edit(e.labels.moveHotspot, (d) => ops.moveHotspot(d, id, at), `move:${id}`);
+              }}
               onSceneChange={(id) => {
                 if (testing && id !== sceneId) {
                   setSceneId(id);

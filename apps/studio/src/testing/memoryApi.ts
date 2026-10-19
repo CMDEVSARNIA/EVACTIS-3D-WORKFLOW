@@ -82,8 +82,14 @@ export const memoryApi: StudioApi = {
     snapshot('Opened', 'auto');
     return info(name);
   },
-  openProject: async () => {
-    throw { code: 'project', message: 'not available in the test backend' };
+  // A fixture may ship a ready-made project (`./project/<name>.evxproj`, see
+  // e2e/fixtures/studio-demo.mjs); "opening" it loads that manifest.
+  openProject: async (path) => {
+    const res = await fetch(`./${path}`);
+    if (!res.ok) throw { code: 'project', message: `no project at ${path}` };
+    state.manifest = await res.text();
+    snapshot('Opened', 'auto');
+    return info(path.replace(/^.*\//, '').replace(/\.evxproj$/, ''));
   },
   saveProject: async (manifest) => {
     state.manifest = manifest;
@@ -136,7 +142,10 @@ export const memoryApi: StudioApi = {
     ffmpegRedistributable: true,
   }),
   pickFolder: async () => '/e2e',
-  pickProject: async () => null,
+  pickProject: async () => {
+    const res = await fetch(`./${ROOT}/project.json`);
+    return res.ok ? `${ROOT}/${((await res.json()) as { file: string }).file}` : null;
+  },
   // Every test file of that kind not yet in the library, in fixture order.
   pickMedia: async (_title, _filter, purpose = 'scene') =>
     (await fixtures())

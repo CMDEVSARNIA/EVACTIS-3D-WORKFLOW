@@ -1,7 +1,13 @@
 /** Editor strings (EN/FR), merged into STRINGS as `t.editor` (i18n.ts). */
 export const EDITOR = {
   en: {
-    tabs: { tour: 'Tour', floors: 'Floors', media: 'Media', versions: 'Versions' },
+    tabs: {
+      tour: 'Tour',
+      floors: 'Floors',
+      safety: 'Safety',
+      media: 'Media',
+      versions: 'Versions',
+    },
     tabsLabel: 'Project sections',
     undo: 'Undo',
     redo: 'Redo',
@@ -202,7 +208,13 @@ export const EDITOR = {
     },
   },
   fr: {
-    tabs: { tour: 'Visite', floors: 'Étages', media: 'Médias', versions: 'Versions' },
+    tabs: {
+      tour: 'Visite',
+      floors: 'Étages',
+      safety: 'Sécurité',
+      media: 'Médias',
+      versions: 'Versions',
+    },
     tabsLabel: 'Sections du projet',
     undo: 'Annuler',
     redo: 'Rétablir',

@@ -24,6 +24,7 @@ export function Preview({
   resolveAsset,
   viewerRef,
   failedText,
+  routeId = null,
   ...handlers
 }: PreviewHandlers & {
   env: Environment;
@@ -35,13 +36,15 @@ export function Preview({
   /** Receives the Viewer (or null), so the editor can read the current view. */
   viewerRef?: (v: Viewer | null) => void;
   failedText: string;
+  /** An evacuation route to show (drafts included in editing mode). */
+  routeId?: string | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const viewer = useRef<Viewer | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Latest props for the long-lived viewer callbacks and the async start-up.
-  const latest = useRef({ env, sceneId, selectedHotspot, lang, handlers, viewerRef });
-  latest.current = { env, sceneId, selectedHotspot, lang, handlers, viewerRef };
+  const latest = useRef({ env, sceneId, selectedHotspot, lang, handlers, viewerRef, routeId });
+  latest.current = { env, sceneId, selectedHotspot, lang, handlers, viewerRef, routeId };
 
   // One viewer per mode; switching editing on/off rebuilds it.
   useEffect(() => {
@@ -76,6 +79,7 @@ export function Preview({
           if (latest.current.sceneId !== v.sceneId)
             void v.goToScene(latest.current.sceneId, { transition: { kind: 'cut' } });
           if (editing) v.selectHotspot(latest.current.selectedHotspot);
+          if (latest.current.routeId) v.showRoute(latest.current.routeId);
         });
       })
       .catch((e: unknown) => !gone && setError(e instanceof Error ? e.message : String(e)));
@@ -102,6 +106,13 @@ export function Preview({
   useEffect(() => {
     if (editing) viewer.current?.selectHotspot(selectedHotspot);
   }, [selectedHotspot, editing]);
+
+  useEffect(() => {
+    const v = viewer.current;
+    if (!v) return;
+    if (routeId) v.showRoute(routeId);
+    else v.hideRoute();
+  }, [routeId, env]);
 
   useEffect(() => {
     const v = viewer.current;

@@ -488,6 +488,150 @@ textarea.evx-field {
   stroke: var(--evx-fire-red);
 }
 
+/* Safety tab: preview and plan side by side when there is room. */
+.evx-safety-views {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+  align-items: start;
+  gap: 1rem;
+}
+@media (max-width: 1280px) {
+  .evx-safety-views {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.evx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  inline-size: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  padding: 0.4rem 0.5rem;
+  text-align: start;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.evx-row:hover {
+  border-color: var(--evx-rule);
+}
+.evx-row[aria-current='true'] {
+  border-color: var(--evx-accent);
+  background: var(--evx-panel);
+}
+.evx-row:focus-visible {
+  outline: 3px solid var(--evx-accent);
+  outline-offset: 2px;
+}
+.evx-row__name {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.evx-row > .evx-badge {
+  flex: none;
+}
+
+/* Safety tab plan: routes, the line being drawn, equipment signs and postings. */
+.evx-safety-plan .evx-safety-plan__route {
+  fill: none;
+  stroke: var(--evx-safe-green);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.75;
+}
+.evx-safety-plan .evx-safety-plan__route--secondary {
+  stroke-dasharray: 3 2;
+}
+.evx-safety-plan .evx-safety-plan__route--on {
+  opacity: 1;
+}
+.evx-safety-plan .evx-safety-plan__draft {
+  fill: none;
+  stroke: var(--evx-navy);
+  stroke-dasharray: 2 1.5;
+}
+.evx-safety-plan .evx-safety-plan__draft-point {
+  fill: var(--evx-navy);
+}
+.evx-safety-plan .evx-safety-plan__scene {
+  fill: #fff;
+  stroke: var(--evx-navy);
+}
+.evx-safety-plan__item,
+.evx-safety-plan__posting {
+  position: absolute;
+  inline-size: 1.9rem;
+  block-size: 1.9rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+.evx-safety-plan > svg[data-mode='place'] ~ .evx-safety-plan__item,
+.evx-safety-plan > svg[data-mode='place'] ~ .evx-safety-plan__posting {
+  pointer-events: none;
+}
+.evx-safety-plan__item > svg,
+.evx-safety-plan__item > .evx-symbol {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.evx-safety-plan__item[data-confirmed='false'] {
+  outline: 2px dashed var(--evx-warning-yellow);
+  outline-offset: 2px;
+}
+.evx-safety-plan__item[aria-pressed='true'],
+.evx-safety-plan__posting[aria-pressed='true'] {
+  outline: 3px solid var(--evx-green-strong);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
+}
+.evx-safety-plan__item:focus-visible,
+.evx-safety-plan__posting:focus-visible {
+  outline: 3px solid var(--evx-navy);
+  outline-offset: 3px;
+}
+/* Posting: a navy disc with a pointer showing which way the reader faces. */
+.evx-safety-plan__posting::before {
+  content: '';
+  position: absolute;
+  inset: 0.35rem;
+  border-radius: 50%;
+  background: var(--evx-navy);
+  box-shadow: 0 0 0 2px #fff;
+}
+.evx-safety-plan__posting::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -0.1rem;
+  border: 0.4rem solid transparent;
+  border-bottom: 0.55rem solid var(--evx-navy);
+  border-top: 0;
+  transform: translateX(-50%);
+  transform-origin: 50% 1.05rem;
+  rotate: var(--facing, 0deg);
+}
+.evx-safety-plan__posting:not([style*='--facing'])::after {
+  display: none;
+}
+.evx-confirm {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 0.5rem;
+}
+.evx-confirm[data-confirmed='false'] {
+  border-color: var(--evx-warning-yellow);
+}
+.evx-badge--warn {
+  background: var(--evx-warning-yellow);
+  color: #1a1a1a;
+}
+
 .evx-version {
   display: flex;
   flex-wrap: wrap;

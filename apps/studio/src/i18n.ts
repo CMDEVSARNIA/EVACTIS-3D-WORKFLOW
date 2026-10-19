@@ -1,3 +1,4 @@
+import { SAFETY } from './editor/safetyStrings.ts';
 import { EDITOR } from './editor/strings.ts';
 
 export const STRINGS = {
@@ -105,6 +106,7 @@ export const STRINGS = {
     noFfmpeg: 'Video import is unavailable: the bundled video converter was not found.',
     seconds: 's',
     editor: EDITOR.en,
+    safety: SAFETY.en,
   },
   fr: {
     eyebrow: 'Plans sûrs . Chemins clairs',
@@ -214,6 +216,7 @@ export const STRINGS = {
     noFfmpeg: 'Importation vidéo indisponible : le convertisseur vidéo fourni est introuvable.',
     seconds: 's',
     editor: EDITOR.fr,
+    safety: SAFETY.fr,
   },
 };
 

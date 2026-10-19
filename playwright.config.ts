@@ -68,5 +68,12 @@ export default defineConfig({
       url: `http://127.0.0.1:${PORT + 5}/index.html`,
       reuseExistingServer: !process.env.CI,
       timeout: 300_000,
+    })
+    .concat({
+      // Studio's browser test build with the demo facility as an open-able project.
+      command: `node e2e/fixtures/studio-demo.mjs && node tools/static-server.mjs target/e2e-studio-demo ${PORT + 6}`,
+      url: `http://127.0.0.1:${PORT + 6}/index.html`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 300_000,
     }),
 });
