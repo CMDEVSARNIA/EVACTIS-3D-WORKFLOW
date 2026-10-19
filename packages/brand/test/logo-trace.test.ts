@@ -13,7 +13,9 @@ const { Resvg } = require('@resvg/resvg-js') as typeof import('@resvg/resvg-js')
  */
 describe('logo mark trace', () => {
   it('matches brand/evactis-logo-mark.png (IoU ≥ 0.99)', () => {
-    const ref = PNG.sync.read(readFileSync(new URL('../../../brand/evactis-logo-mark.png', import.meta.url)));
+    const ref = PNG.sync.read(
+      readFileSync(new URL('../../../brand/evactis-logo-mark.png', import.meta.url)),
+    );
     // The mark sits at (485, 209) in the 1536 × 1024 reference.
     const svg = logoMarkSvg().replace(
       /viewBox="[^"]*"/,
@@ -32,5 +34,5 @@ describe('logo mark trace', () => {
     }
     expect(inter / union).toBeGreaterThanOrEqual(0.99);
     expect(MARK.width / MARK.height).toBeCloseTo(628.3 / 564, 5);
-  });
+  }, 60_000); // Rasterises a 1536 × 1024 SVG: seconds on a busy CI runner.
 });
