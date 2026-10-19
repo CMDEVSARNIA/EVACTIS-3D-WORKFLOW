@@ -17,3 +17,4 @@ accepted record; supersede it with a new one.
 | [0010](0010-local-media-pipeline.md) | Local media pipeline: Rust tiler, content-hash library, LGPL FFmpeg sidecar | Accepted |
 | [0011](0011-studio-editing.md) | Studio editing: whole-document undo, validated autosave, manifest versions, raster floor plans, suggested links | Accepted |
 | [0012](0012-safety-layer.md) | Safety layer: confirmed content only, plan-drawn routes, local printing and exports | Accepted |
+| [0013](0013-rich-features.md) | Rich features: one panorama shader, adaptive HDR map, local media, pdf.js without a worker | Accepted |
