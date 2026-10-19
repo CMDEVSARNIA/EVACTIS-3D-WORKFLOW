@@ -6,7 +6,12 @@ import type {
   Scene,
   Transition,
 } from '@evactis-3dworkflow/schema';
-import { localize, parseEnvironment, routesForScene } from '@evactis-3dworkflow/schema';
+import {
+  localize,
+  parseEnvironment,
+  routeHeading,
+  routesForScene,
+} from '@evactis-3dworkflow/schema';
 import {
   AssetError,
   baseResolver,
@@ -340,6 +345,10 @@ export class Viewer {
       : (this.routeChoice()[0] ?? null);
     this.route = route;
     this.refreshRoute();
+    // Face the way to walk, so the arrows are in front of the reader (not while authoring).
+    const heading =
+      route && this.scene && !this.options.editing && routeHeading(route, this.scene.id);
+    if (heading) void this.lookAt({ yaw: heading.yaw, pitch: heading.pitch });
     if (!route && !routeId)
       void this.dialogs.show('', [this.dialogs.text(uiStrings(this.lang).noRoute)]);
     this.events.emit('routechange', {

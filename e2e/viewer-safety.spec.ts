@@ -99,7 +99,10 @@ test.describe('safety layer', () => {
   test('chevrons animate along the floor towards the exit, scene after scene', async ({ page }) => {
     await openDemo(page, '?scene=office');
     await page.evaluate(() => window.viewer.showRoute());
-    // Office: the route leaves by the south door (yaw 180).
+    // Office: the route leaves by the south door (yaw 180); the view turns to face it.
+    await expect
+      .poll(() => page.evaluate(() => Math.abs(Math.abs(window.viewer.getView().yaw) - 180)))
+      .toBeLessThan(2);
     await page.evaluate(() => window.viewer.setView({ yaw: 180, pitch: -20, fov: 90 }));
     await idle(page);
     expect(Math.abs(await trailOffset(page))).toBeLessThan(8);
