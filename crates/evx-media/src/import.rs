@@ -47,6 +47,9 @@ pub enum Purpose {
     #[default]
     Scene,
     FloorPlan,
+    Audio,
+    Document,
+    Photo,
 }
 
 #[derive(Debug, Clone)]
@@ -103,6 +106,9 @@ pub fn import_file(
     let probed = match opts.purpose {
         Purpose::Scene => probe::probe(src)?,
         Purpose::FloorPlan => probe::probe_plan(src)?,
+        Purpose::Audio => probe::probe_audio(src)?,
+        Purpose::Document => probe::probe_document(src)?,
+        Purpose::Photo => probe::probe_photo(src)?,
     };
     if let Probe::Panorama {
         hdr: true, width, ..
@@ -171,6 +177,7 @@ pub fn import_file(
             height: None,
             layout: None,
             hdr: false,
+            luminance: None,
             duration_sec: None,
             video_codec: None,
             splat_format: None,
@@ -252,8 +259,19 @@ pub fn import_file(
                         "low-resolution: {width}×{height} px; at least {PLAN_MIN_SIDE} px on the long side is recommended"
                     ));
                 }
-                plan(&source, &staging, &id, opts, &report, &mut rec)?;
+                fitted(&source, &staging, &id, "plan", opts, &report, &mut rec)?;
             }
+            Probe::Photo { width, height } => {
+                rec.kind = AssetKind::Photo;
+                if (*width).max(*height) < 800 {
+                    rec.warnings.push(format!(
+                        "low-resolution: {width}×{height} px; at least 800 px on the long side is recommended"
+                    ));
+                }
+                fitted(&source, &staging, &id, "photo", opts, &report, &mut rec)?;
+            }
+            Probe::Audio { .. } => rec.kind = AssetKind::Audio,
+            Probe::Document => rec.kind = AssetKind::Document,
         }
         if cancel.load(Ordering::Relaxed) {
             return Err(MediaError::Cancelled);
@@ -332,16 +350,21 @@ fn decode(path: &Path) -> Result<DynamicImage> {
     Ok(reader.decode()?)
 }
 
-/// Reinhard tone mapping with automatic exposure (log-average luminance), sRGB output.
-pub fn tonemap(img: &image::Rgb32FImage) -> RgbImage {
+/// Log-average luminance: the exposure an HDR panorama is tone-mapped for.
+pub fn log_average(img: &image::Rgb32FImage) -> f64 {
     let lum = |p: &image::Rgb<f32>| 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
     let n = (img.width() as f64) * (img.height() as f64);
-    let log_avg = (img
-        .pixels()
+    (img.pixels()
         .map(|p| (1e-4 + lum(p) as f64).ln())
         .sum::<f64>()
         / n)
-        .exp();
+        .exp()
+}
+
+/// Reinhard tone mapping with automatic exposure (log-average luminance), sRGB output.
+pub fn tonemap(img: &image::Rgb32FImage) -> RgbImage {
+    let lum = |p: &image::Rgb<f32>| 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2];
+    let log_avg = log_average(img);
     let key = 0.18 / log_avg.max(1e-6);
     let srgb = |c: f64| {
         let c = c.clamp(0.0, 1.0);
@@ -414,7 +437,13 @@ fn panorama(
     report(Stage::Decoding, 0, 1);
     let decoded = decode(source)?;
     let rgb = if rec.hdr {
-        tonemap(&decoded.to_rgb32f())
+        let hdr = decoded.to_rgb32f();
+        if layout == ImageLayout::Mono {
+            luminance_map(&hdr, log_average(&hdr))
+                .save_with_format(staging.join("luminance.png"), image::ImageFormat::Png)?;
+            rec.luminance = Some(library::rel(id, "luminance.png"));
+        }
+        tonemap(&hdr)
     } else {
         decoded.to_rgb8()
     };
@@ -443,12 +472,14 @@ fn panorama(
     Ok(())
 }
 
-/// Writes the plan image (PNG for PNG/TIFF sources, which are usually line art; JPEG for
-/// photos and scans) and a thumbnail, both keeping the aspect ratio.
-fn plan(
+/// Writes the display image `<name>.png|jpg` (PNG for PNG/TIFF sources, which are usually
+/// line art; JPEG for photos and scans), fitted in 4096 px, and a thumbnail, both keeping
+/// the aspect ratio. Used for floor plans and album photos.
+fn fitted(
     source: &Path,
     staging: &Path,
     id: &str,
+    stem: &str,
     opts: &ImportOptions,
     report: &(dyn Fn(Stage, u64, u64) + Sync),
     rec: &mut AssetRecord,
@@ -480,18 +511,53 @@ fn plan(
         Some("png" | "tif" | "tiff")
     );
     let name = if lossless {
-        plan.save_with_format(staging.join("plan.png"), image::ImageFormat::Png)?;
-        "plan.png"
+        let n = format!("{stem}.png");
+        plan.save_with_format(staging.join(&n), image::ImageFormat::Png)?;
+        n
     } else {
-        tiles::encode_jpeg(&plan, &staging.join("plan.jpg"), opts.jpeg_quality.max(92))?;
-        "plan.jpg"
+        let n = format!("{stem}.jpg");
+        tiles::encode_jpeg(&plan, &staging.join(&n), opts.jpeg_quality.max(92))?;
+        n
     };
     let thumb = fit(&plan, opts.thumb_width);
     tiles::encode_jpeg(&thumb, &staging.join("thumb.jpg"), opts.jpeg_quality)?;
     rec.width = Some(plan.width());
     rec.height = Some(plan.height());
-    rec.preview = Some(library::rel(id, name));
+    rec.preview = Some(library::rel(id, &name));
     rec.thumbnail = Some(library::rel(id, "thumb.jpg"));
     report(Stage::Previews, 1, 1);
     Ok(())
+}
+
+/// Luminance map width (height is half): coarse is enough to meter a field of view.
+pub const LUMINANCE_WIDTH: u32 = 128;
+
+/// Log-luminance map of an HDR panorama for the Viewer's adaptive exposure: greyscale,
+/// v = (log2(L / log_avg) + 8) / 16 × 255, i.e. ±8 stops around the average the tiles
+/// were tone-mapped for.
+pub fn luminance_map(img: &image::Rgb32FImage, log_avg: f64) -> image::GrayImage {
+    let (w, h) = (LUMINANCE_WIDTH, LUMINANCE_WIDTH / 2);
+    let (sw, sh) = (
+        img.width() as f64 / w as f64,
+        img.height() as f64 / h as f64,
+    );
+    image::GrayImage::from_fn(w, h, |x, y| {
+        let (x0, y0) = ((x as f64 * sw) as u32, (y as f64 * sh) as u32);
+        let (x1, y1) = (
+            (((x + 1) as f64 * sw) as u32).clamp(x0 + 1, img.width()),
+            (((y + 1) as f64 * sh) as u32).clamp(y0 + 1, img.height()),
+        );
+        // Step through large blocks; a few hundred samples per texel are plenty.
+        let step = (((x1 - x0) * (y1 - y0)) as f64 / 256.0).sqrt().max(1.0) as usize;
+        let (mut sum, mut n) = (0.0f64, 0.0f64);
+        for yy in (y0..y1).step_by(step) {
+            for xx in (x0..x1).step_by(step) {
+                let p = img.get_pixel(xx, yy);
+                sum += (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) as f64;
+                n += 1.0;
+            }
+        }
+        let stops = ((sum / n).max(1e-6) / log_avg.max(1e-6)).log2();
+        image::Luma([(((stops + 8.0) / 16.0) * 255.0).round().clamp(0.0, 255.0) as u8])
+    })
 }

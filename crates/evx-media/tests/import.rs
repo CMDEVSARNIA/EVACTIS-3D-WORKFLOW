@@ -315,6 +315,16 @@ fn hdr_panoramas_are_tone_mapped() {
         dark < bright && bright < 255 && dark > 0,
         "dark {dark} bright {bright}"
     );
+    // The luminance map for adaptive exposure: the bright half many stops above the
+    // dark half, both around the log average (128 = 0 stops).
+    let lum = image::open(f.root.join(rec.luminance.expect("luminance map")))
+        .unwrap()
+        .to_luma8();
+    assert_eq!(lum.dimensions(), (128, 64));
+    let (d, b) = (lum.get_pixel(10, 32).0[0], lum.get_pixel(120, 32).0[0]);
+    assert!(d < 128 && b > 128, "dark {d} bright {b}");
+    // 40 / 0.05 = 800× = 9.6 stops apart (16 stops span 255 levels).
+    assert!(((b as f64 - d as f64) / 255.0 * 16.0 - 9.64).abs() < 0.2);
 }
 
 #[test]
@@ -506,4 +516,76 @@ fn imports_floor_plans_scaled_with_their_aspect_ratio() {
         "{err}"
     );
     assert_eq!(media_entries(&f.root).len(), 2);
+}
+
+#[test]
+fn imports_sounds_documents_and_photos_checked_by_content() {
+    let f = fixture();
+    let opts = |purpose| ImportOptions {
+        purpose,
+        ..ImportOptions::default()
+    };
+
+    // A WAV sound: kept as imported.
+    let wav = f.inbox.join("Fire alarm.wav");
+    let mut bytes = b"RIFF\x24\x00\x00\x00WAVEfmt ".to_vec();
+    bytes.extend([0u8; 32]);
+    std::fs::write(&wav, &bytes).unwrap();
+    let rec = run(&f, &wav, &opts(Purpose::Audio)).0.unwrap();
+    assert_eq!(rec.kind, AssetKind::Audio);
+    assert!(rec.source.ends_with("/source.wav"));
+    assert_eq!(std::fs::read(f.root.join(&rec.source)).unwrap(), bytes);
+    // Renamed to .wav but not a WAV: refused, nothing left behind.
+    let fake = f.inbox.join("not really.wav");
+    std::fs::write(&fake, b"hello world, not audio").unwrap();
+    let before = media_entries(&f.root);
+    let err = run(&f, &fake, &opts(Purpose::Audio)).0.unwrap_err();
+    assert_eq!(err.code(), "invalid");
+    assert_eq!(media_entries(&f.root), before);
+    assert_eq!(
+        run(&f, &f.inbox.join("x.exe"), &opts(Purpose::Audio))
+            .0
+            .unwrap_err()
+            .code(),
+        "invalid"
+    );
+
+    // A PDF document.
+    let pdf = f.inbox.join("Procedures.pdf");
+    std::fs::write(
+        &pdf,
+        b"%PDF-1.7\n%\xe2\xe3\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n",
+    )
+    .unwrap();
+    let rec = run(&f, &pdf, &opts(Purpose::Document)).0.unwrap();
+    assert_eq!(rec.kind, AssetKind::Document);
+    assert!(rec.source.ends_with("/source.pdf"));
+    let not_pdf = f.inbox.join("Report.pdf");
+    std::fs::write(&not_pdf, b"<html>not a pdf</html>").unwrap();
+    assert!(run(&f, &not_pdf, &opts(Purpose::Document))
+        .0
+        .unwrap_err()
+        .to_string()
+        .contains("not a valid PDF"));
+    // Word files need exporting first.
+    let docx = f.inbox.join("Procedures.docx");
+    std::fs::write(&docx, b"PK").unwrap();
+    assert!(run(&f, &docx, &opts(Purpose::Document))
+        .0
+        .unwrap_err()
+        .to_string()
+        .contains("export a PDF first"));
+
+    // A photo: any aspect ratio, fitted and thumbnailed.
+    let photo = f.inbox.join("Entrance.jpg");
+    RgbImage::from_pixel(1200, 800, Rgb([120, 90, 60]))
+        .save(&photo)
+        .unwrap();
+    let rec = run(&f, &photo, &opts(Purpose::Photo)).0.unwrap();
+    assert_eq!(rec.kind, AssetKind::Photo);
+    assert_eq!((rec.width, rec.height), (Some(1200), Some(800)));
+    assert!(rec.preview.unwrap().ends_with("/photo.jpg"));
+    assert!(rec.thumbnail.is_some());
+    assert!(rec.warnings.is_empty());
+    assert_eq!(library::list(&f.root).unwrap().assets.len(), 3);
 }

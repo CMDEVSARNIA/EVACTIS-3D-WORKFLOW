@@ -36,6 +36,113 @@ pub enum Probe {
         width: u32,
         height: u32,
     },
+    /// An album photo: any aspect ratio.
+    Photo {
+        width: u32,
+        height: u32,
+    },
+    Audio {
+        format: String,
+    },
+    /// A PDF document.
+    Document,
+}
+
+/// Largest sound or document accepted (an hour of uncompressed stereo is ~600 MB).
+pub const MAX_FILE_BYTES: u64 = 1 << 30;
+
+fn head(path: &Path, n: usize) -> Result<Vec<u8>> {
+    use std::io::Read;
+    let len = std::fs::metadata(path)?.len();
+    if len > MAX_FILE_BYTES {
+        return Err(MediaError::Invalid(format!(
+            "the file is {} MB; the maximum is {} MB",
+            len >> 20,
+            MAX_FILE_BYTES >> 20
+        )));
+    }
+    let mut buf = vec![0u8; n];
+    let mut f = std::fs::File::open(path)?;
+    let mut read = 0;
+    while read < n {
+        let k = f.read(&mut buf[read..])?;
+        if k == 0 {
+            break;
+        }
+        read += k;
+    }
+    buf.truncate(read);
+    Ok(buf)
+}
+
+/// Sounds the Viewer's webviews play: WAV, MP3, Ogg (Vorbis/Opus), M4A/AAC, FLAC.
+/// Checked by content, not just the extension.
+pub fn probe_audio(path: &Path) -> Result<Probe> {
+    let e = ext(path);
+    let h = head(path, 16)?;
+    let ok = match e.as_str() {
+        "wav" => h.len() >= 12 && &h[0..4] == b"RIFF" && &h[8..12] == b"WAVE",
+        "mp3" => h.starts_with(b"ID3") || (h.len() >= 2 && h[0] == 0xFF && h[1] & 0xE0 == 0xE0),
+        "ogg" | "oga" | "opus" => h.starts_with(b"OggS"),
+        "m4a" | "aac" => {
+            (h.len() >= 8 && &h[4..8] == b"ftyp")
+                || (h.len() >= 2 && h[0] == 0xFF && h[1] & 0xF6 == 0xF0)
+        }
+        "flac" => h.starts_with(b"fLaC"),
+        "" => return Err(MediaError::Invalid("the file has no extension".into())),
+        other => {
+            return Err(MediaError::Invalid(format!(
+                ".{other} files are not supported as sounds (use WAV, MP3, OGG, M4A or FLAC)"
+            )))
+        }
+    };
+    if !ok {
+        return Err(MediaError::Invalid(format!(
+            "this is not a valid .{e} sound file"
+        )));
+    }
+    Ok(Probe::Audio { format: e })
+}
+
+/// PDF documents, checked by their header.
+pub fn probe_document(path: &Path) -> Result<Probe> {
+    let e = ext(path);
+    if e != "pdf" {
+        return Err(MediaError::Invalid(if e.is_empty() {
+            "the file has no extension".into()
+        } else {
+            format!(".{e} files are not supported as documents: export a PDF first")
+        }));
+    }
+    // The header may follow a little junk; readers accept it within the first 1 KB.
+    let h = head(path, 1024)?;
+    if !h.windows(5).any(|w| w == b"%PDF-") {
+        return Err(MediaError::Invalid("this is not a valid PDF file".into()));
+    }
+    Ok(Probe::Document)
+}
+
+/// Album photos: JPG, PNG, WebP or TIFF, any aspect ratio.
+pub fn probe_photo(path: &Path) -> Result<Probe> {
+    let e = ext(path);
+    if !matches!(e.as_str(), "jpg" | "jpeg" | "png" | "webp" | "tif" | "tiff") {
+        return Err(MediaError::Invalid(if e.is_empty() {
+            "the file has no extension".into()
+        } else {
+            format!(".{e} files are not supported as photos")
+        }));
+    }
+    let reader = ImageReader::open(path)?.with_guessed_format()?;
+    reader
+        .format()
+        .ok_or_else(|| MediaError::Invalid("not a readable image".into()))?;
+    let (width, height) = reader.into_dimensions()?;
+    if width.max(height) > MAX_PANORAMA_WIDTH {
+        return Err(MediaError::Invalid(format!(
+            "the photo is {width}×{height} px; the maximum is {MAX_PANORAMA_WIDTH} px per side"
+        )));
+    }
+    Ok(Probe::Photo { width, height })
 }
 
 /// Largest panorama accepted (32K × 16K); beyond this decoding needs > 1.5 GB RAM.

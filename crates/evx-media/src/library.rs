@@ -38,6 +38,12 @@ pub enum AssetKind {
     /// A floor plan. `preview` is the plan image scenes and calibration points refer to,
     /// and `width`/`height` are its size (the source may be larger).
     FloorPlan,
+    /// A sound (alarm, narration, ambience). `source` is played as imported.
+    Audio,
+    /// A PDF document (procedures, data sheets). `source` is the file as imported.
+    Document,
+    /// A photo for albums and popups. `preview` is the display image (≤ 4096 px).
+    Photo,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -71,6 +77,9 @@ pub struct AssetRecord {
     pub layout: Option<ImageLayout>,
     #[serde(default)]
     pub hdr: bool,
+    /// HDR panoramas: log-luminance map for the Viewer's adaptive exposure.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub luminance: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub duration_sec: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -237,6 +246,7 @@ mod tests {
             height: None,
             layout: None,
             hdr: false,
+            luminance: None,
             duration_sec: None,
             video_codec: None,
             splat_format: None,

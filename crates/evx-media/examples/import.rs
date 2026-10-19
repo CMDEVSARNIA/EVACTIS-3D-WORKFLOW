@@ -9,6 +9,7 @@
 //! cargo run -p evx-media --example import -- --write-room <width> <seed> <file.jpg>
 //! cargo run -p evx-media --example import -- --write-plan <width> <height> <seed> <file.png>
 //! cargo run -p evx-media --example import -- --plan <file> <project-root>
+//! cargo run -p evx-media --example import -- --audio|--document|--photo <file> <project-root>
 //! ```
 //!
 //! `--compass` first writes an equirectangular test panorama whose colour encodes the
@@ -128,6 +129,19 @@ fn main() {
             .expect("write plan");
             return;
         }
+        [flag, file, root] if flag == "--audio" || flag == "--document" || flag == "--photo" => {
+            let purpose = match flag.as_str() {
+                "--audio" => Purpose::Audio,
+                "--document" => Purpose::Document,
+                _ => Purpose::Photo,
+            };
+            let opts = ImportOptions {
+                purpose,
+                ..ImportOptions::default()
+            };
+            run(Path::new(file), Path::new(root), &opts);
+            return;
+        }
         [flag, file, root] if flag == "--plan" => {
             let opts = ImportOptions {
                 purpose: Purpose::FloorPlan,
@@ -139,7 +153,7 @@ fn main() {
         [file, root] => (PathBuf::from(file), PathBuf::from(root)),
         _ => {
             eprintln!(
-                "usage: import <file> <project-root> | --compass <width> <project-root> | --plan <file> <project-root>"
+                "usage: import <file> <project-root> | --compass <width> <project-root> | --plan|--audio|--document|--photo <file> <project-root>"
             );
             std::process::exit(2);
         }
