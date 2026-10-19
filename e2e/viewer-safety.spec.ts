@@ -53,11 +53,14 @@ test.describe('safety layer', () => {
 
     // On the plan: the fire department connection and key box outside the entrance.
     const planItems = async () => {
-      void page.evaluate(() => window.viewer.showFloorPlan('f1'));
+      // Resolves when the dialog closes, so it is not awaited here.
+      const shown = page.evaluate(() => window.viewer.showFloorPlan('f1'));
+      await expect(page.locator('.evx-viewer__plan-item').first()).toBeVisible();
       const ids = await page
         .locator('.evx-viewer__plan-item')
         .evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.equipmentId!));
       await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+      await shown;
       return ids;
     };
     const frPlan = await planItems();
