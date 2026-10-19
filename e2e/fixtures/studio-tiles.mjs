@@ -33,6 +33,12 @@ const env = JSON.parse(readFileSync(join(demo, 'environment.json'), 'utf8'));
 env.id = 'studio-tiles';
 env.buildings = [];
 env.hotspots = [];
+// The safety layer points at the demo's scenes and floors, which this fixture drops.
+env.equipment = [];
+env.equipmentTypes = [];
+env.routes = [];
+env.zones = [];
+env.postings = [];
 env.variables = [];
 env.initialSceneId = 'compass';
 env.scenes = [
