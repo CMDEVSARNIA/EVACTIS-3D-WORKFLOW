@@ -33,7 +33,7 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
   const layerIds = ids(env.liveLayers, 'liveLayers');
   ids(env.animatedRegions, 'animatedRegions');
   const audioIds = ids(env.audio, 'audio');
-  ids(env.albums, 'albums');
+  const albumIds = ids(env.albums, 'albums');
   const customTypeIds = ids(env.equipmentTypes, 'equipmentTypes');
   const equipmentIds = ids(env.equipment, 'equipment');
   const routeIds = ids(env.routes, 'routes');
@@ -104,6 +104,13 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
           add([...path, 'stateId'], `Unknown state "${a.stateId}" in live layer "${layer.id}"`);
         return;
       }
+      case 'openAlbum': {
+        ref(albumIds, a.albumId, [...path, 'albumId'], 'album');
+        const album = env.albums.find((x) => x.id === a.albumId);
+        if (album && a.start >= album.items.length)
+          add([...path, 'start'], `Album "${album.id}" has ${album.items.length} photo(s)`);
+        return;
+      }
       case 'openUrl':
       case 'askQuestion':
       case 'lookAt':
@@ -124,6 +131,13 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
     refAudiences(h.audienceIds, [...p, 'audienceIds']);
     checkCondition(h.condition, [...p, 'condition']);
     h.actions.forEach((a, j) => checkAction(a, [...p, 'actions', j]));
+    if (h.timeRange) {
+      if (h.timeRange.end <= h.timeRange.start)
+        add([...p, 'timeRange'], 'The end time must be after the start time');
+      const scene = env.scenes.find((x) => x.id === h.sceneId);
+      if (scene && scene.media.type !== 'video360')
+        add([...p, 'timeRange'], 'Timed hotspots belong to 360° video scenes');
+    }
   });
 
   env.liveLayers.forEach((l, i) => {
@@ -137,12 +151,15 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
     });
   });
 
-  env.animatedRegions.forEach((r, i) =>
-    ref(sceneIds, r.sceneId, ['animatedRegions', i, 'sceneId'], 'scene'),
-  );
-  env.audio.forEach((a, i) =>
-    a.sceneIds.forEach((s, j) => ref(sceneIds, s, ['audio', i, 'sceneIds', j], 'scene')),
-  );
+  env.animatedRegions.forEach((r, i) => {
+    ref(sceneIds, r.sceneId, ['animatedRegions', i, 'sceneId'], 'scene');
+    checkCondition(r.condition, ['animatedRegions', i, 'condition']);
+  });
+  env.audio.forEach((a, i) => {
+    a.sceneIds.forEach((s, j) => ref(sceneIds, s, ['audio', i, 'sceneIds', j], 'scene'));
+    if (a.kind === 'spatial' && !a.position)
+      add(['audio', i, 'position'], 'A spatial sound needs a position in the panorama');
+  });
   env.autopilot?.sceneOrder.forEach((s, i) =>
     ref(sceneIds, s, ['autopilot', 'sceneOrder', i], 'scene'),
   );

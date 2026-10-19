@@ -77,6 +77,11 @@ export const SceneMediaSchema = z.discriminatedUnion('type', [
     preview: AssetPathSchema.optional(),
     tiles: TileSetSchema.optional(),
     hdr: z.boolean().default(false),
+    /**
+     * HDR sources: equirectangular greyscale PNG of log2 luminance relative to the
+     * tone-mapped average, (v / 255) × 16 − 8 stops. Drives adaptive exposure.
+     */
+    luminance: AssetPathSchema.optional(),
   }),
   z.object({
     type: z.literal('equirect-stereo'),
@@ -198,6 +203,8 @@ export const AnimatedRegionSchema = z.object({
   polygon: z.array(SphericalSchema).min(3),
   source: AssetPathSchema,
   loop: z.boolean().default(true),
+  /** Shown only while the condition holds (e.g. a strobe while the alarm sounds). */
+  condition: ConditionSchema.optional(),
 });
 
 export const AudioSchema = z.object({

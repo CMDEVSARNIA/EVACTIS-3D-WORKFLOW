@@ -267,3 +267,50 @@ describe('security', () => {
     expect(z.config().jitless).toBe(true);
   });
 });
+
+describe('rich content references (Phase 6)', () => {
+  const base = (): EnvironmentInput => {
+    const env = sample();
+    return env;
+  };
+  const problems = (env: EnvironmentInput) => {
+    const r = parseEnvironment(env);
+    return r.success
+      ? []
+      : 'issues' in r.error
+        ? r.error.issues.map((i) => i.message)
+        : [r.error.message];
+  };
+
+  it('requires a position for spatial sounds', () => {
+    const env = base();
+    env.audio = [
+      {
+        id: 'alarm',
+        name: T('Alarm', 'Alarme'),
+        kind: 'spatial',
+        source: 'media/a.wav',
+        sceneIds: [],
+      },
+    ];
+    expect(problems(env)).toContain('A spatial sound needs a position in the panorama');
+  });
+
+  it('only allows timed hotspots on 360° video scenes, with an end after the start', () => {
+    const env = base();
+    const h = env.hotspots![0]!;
+    h.timeRange = { start: 5, end: 2 };
+    const p = problems(env);
+    expect(p).toContain('The end time must be after the start time');
+    expect(p).toContain('Timed hotspots belong to 360° video scenes');
+  });
+
+  it('checks album references and start photo', () => {
+    const env = base();
+    env.albums = [{ id: 'pics', name: T('Pics', 'Photos'), items: [{ source: 'media/1.jpg' }] }];
+    env.hotspots![0]!.actions = [{ type: 'openAlbum', albumId: 'pics', start: 3 }];
+    expect(problems(env)).toContain('Album "pics" has 1 photo(s)');
+    env.hotspots![0]!.actions = [{ type: 'openAlbum', albumId: 'nope' }];
+    expect(problems(env)).toContain('Unknown album "nope"');
+  });
+});

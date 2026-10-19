@@ -139,6 +139,13 @@ export const ActionSchema = z.discriminatedUnion('type', [
     stateId: IdSchema,
   }),
   z.object({ ...base, type: z.literal('lookAt'), view: SphericalSchema }),
+  z.object({
+    ...base,
+    type: z.literal('openAlbum'),
+    albumId: IdSchema,
+    /** Photo to open at (0-based). */
+    start: z.number().int().min(0).default(0),
+  }),
 ]);
 export type Action = z.infer<typeof ActionSchema>;
 export type ActionType = Action['type'];
