@@ -741,7 +741,7 @@ export function ContentEditor({
         {layer.states.map((st) => (
           <Bilingual
             key={st.id}
-            labels={[`${c.states} · ${st.id} (EN)`, `${c.states} · ${st.id} (FR)`]}
+            labels={[c.stateNameEn(st.id), c.stateNameFr(st.id)]}
             value={st.name}
             onChange={(v, l) =>
               edit(

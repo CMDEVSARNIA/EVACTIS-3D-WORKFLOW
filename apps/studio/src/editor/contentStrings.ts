@@ -71,6 +71,8 @@ export const CONTENT = {
     },
     noLayers: 'No live layers. A smoke layer shows every scene with reduced visibility.',
     states: 'States',
+    stateNameEn: (id: string) => `State “${id}”: name (English)`,
+    stateNameFr: (id: string) => `State “${id}”: name (French)`,
     defaultState: 'Shown first',
     editState: 'Look in state',
     previewState: 'Show this state in the preview',
@@ -185,6 +187,8 @@ export const CONTENT = {
     noLayers:
       'Aucune couche dynamique. Une couche de fumée montre chaque scène avec une visibilité réduite.',
     states: 'États',
+    stateNameEn: (id: string) => `État « ${id} » : nom (anglais)`,
+    stateNameFr: (id: string) => `État « ${id} » : nom (français)`,
     defaultState: 'Affiché d’abord',
     editState: 'Aspect à l’état',
     previewState: 'Montrer cet état dans l’aperçu',
