@@ -22,6 +22,7 @@ try {
     audience: params.get('audience') ?? undefined,
     sceneId: params.get('scene') ?? undefined,
     reducedMotion: params.has('reduced-motion') || undefined,
+    editing: params.has('editing') || undefined,
   });
   window.viewer = viewer;
   document.documentElement.lang = viewer.language;

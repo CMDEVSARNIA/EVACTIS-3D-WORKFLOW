@@ -13,6 +13,8 @@ export class HotspotLayer {
   readonly el: HTMLDivElement;
   private areas: SVGSVGElement;
   private items: { hotspot: Hotspot; el: HTMLElement | SVGElement }[] = [];
+  /** Hotspot being dragged in editing mode, and where it is on screen. */
+  private drag: { id: string; x: number; y: number } | null = null;
 
   constructor(
     host: HTMLElement,
@@ -20,6 +22,8 @@ export class HotspotLayer {
     private activate: (h: Hotspot) => void,
     /** Keyboard focus on a hotspot outside the view turns the view towards it. */
     private reveal: (h: Hotspot) => void,
+    /** Editing mode only: a point hotspot was dragged to a new direction. */
+    private move: ((h: Hotspot, yaw: number, pitch: number) => void) | null = null,
   ) {
     this.el = document.createElement('div');
     this.el.className = 'evx-viewer__hotspots';
@@ -34,6 +38,56 @@ export class HotspotLayer {
     for (const i of this.items) i.el.remove();
     this.items = hotspots.map((h) => ({ hotspot: h, el: this.build(h, lang) }));
     this.update();
+  }
+
+  /** Editing: marks one hotspot as selected (or none). */
+  select(id: string | null): void {
+    for (const { hotspot, el } of this.items)
+      el.classList.toggle('evx-viewer__hotspot--selected', hotspot.id === id);
+  }
+
+  /** Editing: press, drag and release a point hotspot to move it; a press alone clicks. */
+  private draggable(h: Hotspot, el: HTMLElement) {
+    let start: { x: number; y: number } | null = null;
+    let moved = false;
+    el.addEventListener('pointerdown', (e) => {
+      if (!e.isPrimary) return;
+      e.stopPropagation(); // the panorama must not pan while a hotspot is dragged
+      start = { x: e.clientX, y: e.clientY };
+      moved = false;
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!start) return;
+      if (!moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 4) return;
+      moved = true;
+      const r = this.el.getBoundingClientRect();
+      this.drag = { id: h.id, x: e.clientX - r.left, y: e.clientY - r.top };
+      el.classList.add('evx-viewer__hotspot--dragging');
+      this.update();
+    });
+    const end = (e: PointerEvent, commit: boolean) => {
+      if (!start) return;
+      start = null;
+      el.classList.remove('evx-viewer__hotspot--dragging');
+      const d = this.drag;
+      this.drag = null;
+      if (moved && d && commit) {
+        const dir = this.renderer.unproject(d.x, d.y);
+        this.move!(h, dir.yaw, dir.pitch);
+      }
+      if (moved) {
+        // The browser still fires a click after the drag; swallow it.
+        el.addEventListener('click', (c) => c.stopImmediatePropagation(), {
+          capture: true,
+          once: true,
+        });
+      }
+      this.update();
+      e.stopPropagation();
+    };
+    el.addEventListener('pointerup', (e) => end(e, true));
+    el.addEventListener('pointercancel', (e) => end(e, false));
   }
 
   private build(h: Hotspot, lang: string): HTMLElement | SVGElement {
@@ -72,6 +126,7 @@ export class HotspotLayer {
       el = b;
     }
     el.dataset.hotspotId = h.id;
+    if (this.move && h.position.kind === 'spherical') this.draggable(h, el as HTMLElement);
     el.addEventListener('click', () => this.activate(h));
     el.addEventListener('focus', () => {
       if (el.classList.contains('evx-viewer__hotspot--offscreen')) this.reveal(h);
@@ -84,7 +139,7 @@ export class HotspotLayer {
     for (const { hotspot: h, el } of this.items) {
       const p = h.position;
       if (p.kind === 'spherical') {
-        const s = this.renderer.project(p.yaw, p.pitch);
+        const s = this.drag?.id === h.id ? this.drag : this.renderer.project(p.yaw, p.pitch);
         const html = el as HTMLElement;
         const w = this.el.clientWidth;
         const hgt = this.el.clientHeight;

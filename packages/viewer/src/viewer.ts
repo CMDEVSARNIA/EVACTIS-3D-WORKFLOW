@@ -1,6 +1,12 @@
 import type { Action, Environment, Hotspot, Scene, Transition } from '@evactis-3dworkflow/schema';
 import { localize, parseEnvironment } from '@evactis-3dworkflow/schema';
-import { AssetError, resolveAsset, resolveBase } from './assets.ts';
+import {
+  AssetError,
+  baseResolver,
+  checkedResolver,
+  resolveBase,
+  type AssetResolver,
+} from './assets.ts';
 import { Controls } from './controls.ts';
 import { Dialogs } from './dialogs.ts';
 import { Emitter } from './events.ts';
@@ -32,6 +38,16 @@ export interface ViewerOptions {
    * Return true if handled. Without it, external links are never opened.
    */
   onExternalUrl?: (url: string) => boolean;
+  /**
+   * Maps asset paths to URLs instead of `baseUrl` (e.g. Studio's desktop asset protocol).
+   * Every URL it returns must still be local, or loading is refused.
+   */
+  resolveAsset?: (path: string) => string;
+  /**
+   * Authoring mode (Studio): clicking a hotspot selects it (emits `hotspotclick`) instead
+   * of running its actions, and hotspots can be dragged (emits `hotspotmove`).
+   */
+  editing?: boolean;
 }
 
 export interface ViewerEvents extends Record<string, unknown> {
@@ -39,6 +55,10 @@ export interface ViewerEvents extends Record<string, unknown> {
   scenechange: { sceneId: string; previousSceneId: string | null };
   viewchange: View;
   hotspotclick: { hotspotId: string };
+  /** A click (not a drag) on the panorama itself, with the direction under it. */
+  panoramaclick: { x: number; y: number; yaw: number; pitch: number };
+  /** Editing mode: a hotspot was dragged to a new direction. */
+  hotspotmove: { hotspotId: string; yaw: number; pitch: number };
   /** Every action executed, including the ones the core delegates (floor plan, routes, modules…). */
   action: { action: Action; hotspotId: string | null };
   answer: { correct: boolean; choiceId: string | null; points: number };
@@ -75,7 +95,7 @@ function hotspotCentre(h: Hotspot): { yaw: number; pitch: number } | null {
  * EVACTIS 3DWORKFLOW Viewer. Create with `createViewer(element, environment, options)`.
  */
 export class Viewer {
-  readonly environment: Environment;
+  environment: Environment;
   readonly element: HTMLElement;
   private events = new Emitter<ViewerEvents>((e) => this.fail(e));
   private renderer: PanoramaRenderer;
@@ -84,7 +104,8 @@ export class Viewer {
   private dialogs: Dialogs;
   private overlay: HTMLDivElement;
   private live: HTMLDivElement;
-  private base: URL;
+  private resolver: AssetResolver;
+  private selected: string | null = null;
   private state: ViewerState;
   private lang: string;
   private scene: Scene | null = null;
@@ -104,7 +125,9 @@ export class Viewer {
       environment,
       s.lockAudience ? (s.defaultAudienceId ?? null) : audience,
     );
-    this.base = resolveBase(options.baseUrl ?? './');
+    this.resolver = options.resolveAsset
+      ? checkedResolver(options.resolveAsset)
+      : baseResolver(resolveBase(options.baseUrl ?? './'));
 
     this.element = document.createElement('div');
     this.element.className = 'evx-viewer';
@@ -127,6 +150,9 @@ export class Viewer {
         const c = hotspotCentre(h);
         if (c) void this.lookAt({ yaw: c.yaw, pitch: c.pitch }, 400);
       },
+      options.editing
+        ? (h, yaw, pitch) => this.events.emit('hotspotmove', { hotspotId: h.id, yaw, pitch })
+        : null,
     );
     this.dialogs = new Dialogs(this.element, () => uiStrings(this.lang));
     this.live = document.createElement('div');
@@ -147,6 +173,7 @@ export class Viewer {
       },
     );
     this.updateLabels();
+    this.watchClicks();
   }
 
   // ---------------------------------------------------------------- public API
@@ -177,6 +204,49 @@ export class Viewer {
 
   get visitedScenes(): string[] {
     return [...this.state.visited];
+  }
+
+  /** Direction under a point of the viewer (CSS pixels from its top-left corner). */
+  screenToView(x: number, y: number): { yaw: number; pitch: number } {
+    const d = this.renderer.unproject(x, y);
+    return { yaw: wrapYaw(d.yaw), pitch: clamp(d.pitch, -90, 90) };
+  }
+
+  /** Where a direction appears in the viewer (CSS pixels); null when behind the camera. */
+  viewToScreen(yaw: number, pitch: number): { x: number; y: number } | null {
+    return this.renderer.project(yaw, pitch);
+  }
+
+  /**
+   * Replaces the environment in place (Studio edits): hotspots and labels refresh, and
+   * the current scene's panorama reloads only if its media changed. Variables, visited
+   * scenes and the view are kept.
+   */
+  async setEnvironment(environment: Environment): Promise<void> {
+    const before = this.scene;
+    this.environment = environment;
+    const now = before && environment.scenes.find((s) => s.id === before.id);
+    if (!now) {
+      this.scene = null;
+      const first = environment.initialSceneId ?? environment.scenes[0]?.id;
+      if (first) await this.goToScene(first, { transition: { kind: 'cut' } });
+      else this.refreshHotspots();
+      return;
+    }
+    this.scene = now;
+    if (JSON.stringify(now.media) !== JSON.stringify(before.media)) {
+      const view = this.getView();
+      await this.renderer.show(now.media, this.resolver);
+      this.setView(view);
+    }
+    this.refreshHotspots();
+    this.updateLabels();
+  }
+
+  /** Editing: highlights one hotspot (or none). */
+  selectHotspot(id: string | null): void {
+    this.selected = id;
+    this.hotspots.select(id);
   }
 
   getView(): View {
@@ -344,6 +414,27 @@ export class Viewer {
 
   private refreshHotspots() {
     this.hotspots.set(this.visibleHotspots(), this.lang);
+    this.hotspots.select(this.selected);
+  }
+
+  /** Emits `panoramaclick` for a press and release that did not move (not a drag). */
+  private watchClicks() {
+    let down: { x: number; y: number; t: number } | null = null;
+    this.element.addEventListener('pointerdown', (e) => {
+      down = e.isPrimary ? { x: e.clientX, y: e.clientY, t: e.timeStamp } : null;
+    });
+    this.element.addEventListener('pointerup', (e) => {
+      const d = down;
+      down = null;
+      if (!d || !e.isPrimary || !this.scene) return;
+      if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 5 || e.timeStamp - d.t > 600) return;
+      const target = e.target as Element | null;
+      if (target?.closest('.evx-viewer__hotspot, .evx-viewer__area, dialog')) return;
+      const r = this.element.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+      this.events.emit('panoramaclick', { x, y, ...this.screenToView(x, y) });
+    });
   }
 
   private async navigate(sceneId: string, opts: GoToOptions) {
@@ -364,7 +455,7 @@ export class Viewer {
       this.reducedMotion,
       opts.towards ?? null,
       async () => {
-        await this.renderer.show(scene.media, this.base);
+        await this.renderer.show(scene.media, this.resolver);
         this.scene = scene;
         this.state.visited.add(scene.id);
         const v = { ...scene.initialView, ...opts.view };
@@ -380,6 +471,7 @@ export class Viewer {
 
   private async activate(h: Hotspot) {
     this.events.emit('hotspotclick', { hotspotId: h.id });
+    if (this.options.editing) return;
     const el = this.element.querySelector(`[data-hotspot-id="${CSS.escape(h.id)}"]`);
     const r = el?.getBoundingClientRect();
     const host = this.element.getBoundingClientRect();
@@ -391,7 +483,7 @@ export class Viewer {
 
   private resolve(path: string): string | null {
     try {
-      return resolveAsset(this.base, path);
+      return this.resolver(path);
     } catch (e) {
       if (e instanceof AssetError) {
         this.events.emit('blocked', { url: path, reason: 'invalid' });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { EnvironmentSchema } from '@evactis-3dworkflow/schema';
 import { describe, expect, it, vi } from 'vitest';
-import { AssetError, resolveAsset, resolveBase } from '../src/assets.ts';
+import { AssetError, checkedResolver, resolveAsset, resolveBase } from '../src/assets.ts';
 import { Emitter } from '../src/events.ts';
 import { angles, direction, wrapYaw, yawDelta } from '../src/math.ts';
 import { FACES, FACE_BASIS, facePixelDirection, facePoint } from '../src/panorama/cube.ts';
@@ -87,6 +87,28 @@ describe('asset resolution', () => {
     expect(resolveAsset(base, 'media/a.jpg')).toBe('http://127.0.0.1:4176/demo/media/a.jpg');
     for (const bad of ['../x.jpg', 'https://example.com/a.jpg', '/etc/passwd', 'media\\a.jpg'])
       expect(() => resolveAsset(base, bad)).toThrow(AssetError);
+  });
+});
+
+describe('custom asset resolvers (Studio)', () => {
+  const page = 'http://tauri.localhost/index.html';
+  it('accepts local URLs from the resolver', () => {
+    const studio = checkedResolver(
+      (p) => `asset://localhost/${encodeURIComponent(`/data/Riverside/${p}`)}`,
+      page,
+    );
+    expect(studio('media/abc/thumb.jpg')).toBe(
+      'asset://localhost/%2Fdata%2FRiverside%2Fmedia%2Fabc%2Fthumb.jpg',
+    );
+    const windows = checkedResolver((p) => `http://asset.localhost/C%3A%5Cp%5C${p}`, page);
+    expect(windows('media/a.jpg')).toContain('asset.localhost');
+  });
+  it('refuses remote URLs and bad paths even if the resolver returns them', () => {
+    const remote = checkedResolver((p) => `https://cdn.example.com/${p}`, page);
+    expect(() => remote('media/a.jpg')).toThrow(AssetError);
+    const ok = checkedResolver((p) => `asset://localhost/${p}`, page);
+    for (const bad of ['../x.jpg', 'https://example.com/a.jpg', '/etc/passwd'])
+      expect(() => ok(bad)).toThrow(AssetError);
   });
 });
 

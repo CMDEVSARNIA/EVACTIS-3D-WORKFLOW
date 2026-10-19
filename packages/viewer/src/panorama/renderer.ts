@@ -16,7 +16,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import type { SceneMedia } from '@evactis-3dworkflow/schema';
-import { loadImage, resolveAsset } from '../assets.ts';
+import { loadImage, type AssetResolver } from '../assets.ts';
 import { DEG, direction } from '../math.ts';
 import { FACES, facePoint, tilePath, type Face } from './cube.ts';
 
@@ -131,7 +131,7 @@ class PanoramaContent {
 
   constructor(
     private media: Equirect,
-    private base: URL,
+    private resolve: AssetResolver,
     private onChange: () => void,
   ) {}
 
@@ -162,7 +162,7 @@ class PanoramaContent {
               ];
               const box = new Box3().setFromPoints(pts.map((p) => new Vector3(...p)));
               this.tiles.push({
-                url: resolveAsset(this.base, tilePath(t.basePath, face, li, row, col, t.format)),
+                url: this.resolve(tilePath(t.basePath, face, li, row, col, t.format)),
                 level: li,
                 face,
                 u0,
@@ -177,7 +177,7 @@ class PanoramaContent {
     }
     const preview = m.tiles ? m.preview : (m.preview ?? m.source);
     if (preview) {
-      const img = await loadImage(resolveAsset(this.base, preview), this.abort.signal);
+      const img = await loadImage(this.resolve(preview), this.abort.signal);
       this.addSphere(img, 0);
     }
     if (m.tiles) {
@@ -185,7 +185,7 @@ class PanoramaContent {
       await Promise.all(this.tiles.filter((t) => t.level === 0).map((t) => this.loadTile(t)));
     } else if (m.preview) {
       // Preview shown first, full image replaces it.
-      void loadImage(resolveAsset(this.base, m.source), this.abort.signal)
+      void loadImage(this.resolve(m.source), this.abort.signal)
         .then((img) => {
           this.addSphere(img, 1);
           this.onChange();
@@ -293,10 +293,10 @@ export class PanoramaRenderer {
   }
 
   /** Replaces the panorama. Resolves once it can be shown. */
-  async show(media: SceneMedia, base: URL): Promise<void> {
+  async show(media: SceneMedia, resolve: AssetResolver): Promise<void> {
     if (media.type !== 'equirect')
       throw new Error(`Scene media "${media.type}" is not supported by the Viewer core yet`);
-    const next = new PanoramaContent(media, base, () => this.invalidate());
+    const next = new PanoramaContent(media, resolve, () => this.invalidate());
     await next.load();
     this.content?.dispose();
     this.content = next;

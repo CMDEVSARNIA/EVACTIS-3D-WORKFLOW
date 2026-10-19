@@ -13,14 +13,18 @@ export class AssetError extends Error {
 const LOCAL_SCHEMES = new Set(['file:', 'blob:', 'tauri:', 'asset:', 'evx:']);
 const LOCAL_HOSTS = /^(tauri|asset)\.localhost$/;
 
+function isLocal(url: URL, page: URL): boolean {
+  return (
+    LOCAL_SCHEMES.has(url.protocol) ||
+    LOCAL_HOSTS.test(url.hostname) ||
+    (url.origin === page.origin && page.origin !== 'null')
+  );
+}
+
 export function resolveBase(baseUrl: string, origin: string = location.href): URL {
   const base = new URL(baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`, origin);
-  const page = new URL(origin);
-  const local =
-    LOCAL_SCHEMES.has(base.protocol) ||
-    LOCAL_HOSTS.test(base.hostname) ||
-    (base.origin === page.origin && page.origin !== 'null');
-  if (!local) throw new AssetError(`Refusing non-local asset base: ${base.href}`);
+  if (!isLocal(base, new URL(origin)))
+    throw new AssetError(`Refusing non-local asset base: ${base.href}`);
   return base;
 }
 
@@ -29,6 +33,29 @@ export function resolveAsset(base: URL, path: string): string {
   const ok = AssetPathSchema.safeParse(path);
   if (!ok.success) throw new AssetError(`Invalid asset path "${path}"`);
   return new URL(path, base).href;
+}
+
+/** Maps an environment asset path to a URL the Viewer can load. */
+export type AssetResolver = (path: string) => string;
+
+export function baseResolver(base: URL): AssetResolver {
+  return (path) => resolveAsset(base, path);
+}
+
+/**
+ * Wraps an integrator's resolver (e.g. Studio, whose project files are served through
+ * the desktop asset protocol): the path must be a valid relative asset path and the
+ * returned URL must still be local, so a resolver cannot point the Viewer at a server.
+ */
+export function checkedResolver(fn: AssetResolver, origin: string = location.href): AssetResolver {
+  const page = new URL(origin);
+  return (path) => {
+    if (!AssetPathSchema.safeParse(path).success)
+      throw new AssetError(`Invalid asset path "${path}"`);
+    const url = new URL(fn(path), origin);
+    if (!isLocal(url, page)) throw new AssetError(`Refusing non-local asset URL: ${url.href}`);
+    return url.href;
+  };
 }
 
 /** Loads and decodes an image; rejects on error or abort. */

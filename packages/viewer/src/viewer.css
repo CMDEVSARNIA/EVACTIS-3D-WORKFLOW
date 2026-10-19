@@ -65,6 +65,19 @@
 .evx-viewer__hotspot.evx-sign {
   --evx-sign-size: 56px;
 }
+.evx-viewer__hotspot--selected {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 4px;
+  border-radius: 10px;
+}
+.evx-viewer__area.evx-viewer__hotspot--selected {
+  stroke: var(--evx-green);
+  stroke-width: 3;
+}
+.evx-viewer__hotspot--dragging {
+  cursor: grabbing;
+  opacity: 0.85;
+}
 .evx-viewer__hotspot--offscreen {
   opacity: 0;
   pointer-events: none;
