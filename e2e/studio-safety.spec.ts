@@ -137,6 +137,7 @@ test('places, routes, locks and prints the demo facility safety layer in Studio'
     'aria-checked',
     'true',
   );
+  await expect(page.getByTestId('preview')).toHaveAttribute('data-ready', 'true');
   const preview = (await page.getByTestId('preview').boundingBox())!;
   await page.mouse.click(preview.x + preview.width * 0.3, preview.y + preview.height * 0.55);
   await expect(inspector.getByTestId('placements').getByRole('listitem')).toHaveCount(1);

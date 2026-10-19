@@ -42,6 +42,8 @@ export function Preview({
   const host = useRef<HTMLDivElement>(null);
   const viewer = useRef<Viewer | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Set once the viewer is running with the current document (tests wait for it). */
+  const [ready, setReady] = useState(false);
   // Latest props for the long-lived viewer callbacks and the async start-up.
   const latest = useRef({ env, sceneId, selectedHotspot, lang, handlers, viewerRef, routeId });
   latest.current = { env, sceneId, selectedHotspot, lang, handlers, viewerRef, routeId };
@@ -80,11 +82,13 @@ export function Preview({
             void v.goToScene(latest.current.sceneId, { transition: { kind: 'cut' } });
           if (editing) v.selectHotspot(latest.current.selectedHotspot);
           if (latest.current.routeId) v.showRoute(latest.current.routeId);
+          if (!gone) setReady(true);
         });
       })
       .catch((e: unknown) => !gone && setError(e instanceof Error ? e.message : String(e)));
     return () => {
       gone = true;
+      setReady(false);
       if (made) {
         made.destroy();
         latest.current.viewerRef?.(null);
@@ -120,7 +124,7 @@ export function Preview({
   }, [lang, env.settings.languages]);
 
   return (
-    <div className="evx-preview" data-testid="preview" data-editing={editing}>
+    <div className="evx-preview" data-testid="preview" data-editing={editing} data-ready={ready}>
       <div ref={host} className="evx-preview__stage" />
       {error && (
         <p role="alert" className="evx-alert evx-preview__error">

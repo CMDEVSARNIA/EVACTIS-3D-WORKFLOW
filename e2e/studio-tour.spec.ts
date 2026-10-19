@@ -339,6 +339,8 @@ test('the editor screens meet WCAG text contrast', async ({ page }) => {
       await page
         .getByRole('radio', { name: /^(Add information|Ajouter une information)$/ })
         .click();
+      // The tab remounts the preview: click only once its viewer is listening.
+      await expect(page.getByTestId('preview')).toHaveAttribute('data-ready', 'true');
       const stage = (await page.locator('.evx-viewer').boundingBox())!;
       await page.mouse.click(stage.x + stage.width * 0.4, stage.y + stage.height * 0.4);
       await expect(page.getByTestId('hotspot-inspector')).toBeVisible();
