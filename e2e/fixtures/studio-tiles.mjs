@@ -39,6 +39,10 @@ env.equipmentTypes = [];
 env.routes = [];
 env.zones = [];
 env.postings = [];
+// So does the rich content (Phase 6): live layers, regions, sounds.
+env.liveLayers = [];
+env.animatedRegions = [];
+env.audio = [];
 env.variables = [];
 env.initialSceneId = 'compass';
 env.scenes = [

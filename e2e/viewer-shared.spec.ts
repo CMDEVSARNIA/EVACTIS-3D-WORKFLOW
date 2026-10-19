@@ -4,7 +4,7 @@ import { idle, openDemo, sceneId } from './viewer-helpers';
 
 /** Focusing an off-screen hotspot turns the view to it; then it can be pressed. */
 async function go(page: Page, name: string) {
-  const b = page.getByRole('button', { name });
+  const b = page.getByRole('button', { name, exact: true });
   await b.focus();
   await expect(b).not.toHaveClass(/offscreen/);
   await b.click();

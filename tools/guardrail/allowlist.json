@@ -38,6 +38,22 @@
       "reason": "pdf-lib's default PDF Producer string; packages/print overrides Producer/Creator, and it is never fetched"
     },
     {
+      "pattern": "^http://www\\.xfa\\.org/schema/",
+      "reason": "XFA form namespace identifiers in pdf.js's parser (Viewer PDF reader); never fetched"
+    },
+    {
+      "pattern": "^http://ns\\.adobe\\.com/(xdp|xfdf|xmpmeta)/",
+      "reason": "XDP/XFDF/XMP namespace identifiers in pdf.js's parser; never fetched"
+    },
+    {
+      "pattern": "^http://www\\.w3\\.org/(2000/09/xmldsig#|1999/XSL/Transform)$",
+      "reason": "XML Signature / XSLT namespace identifiers in pdf.js's parser; never fetched"
+    },
+    {
+      "pattern": "^http://\\$\\{",
+      "reason": "pdf.js template that prefixes 'www.' link annotations found inside a PDF; the Viewer draws pages without an annotation layer, so such links are never shown or followed"
+    },
+    {
       "pattern": "^https?://(ipc|asset|tauri)\\.localhost",
       "reason": "Tauri in-process IPC/asset origins on Windows (no network)"
     },
