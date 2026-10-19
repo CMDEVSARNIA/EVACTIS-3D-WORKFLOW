@@ -659,7 +659,8 @@ export class Viewer {
     this.refreshRegions(scene);
     this.videoBar.attach(this.renderer.video);
     this.timedKey = '';
-    this.sounds.enterScene(scene.id);
+    // Authoring: nothing starts playing by itself (sounds are previewed on request).
+    if (!this.options.editing) this.sounds.enterScene(scene.id);
     this.radar?.set(this.environment, scene, this.scenes, this.lang, (p) => this.resolve(p));
     this.radar?.setView(this.renderer.view.yaw, this.renderer.hfov);
   }

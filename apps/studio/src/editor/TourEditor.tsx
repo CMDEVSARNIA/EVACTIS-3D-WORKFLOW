@@ -7,9 +7,10 @@ import * as Dialog from '@radix-ui/react-dialog';
 import type { Environment, Hotspot, Scene } from '@evactis-3dworkflow/schema';
 import type { Viewer } from '@evactis-3dworkflow/viewer';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { api, type AssetRecord, type ProjectInfo } from '../api.ts';
+import { api, SCENE_KINDS, type AssetRecord, type ProjectInfo } from '../api.ts';
 import type { Lang, Strings } from '../i18n.ts';
 import { ActionEditor } from './ActionEditor.tsx';
+import { setTimeRange } from './contentOps.ts';
 import { suggestLinks, type LinkSuggestion } from './autolink.ts';
 import * as ops from './ops.ts';
 import { Preview } from './Preview.tsx';
@@ -99,7 +100,7 @@ function AddScenesDialog({
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const used = new Set(env.scenes.map((s) => assetIdOf(s.media.source)));
-  const usable = assets.filter((a) => a.kind !== 'floor-plan');
+  const usable = assets.filter((a) => SCENE_KINDS.includes(a.kind));
   return (
     <Dialog.Root
       open={open}
@@ -488,6 +489,19 @@ export function TourEditor({
                 {e.degrees(hotspot.position.pitch)}
               </p>
             )}
+            {scene?.media.type === 'video360' && (
+              <TimeRange
+                t={t}
+                range={hotspot.timeRange ?? null}
+                onChange={(r, key) =>
+                  edit(
+                    t.content.labels.timeRange,
+                    (d) => setTimeRange(d, hotspot.id, r),
+                    key && `${hotspot.id}:${key}`,
+                  )
+                }
+              />
+            )}
             <ActionEditor
               t={t}
               lang={lang}
@@ -703,5 +717,54 @@ export function TourEditor({
         )}
       </aside>
     </div>
+  );
+}
+
+/** 360° video scenes: when a hotspot shows, in playback seconds (or always). */
+function TimeRange({
+  t,
+  range,
+  onChange,
+}: {
+  t: Strings;
+  range: { start: number; end: number } | null;
+  onChange: (r: { start: number; end: number } | null, key?: string) => void;
+}) {
+  const c = t.content;
+  const id = useId();
+  return (
+    <fieldset className="grid gap-2" data-testid="time-range">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={!!range}
+          onChange={(e) => onChange(e.target.checked ? { start: 0, end: 5 } : null)}
+        />
+        {c.timed}
+      </label>
+      {range ? (
+        <div className="flex gap-3">
+          {(['start', 'end'] as const).map((k) => (
+            <div key={k} className="evx-form-row">
+              <label htmlFor={`${id}-${k}`}>{k === 'start' ? c.timedFrom : c.timedTo}</label>
+              <input
+                id={`${id}-${k}`}
+                className="evx-field"
+                type="number"
+                min={0}
+                step={0.5}
+                value={range[k]}
+                onChange={(e) =>
+                  e.target.value !== '' &&
+                  onChange({ ...range, [k]: Number(e.target.value) }, `time-${k}`)
+                }
+              />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="evx-hint">{c.timedAlways}</p>
+      )}
+    </fieldset>
   );
 }

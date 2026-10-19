@@ -15,6 +15,19 @@ export interface PreviewHandlers {
   onSceneChange?: (sceneId: string) => void;
 }
 
+/** Every live layer at its default state, except the one being previewed. */
+function applyLayers(
+  v: Viewer,
+  env: Environment,
+  show: { layerId: string; stateId: string } | null,
+) {
+  for (const l of env.liveLayers) {
+    const state = show?.layerId === l.id ? show.stateId : l.defaultStateId;
+    if (v.liveLayers.find((x) => x.layerId === l.id)?.stateId !== state)
+      void v.setLiveLayer(l.id, state).catch(() => undefined);
+  }
+}
+
 export function Preview({
   env,
   sceneId,
@@ -25,6 +38,7 @@ export function Preview({
   viewerRef,
   failedText,
   routeId = null,
+  liveLayer = null,
   ...handlers
 }: PreviewHandlers & {
   env: Environment;
@@ -38,6 +52,8 @@ export function Preview({
   failedText: string;
   /** An evacuation route to show (drafts included in editing mode). */
   routeId?: string | null;
+  /** A live-layer state to preview (others stay at their defaults). */
+  liveLayer?: { layerId: string; stateId: string } | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const viewer = useRef<Viewer | null>(null);
@@ -45,8 +61,17 @@ export function Preview({
   /** Set once the viewer is running with the current document (tests wait for it). */
   const [ready, setReady] = useState(false);
   // Latest props for the long-lived viewer callbacks and the async start-up.
-  const latest = useRef({ env, sceneId, selectedHotspot, lang, handlers, viewerRef, routeId });
-  latest.current = { env, sceneId, selectedHotspot, lang, handlers, viewerRef, routeId };
+  const latest = useRef({
+    env,
+    sceneId,
+    selectedHotspot,
+    lang,
+    handlers,
+    viewerRef,
+    routeId,
+    liveLayer,
+  });
+  latest.current = { env, sceneId, selectedHotspot, lang, handlers, viewerRef, routeId, liveLayer };
 
   // One viewer per mode; switching editing on/off rebuilds it.
   useEffect(() => {
@@ -82,6 +107,7 @@ export function Preview({
             void v.goToScene(latest.current.sceneId, { transition: { kind: 'cut' } });
           if (editing) v.selectHotspot(latest.current.selectedHotspot);
           if (latest.current.routeId) v.showRoute(latest.current.routeId);
+          applyLayers(v, latest.current.env, latest.current.liveLayer);
           if (!gone) setReady(true);
         });
       })
@@ -117,6 +143,11 @@ export function Preview({
     if (routeId) v.showRoute(routeId);
     else v.hideRoute();
   }, [routeId, env]);
+
+  useEffect(() => {
+    const v = viewer.current;
+    if (v) applyLayers(v, env, liveLayer);
+  }, [liveLayer?.layerId, liveLayer?.stateId, env]);
 
   useEffect(() => {
     const v = viewer.current;

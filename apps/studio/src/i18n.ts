@@ -1,3 +1,4 @@
+import { CONTENT } from './editor/contentStrings.ts';
 import { SAFETY } from './editor/safetyStrings.ts';
 import { EDITOR } from './editor/strings.ts';
 
@@ -73,6 +74,9 @@ export const STRINGS = {
       glb: '3D model',
       splat: 'Gaussian splat',
       'floor-plan': 'Floor plan',
+      audio: 'Sound',
+      document: 'PDF document',
+      photo: 'Photo',
     },
     errors: {
       invalid: 'This file cannot be used: ',
@@ -107,6 +111,7 @@ export const STRINGS = {
     seconds: 's',
     editor: EDITOR.en,
     safety: SAFETY.en,
+    content: CONTENT.en,
   },
   fr: {
     eyebrow: 'Plans sûrs . Chemins clairs',
@@ -182,6 +187,9 @@ export const STRINGS = {
       glb: 'Modèle 3D',
       splat: 'Nuage gaussien',
       'floor-plan': 'Plan d’étage',
+      audio: 'Son',
+      document: 'Document PDF',
+      photo: 'Photo',
     },
     errors: {
       invalid: 'Ce fichier ne peut pas être utilisé : ',
@@ -217,6 +225,7 @@ export const STRINGS = {
     seconds: 's',
     editor: EDITOR.fr,
     safety: SAFETY.fr,
+    content: CONTENT.fr,
   },
 };
 

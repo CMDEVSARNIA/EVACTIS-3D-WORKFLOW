@@ -1,18 +1,48 @@
 /**
- * What a hotspot does when clicked: an ordered list of actions. Phase 4 offers the
- * navigation and information actions; safety, training and media actions arrive with
- * their editors in later phases (existing ones are kept and listed read-only).
+ * What a hotspot does when clicked: an ordered list of actions: navigation and
+ * information (Phase 4), media and live layers (Phase 6), evacuation routes (Phase 5).
+ * Training actions arrive with their editors in Phase 8 (existing ones are kept and
+ * listed read-only).
  */
 import type { Action, Environment } from '@evactis-3dworkflow/schema';
 import { useId } from 'react';
 import type { Strings } from '../i18n.ts';
 import { goTo } from './ops.ts';
 
-const EDITABLE = ['goToScene', 'openPopup', 'lookAt', 'showFloorPlan', 'openUrl'] as const;
+const EDITABLE = [
+  'goToScene',
+  'openPopup',
+  'lookAt',
+  'showFloorPlan',
+  'showRoute',
+  'openDocument',
+  'openAlbum',
+  'playAudio',
+  'stopAudio',
+  'setLiveLayer',
+  'openUrl',
+] as const;
 type EditableType = (typeof EDITABLE)[number];
 
 const isEditable = (a: Action): a is Extract<Action, { type: EditableType }> =>
   (EDITABLE as readonly string[]).includes(a.type);
+
+/** Action types that need something to point at (a sound, document, album, layer). */
+export function available(type: EditableType, env: Environment): boolean {
+  switch (type) {
+    case 'playAudio':
+    case 'stopAudio':
+      return env.audio.length > 0;
+    case 'openDocument':
+      return env.documents.length > 0;
+    case 'openAlbum':
+      return env.albums.length > 0;
+    case 'setLiveLayer':
+      return env.liveLayers.length > 0;
+    default:
+      return true;
+  }
+}
 
 export function newAction(type: EditableType, env: Environment, currentScene: string): Action {
   switch (type) {
@@ -26,6 +56,20 @@ export function newAction(type: EditableType, env: Environment, currentScene: st
       return { type };
     case 'openUrl':
       return { type, url: 'documents/' };
+    case 'showRoute':
+      return { type };
+    case 'openDocument':
+      return { type, documentId: env.documents[0]!.id };
+    case 'openAlbum':
+      return { type, albumId: env.albums[0]!.id, start: 0 };
+    case 'playAudio':
+      return { type, audioId: env.audio[0]!.id, restart: true };
+    case 'stopAudio':
+      return { type, audioId: env.audio[0]!.id };
+    case 'setLiveLayer': {
+      const l = env.liveLayers[0]!;
+      return { type, layerId: l.id, stateId: l.states[1]?.id ?? l.defaultStateId };
+    }
   }
 }
 
@@ -306,6 +350,75 @@ export function ActionEditor({
                 }}
               />
             )}
+            {a.type === 'showRoute' && (
+              <Select
+                label={e.route}
+                value={a.routeId ?? ''}
+                options={[
+                  ['', e.nearestRoute],
+                  ...env.routes.map((r): [string, string] => [r.id, name(r.name)]),
+                ]}
+                onChange={(v) => {
+                  const { routeId: _old, ...rest } = a;
+                  void _old;
+                  set(i, v ? { ...rest, routeId: v } : rest);
+                }}
+              />
+            )}
+            {a.type === 'openDocument' && (
+              <Select
+                label={e.document}
+                value={a.documentId}
+                options={env.documents.map((d) => [d.id, name(d.title)])}
+                onChange={(v) => set(i, { ...a, documentId: v })}
+              />
+            )}
+            {a.type === 'openAlbum' && (
+              <>
+                <Select
+                  label={e.album}
+                  value={a.albumId}
+                  options={env.albums.map((al) => [al.id, name(al.name)])}
+                  onChange={(v) => set(i, { ...a, albumId: v, start: 0 })}
+                />
+                <NumberField
+                  label={e.startPhoto}
+                  value={a.start + 1}
+                  min={1}
+                  max={env.albums.find((al) => al.id === a.albumId)?.items.length ?? 1}
+                  onChange={(v) => set(i, { ...a, start: Math.round(v) - 1 }, 'start')}
+                />
+              </>
+            )}
+            {(a.type === 'playAudio' || a.type === 'stopAudio') && (
+              <Select
+                label={e.sound}
+                value={a.audioId}
+                options={env.audio.map((x) => [x.id, name(x.name)])}
+                onChange={(v) => set(i, { ...a, audioId: v })}
+              />
+            )}
+            {a.type === 'setLiveLayer' && (
+              <>
+                <Select
+                  label={e.layer}
+                  value={a.layerId}
+                  options={env.liveLayers.map((l) => [l.id, name(l.name)])}
+                  onChange={(v) => {
+                    const l = env.liveLayers.find((x) => x.id === v)!;
+                    set(i, { ...a, layerId: v, stateId: l.defaultStateId });
+                  }}
+                />
+                <Select
+                  label={e.layerState}
+                  value={a.stateId}
+                  options={(env.liveLayers.find((l) => l.id === a.layerId)?.states ?? []).map(
+                    (st) => [st.id, name(st.name)],
+                  )}
+                  onChange={(v) => set(i, { ...a, stateId: v })}
+                />
+              </>
+            )}
             {a.type === 'openUrl' && (
               <Text
                 label={e.filePath}
@@ -328,7 +441,7 @@ export function ActionEditor({
       >
         <option value="">{e.addAction}</option>
         {EDITABLE.map((type) => (
-          <option key={type} value={type}>
+          <option key={type} value={type} disabled={!available(type, env)}>
             {e.actionTypes[type]}
           </option>
         ))}

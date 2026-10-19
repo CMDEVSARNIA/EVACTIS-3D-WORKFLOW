@@ -27,7 +27,9 @@ const LOCAL_FILES = ['asset:', 'http://asset.localhost'];
 export function buildCsp({ localFiles = false } = {}) {
   return Object.entries(BASE)
     .map(([k, v]) => {
-      const extra = localFiles && (k === 'img-src' || k === 'media-src') ? LOCAL_FILES : [];
+      // connect-src: the PDF reader reads documents from the package with fetch.
+      const local = k === 'img-src' || k === 'media-src' || k === 'connect-src';
+      const extra = localFiles && local ? LOCAL_FILES : [];
       return [k, ...v, ...extra].join(' ');
     })
     .join('; ');

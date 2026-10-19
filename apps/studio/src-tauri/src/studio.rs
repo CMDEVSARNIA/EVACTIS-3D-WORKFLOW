@@ -372,6 +372,9 @@ const MEDIA_EXTENSIONS: &[&str] = &[
 /// Floor plans: raster images (evx_media::probe::probe_plan). PDF is offered too, so
 /// Studio can explain the export step instead of hiding the file.
 const PLAN_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "tif", "tiff", "pdf"];
+const AUDIO_EXTENSIONS: &[&str] = &["wav", "mp3", "ogg", "oga", "opus", "m4a", "aac", "flac"];
+const DOCUMENT_EXTENSIONS: &[&str] = &["pdf"];
+const PHOTO_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "webp", "tif", "tiff"];
 
 fn path_string(p: impl AsRef<Path>) -> String {
     p.as_ref().display().to_string()
@@ -509,6 +512,9 @@ async fn pick_media(window: WebviewWindow, title: String, filter: String, purpos
     let extensions = match purpose.unwrap_or_default() {
         Purpose::Scene => MEDIA_EXTENSIONS,
         Purpose::FloorPlan => PLAN_EXTENSIONS,
+        Purpose::Audio => AUDIO_EXTENSIONS,
+        Purpose::Document => DOCUMENT_EXTENSIONS,
+        Purpose::Photo => PHOTO_EXTENSIONS,
     };
     rfd::AsyncFileDialog::new()
         .set_parent(&window)

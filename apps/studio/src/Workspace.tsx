@@ -6,6 +6,7 @@ import type { Environment } from '@evactis-3dworkflow/schema';
 import { useEffect, useState } from 'react';
 import { api, type AssetRecord, type ProjectInfo } from './api.ts';
 import { FloorsEditor } from './editor/FloorsEditor.tsx';
+import { ContentEditor } from './editor/ContentEditor.tsx';
 import { SafetyEditor } from './editor/SafetyEditor.tsx';
 import { DocumentStore } from './editor/store.ts';
 import { TourEditor } from './editor/TourEditor.tsx';
@@ -14,8 +15,8 @@ import { Versions } from './editor/Versions.tsx';
 import type { Lang, Strings } from './i18n.ts';
 import { Library, type SmokeResult } from './Library.tsx';
 
-type Tab = 'tour' | 'floors' | 'safety' | 'media' | 'versions';
-const TABS: Tab[] = ['tour', 'floors', 'safety', 'media', 'versions'];
+type Tab = 'tour' | 'floors' | 'safety' | 'content' | 'media' | 'versions';
+const TABS: Tab[] = ['tour', 'floors', 'safety', 'content', 'media', 'versions'];
 
 /** Text fields keep their own undo (Ctrl+Z while typing undoes typing). */
 function isTextField(target: EventTarget | null): boolean {
@@ -191,6 +192,17 @@ export function Workspace({
         )}
         {tab === 'safety' && (
           <SafetyEditor t={t} lang={lang} store={store} doc={doc} project={project} />
+        )}
+        {tab === 'content' && (
+          <ContentEditor
+            t={t}
+            lang={lang}
+            store={store}
+            doc={doc}
+            project={project}
+            assets={assets}
+            onAssetsChanged={() => void api.listLibrary().then((l) => setAssets(l.assets))}
+          />
         )}
         {tab === 'media' && (
           <Library

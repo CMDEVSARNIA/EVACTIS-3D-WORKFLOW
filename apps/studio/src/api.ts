@@ -11,9 +11,23 @@ export type AssetKind =
   | 'video360'
   | 'glb'
   | 'splat'
-  | 'floor-plan';
-/** What an import is for: scenes (the default) or floor plans (any aspect ratio). */
-export type ImportPurpose = 'scene' | 'floor-plan';
+  | 'floor-plan'
+  | 'audio'
+  | 'document'
+  | 'photo';
+/**
+ * What an import is for: scenes (the default), floor plans (any aspect ratio), sounds,
+ * PDF documents or album photos. It decides how the file is checked and processed.
+ */
+export type ImportPurpose = 'scene' | 'floor-plan' | 'audio' | 'document' | 'photo';
+/** Assets that can become scenes. */
+export const SCENE_KINDS: readonly AssetKind[] = [
+  'panorama',
+  'panorama-stereo',
+  'video360',
+  'glb',
+  'splat',
+];
 export type ImageLayout = 'mono' | 'stereo-top-bottom' | 'stereo-side-by-side';
 export type Stage =
   | 'validating'
@@ -57,6 +71,8 @@ export interface AssetRecord {
   height?: number;
   layout?: ImageLayout;
   hdr: boolean;
+  /** HDR panoramas: log-luminance map for adaptive exposure. */
+  luminance?: string;
   durationSec?: number;
   videoCodec?: string;
   splatFormat?: string;

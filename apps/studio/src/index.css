@@ -494,6 +494,15 @@ textarea.evx-field {
   display: none;
 }
 
+/* Content tab: album photo thumbnails. */
+.evx-content-thumb {
+  inline-size: 100%;
+  max-block-size: 9rem;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--evx-rule);
+}
+
 /* Safety tab: preview and plan side by side when there is room. */
 .evx-safety-views {
   display: grid;

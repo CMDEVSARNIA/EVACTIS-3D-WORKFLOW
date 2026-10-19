@@ -61,7 +61,7 @@ const allIds = (env: Environment) => [
 ];
 
 /** Fails (leaving the document unchanged, see store.edit) if a removal left dangling references. */
-function assertNoDanglingReferences(env: Environment) {
+export function assertNoDanglingReferences(env: Environment) {
   const issues = checkReferences(env);
   if (issues.length) throw new InUseError(issues.map((i) => `${i.path.join('.')}: ${i.message}`));
 }
@@ -82,6 +82,7 @@ export function sceneMedia(asset: AssetRecord): SceneMedia {
           tiles: { ...asset.tiles, format: asset.tiles.format as 'jpg' | 'webp' | 'png' },
         }),
         hdr: asset.hdr,
+        ...(asset.luminance && { luminance: asset.luminance }),
       };
     case 'panorama-stereo':
       return {
@@ -112,7 +113,10 @@ export function sceneMedia(asset: AssetRecord): SceneMedia {
         format: (asset.splatFormat ?? 'ply') as 'ply' | 'splat' | 'ksplat' | 'spz',
       };
     case 'floor-plan':
-      throw new EditError('a floor plan cannot be a scene');
+    case 'audio':
+    case 'document':
+    case 'photo':
+      throw new EditError(`a ${asset.kind} cannot be a scene`);
   }
 }
 
