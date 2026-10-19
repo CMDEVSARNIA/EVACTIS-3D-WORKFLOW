@@ -464,3 +464,231 @@
   inline-size: 28px;
   block-size: auto;
 }
+
+/* ------------------------------------------------------------- rich media */
+
+.evx-viewer__dialog--wide {
+  inline-size: min(96vw, 64rem);
+}
+
+/* 360° video controls: bottom centre, above the toolbar area. */
+.evx-viewer__video {
+  position: absolute;
+  inset: auto 12px 96px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-inline-size: 36rem;
+  margin-inline: auto;
+  border-radius: 10px;
+  background: rgb(10 10 10 / 0.85);
+  padding: 8px 12px;
+  color: var(--evx-white);
+  font: 600 0.875rem/1 var(--evx-font-body);
+  cursor: default;
+}
+.evx-viewer__video[hidden] {
+  display: none;
+}
+.evx-viewer__video-button {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 8px;
+  background: var(--evx-navy);
+  color: var(--evx-white);
+  font: inherit;
+  cursor: pointer;
+}
+.evx-viewer__video-range {
+  flex: 1;
+  accent-color: var(--evx-green);
+}
+.evx-viewer__video-time {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.evx-viewer__video-button:focus-visible,
+.evx-viewer__video-range:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+
+/* Sound captions: what is playing and where it comes from. */
+.evx-viewer__caption {
+  position: absolute;
+  inset: auto 12px 160px;
+  max-inline-size: 32rem;
+  margin-inline: auto;
+  border-radius: 8px;
+  background: rgb(10 10 10 / 0.88);
+  padding: 8px 12px;
+  color: var(--evx-white);
+  font: 600 0.9375rem/1.3 var(--evx-font-body);
+  text-align: center;
+  pointer-events: none;
+}
+.evx-viewer__caption[hidden] {
+  display: none;
+}
+
+/* Floor-plan radar: the plan around the reader, with the view cone. */
+.evx-viewer__radar {
+  position: absolute;
+  inset: 12px 12px auto auto;
+  inline-size: clamp(120px, 18vmin, 180px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 2px solid var(--evx-white);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--evx-shadow-soft);
+}
+.evx-viewer__radar[hidden] {
+  display: none;
+}
+.evx-viewer__radar-map {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  inline-size: var(--w);
+  block-size: var(--h);
+}
+.evx-viewer__radar-map > img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  user-select: none;
+}
+.evx-viewer__radar > svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+.evx-viewer__radar-cone {
+  fill: rgb(113 176 67 / 0.45);
+  stroke: var(--evx-green-strong);
+  stroke-width: 1.5;
+}
+.evx-viewer__radar-me {
+  fill: var(--evx-fire-red);
+  stroke: #fff;
+  stroke-width: 2;
+}
+.evx-viewer__radar-dots {
+  position: absolute;
+  inset: 0;
+}
+.evx-viewer__radar-dot {
+  position: absolute;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  background: none;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+.evx-viewer__radar-dot::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--evx-navy);
+}
+.evx-viewer__radar-dot:focus-visible {
+  outline: 3px solid var(--evx-green);
+  border-radius: 50%;
+}
+
+/* Photo album. */
+.evx-viewer__album {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.evx-viewer__album-photo {
+  display: block;
+  inline-size: 100%;
+  max-block-size: 62vh;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #000;
+}
+.evx-viewer__album-caption {
+  color: var(--evx-white);
+}
+.evx-viewer__album-bar,
+.evx-viewer__pdf-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.evx-viewer__album-counter,
+.evx-viewer__pdf-page {
+  margin: 0;
+  color: var(--evx-white);
+  font-variant-numeric: tabular-nums;
+}
+.evx-viewer__album-nav,
+.evx-viewer__pdf-button {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 8px;
+  background: var(--evx-navy);
+  padding: 6px 14px;
+  color: var(--evx-white);
+  font: 600 0.9375rem/1 var(--evx-font-body);
+  cursor: pointer;
+}
+.evx-viewer__album-nav:disabled,
+.evx-viewer__pdf-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.evx-viewer__album-nav:focus-visible,
+.evx-viewer__pdf-button:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+
+/* PDF documents: one page at a time on white. */
+.evx-viewer__pdf-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.evx-viewer__pdf {
+  display: grid;
+  gap: 10px;
+}
+.evx-viewer__pdf-sheet {
+  position: relative;
+  max-block-size: 66vh;
+  overflow: auto;
+  border-radius: 6px;
+  background: #525659;
+  padding: 12px;
+}
+.evx-viewer__pdf-sheet > canvas {
+  display: block;
+  margin-inline: auto;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+}
+/* The page text, readable by screen readers but not drawn twice. */
+.evx-viewer__pdf-text {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

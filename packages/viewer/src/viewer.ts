@@ -19,13 +19,19 @@ import {
   resolveBase,
   type AssetResolver,
 } from './assets.ts';
+import { soundDirection, Sounds, type SoundState } from './audio.ts';
 import { Controls } from './controls.ts';
 import { Dialogs } from './dialogs.ts';
 import { Emitter } from './events.ts';
 import { HotspotLayer } from './hotspots.ts';
 import { uiStrings } from './i18n.ts';
+import { LiveLayers } from './live.ts';
 import { clamp, easeInOut, lerp, wrapYaw, yawDelta } from './math.ts';
+import { albumView, VideoBar } from './media.ts';
+import { LuminanceMap } from './panorama/adaptive.ts';
 import { PanoramaRenderer, type View } from './panorama/renderer.ts';
+import { pdfView } from './pdf.ts';
+import { Radar } from './radar.ts';
 import { equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
 import { runTransition } from './transitions.ts';
@@ -61,6 +67,8 @@ export interface ViewerOptions {
    * of running its actions, and hotspots can be dragged (emits `hotspotmove`).
    */
   editing?: boolean;
+  /** Shows the floor-plan radar (corner mini-plan with the view cone). Default: false. */
+  radar?: boolean;
 }
 
 export interface ViewerEvents extends Record<string, unknown> {
@@ -84,6 +92,8 @@ export interface ViewerEvents extends Record<string, unknown> {
   routechange: { routeId: string | null; priority: Route['priority'] | null };
   /** The floor plan was opened. */
   floorplan: { floorId: string };
+  /** A live layer changed state (e.g. normal → smoke). */
+  livelayerchange: { layerId: string; stateId: string };
 }
 
 export interface GoToOptions {
@@ -129,7 +139,13 @@ export class Viewer {
   private lang: string;
   private scene: Scene | null = null;
   private navigating: Promise<void> = Promise.resolve();
-  private audio = new Map<string, HTMLAudioElement>();
+  private layers: LiveLayers;
+  private sounds: Sounds;
+  private caption: HTMLDivElement;
+  private videoBar: VideoBar;
+  private radar: Radar | null = null;
+  private timedKey = '';
+  private sceneLoad = 0;
   private animation = 0;
   private destroyed = false;
   private options: ViewerOptions;
@@ -154,10 +170,20 @@ export class Viewer {
     this.element.setAttribute('role', 'application');
     host.append(this.element);
 
+    this.layers = new LiveLayers(() => this.environment);
+    this.sounds = new Sounds(
+      () => this.environment,
+      (p) => this.resolve(p),
+      () => this.updateCaption(),
+    );
     this.renderer = new PanoramaRenderer(this.element, () => {
       this.hotspots.update();
       this.routes.update();
-      this.events.emit('viewchange', { ...this.renderer.view });
+      const v = this.renderer.view;
+      this.sounds.setView(v.yaw, v.pitch);
+      this.radar?.setView(v.yaw, this.renderer.hfov);
+      this.updateCaption();
+      this.events.emit('viewchange', { ...v });
     });
     this.overlay = document.createElement('div');
     this.overlay.className = 'evx-viewer__overlay';
@@ -187,6 +213,25 @@ export class Viewer {
     this.live.className = 'evx-viewer__live';
     this.live.setAttribute('aria-live', 'polite');
     this.element.append(this.live);
+    this.caption = document.createElement('div');
+    this.caption.className = 'evx-viewer__caption';
+    this.caption.hidden = true;
+    this.element.append(this.caption);
+    this.videoBar = new VideoBar(
+      this.element,
+      () => uiStrings(this.lang),
+      () => this.refreshTimed(),
+    );
+    if (options.radar)
+      this.radar = new Radar(
+        this.element,
+        () => uiStrings(this.lang),
+        (id) => void this.goToScene(id),
+      );
+    // Sound may only start after a gesture inside the page.
+    const unlock = () => this.sounds.unlock();
+    this.element.addEventListener('pointerdown', unlock);
+    this.element.addEventListener('keydown', unlock);
 
     this.controls = new Controls(
       this.element,
@@ -264,9 +309,10 @@ export class Viewer {
     this.scene = now;
     if (JSON.stringify(now.media) !== JSON.stringify(before.media)) {
       const view = this.getView();
-      await this.renderer.show(now.media, this.resolver);
+      await this.renderer.show(this.layers.media(now.id, now.media), this.resolver);
       this.setView(view);
     }
+    this.sceneExtras(now);
     if (this.route) this.route = environment.routes.find((r) => r.id === this.route!.id) ?? null;
     this.refreshHotspots();
     this.refreshRoute();
@@ -425,6 +471,7 @@ export class Viewer {
   setVariable(id: string, value: VarValue): void {
     this.state.variables.set(id, value);
     this.refreshHotspots();
+    if (this.scene) this.refreshRegions(this.scene);
     this.events.emit('variablechange', { id, value });
   }
 
@@ -451,7 +498,60 @@ export class Viewer {
   }
 
   setMuted(muted: boolean): void {
-    for (const a of this.audio.values()) a.muted = muted;
+    this.sounds.setMuted(muted);
+    const v = this.renderer.video;
+    if (v) v.muted = muted;
+  }
+
+  /** Live layers and their current states. */
+  get liveLayers(): { layerId: string; stateId: string }[] {
+    return this.layers.current.map(({ layer, stateId }) => ({ layerId: layer.id, stateId }));
+  }
+
+  /**
+   * Switches a live layer (e.g. to smoke conditions). The current scene's look changes
+   * at once; its panorama reloads only when the state captured a different one.
+   */
+  async setLiveLayer(layerId: string, stateId: string): Promise<void> {
+    this.layers.set(layerId, stateId);
+    const scene = this.scene;
+    if (scene) {
+      const media = this.layers.media(scene.id, scene.media);
+      if (JSON.stringify(media) !== JSON.stringify(this.shownMedia)) {
+        const view = this.getView();
+        await this.renderer.show(media, this.resolver);
+        this.shownMedia = media;
+        this.setView(view);
+      }
+      this.sceneExtras(scene);
+    }
+    const layer = this.environment.liveLayers.find((l) => l.id === layerId)!;
+    const state = layer.states.find((x) => x.id === stateId)!;
+    this.live.textContent = uiStrings(this.lang).conditions(
+      localize(layer.name, this.lang),
+      localize(state.name, this.lang),
+    );
+    this.events.emit('livelayerchange', { layerId, stateId });
+  }
+
+  /** Sounds playing (or waiting for the first gesture), with their pan and gain. */
+  get soundStates(): SoundState[] {
+    return this.sounds.states;
+  }
+
+  /** The current scene's video (360° video scenes), for custom controls. */
+  get video(): HTMLVideoElement | null {
+    return this.renderer.video;
+  }
+
+  /** Adaptive HDR exposure shift in stops (0 for non-HDR scenes). */
+  get exposureAdaptation(): number {
+    return this.renderer.adaptation;
+  }
+
+  /** Animated regions shown in the current scene. */
+  get regions(): string[] {
+    return this.renderer.regionIds;
   }
 
   /** Resolves when nothing is loading or animating — useful for tests and screenshots. */
@@ -463,8 +563,7 @@ export class Viewer {
   destroy(): void {
     this.destroyed = true;
     cancelAnimationFrame(this.animation);
-    for (const a of this.audio.values()) a.pause();
-    this.audio.clear();
+    this.sounds.dispose();
     this.controls.dispose();
     this.renderer.dispose();
     this.hotspots.dispose();
@@ -505,7 +604,8 @@ export class Viewer {
           h.sceneId === this.scene!.id &&
           (this.state.visibility.get(h.id) ?? !h.hidden) &&
           this.state.inAudience(h.audienceIds) &&
-          this.state.test(h.condition),
+          this.state.test(h.condition) &&
+          this.inTime(h),
       ),
       ...equipmentHotspots(
         this.environment,
@@ -515,6 +615,104 @@ export class Viewer {
         uiStrings(this.lang),
       ),
     ];
+  }
+
+  /** Timed hotspots show while the scene's video is inside their time range. */
+  private inTime(h: Hotspot): boolean {
+    if (!h.timeRange || this.options.editing) return true;
+    const v = this.renderer.video;
+    if (!v) return false;
+    return v.currentTime >= h.timeRange.start && v.currentTime < h.timeRange.end;
+  }
+
+  private refreshTimed() {
+    const key = this.visibleHotspots()
+      .filter((h) => h.timeRange)
+      .map((h) => h.id)
+      .join(',');
+    if (key !== this.timedKey) {
+      this.timedKey = key;
+      this.refreshHotspots();
+    }
+  }
+
+  private shownMedia: Scene['media'] | null = null;
+
+  /**
+   * Everything a scene shows besides its panorama: live-layer look, adaptive HDR,
+   * animated regions, video controls, sounds and the radar.
+   */
+  private sceneExtras(scene: Scene) {
+    const load = ++this.sceneLoad;
+    this.renderer.instantAdaptation = this.reducedMotion;
+    this.renderer.setGrade(this.layers.grade(scene.id));
+    const media = this.shownMedia;
+    const lum =
+      media?.type === 'equirect' && media.hdr && media.luminance && this.resolve(media.luminance);
+    if (lum)
+      void LuminanceMap.load(lum).then(
+        (map) => load === this.sceneLoad && this.renderer.setLuminance(map),
+        () => load === this.sceneLoad && this.renderer.setLuminance(null),
+      );
+    else this.renderer.setLuminance(null);
+    this.regionKey = null;
+    this.refreshRegions(scene);
+    this.videoBar.attach(this.renderer.video);
+    this.timedKey = '';
+    this.sounds.enterScene(scene.id);
+    this.radar?.set(this.environment, scene, this.scenes, this.lang, (p) => this.resolve(p));
+    this.radar?.setView(this.renderer.view.yaw, this.renderer.hfov);
+  }
+
+  private regionKey: string | null = null;
+
+  /** Animated regions of the scene whose condition holds (rebuilt only on change). */
+  private refreshRegions(scene: Scene) {
+    const regions = this.environment.animatedRegions.filter(
+      (r) => r.sceneId === scene.id && this.state.test(r.condition),
+    );
+    const key = JSON.stringify(regions);
+    if (key === this.regionKey) return;
+    this.regionKey = key;
+    this.renderer.setRegions(
+      regions.flatMap((r) => {
+        const src = this.resolve(r.source);
+        if (!src) return [];
+        const isVideo = /\.(webm|mp4|m4v|ogv)$/i.test(r.source);
+        const el = isVideo ? document.createElement('video') : new Image();
+        el.src = src;
+        if (el instanceof HTMLVideoElement) {
+          el.muted = true;
+          el.playsInline = true;
+          el.loop = r.loop;
+          el.preload = 'auto';
+          // Reduced motion: the region shows its first frame, still.
+          if (!this.reducedMotion) void el.play().catch(() => undefined);
+        }
+        return [{ id: r.id, polygon: r.polygon, element: el }];
+      }),
+    );
+  }
+
+  /** Captions for sounds: what is playing and where it comes from. */
+  private updateCaption() {
+    if (!this.environment.settings.accessibility.captions) {
+      this.caption.hidden = true;
+      return;
+    }
+    const t = uiStrings(this.lang);
+    const lines = this.sounds.states.map((st) => {
+      const def = this.environment.audio.find((a) => a.id === st.id)!;
+      const where =
+        def.kind === 'spatial' && def.position
+          ? t.directions[soundDirection(this.renderer.view.yaw, def.position.yaw)]
+          : '';
+      const name = localize(def.name, this.lang);
+      return where ? t.sound(name, where) : name;
+    });
+    const text = lines.join(' · ');
+    if (this.caption.textContent !== text) this.caption.textContent = text;
+    this.caption.hidden = !text;
   }
 
   /** [nearest primary, alternative] for the current scene; Studio previews drafts too. */
@@ -584,11 +782,14 @@ export class Viewer {
       this.reducedMotion,
       opts.towards ?? null,
       async () => {
-        await this.renderer.show(scene.media, this.resolver);
+        const media = this.layers.media(scene.id, scene.media);
+        await this.renderer.show(media, this.resolver);
+        this.shownMedia = media;
         this.scene = scene;
         this.state.visited.add(scene.id);
         const v = { ...scene.initialView, ...opts.view };
         this.renderer.setView({ yaw: wrapYaw(v.yaw), pitch: v.pitch, fov: v.fov });
+        this.sceneExtras(scene);
         this.refreshHotspots();
         this.refreshRoute();
         this.updateLabels();
@@ -667,7 +868,7 @@ export class Viewer {
         } else if (c.kind === 'pdf') {
           const doc = this.environment.documents.find((d) => d.id === c.documentId);
           const src = doc && this.resolve(doc.source);
-          if (src) nodes.push(this.frame(src, L(doc!.title)));
+          if (src) nodes.push(pdfView(src, L(doc!.title), t));
         } else nodes.push(this.dialogs.text(t.unsupported));
         await this.dialogs.show(L(action.title), nodes);
         return;
@@ -675,7 +876,12 @@ export class Viewer {
       case 'openDocument': {
         const doc = this.environment.documents.find((d) => d.id === action.documentId);
         const src = doc && this.resolve(doc.source);
-        if (doc && src) await this.dialogs.show(L(doc.title), [this.frame(src, L(doc.title))]);
+        if (doc && src)
+          await this.dialogs.show(
+            L(doc.title),
+            [pdfView(src, L(doc.title), t)],
+            'evx-viewer__dialog--wide',
+          );
         return;
       }
       case 'openUrl': {
@@ -692,25 +898,23 @@ export class Viewer {
         if (src) await this.dialogs.show('', [this.frame(src, url, true)]);
         return;
       }
-      case 'playAudio': {
-        const def = this.environment.audio.find((a) => a.id === action.audioId);
-        if (!def) return;
-        let el = this.audio.get(def.id);
-        if (!el) {
-          const src = this.resolve(def.source);
-          if (!src) return;
-          el = new Audio(src);
-          el.loop = def.loop;
-          el.volume = def.volume;
-          this.audio.set(def.id, el);
-        }
-        if (action.restart) el.currentTime = 0;
-        await el.play().catch(() => undefined);
+      case 'playAudio':
+        // A hotspot press is a gesture: sound may start now.
+        this.sounds.unlock();
+        await this.sounds.play(action.audioId, action.restart);
+        return;
+      case 'stopAudio':
+        this.sounds.stop(action.audioId);
+        return;
+      case 'openAlbum': {
+        const view = albumView(this.environment, action.albumId, action.start, this.lang, t, (p) =>
+          this.resolve(p),
+        );
+        const album = this.environment.albums.find((a) => a.id === action.albumId);
+        if (view && album)
+          await this.dialogs.show(L(album.name), [view], 'evx-viewer__dialog--wide');
         return;
       }
-      case 'stopAudio':
-        this.audio.get(action.audioId)?.pause();
-        return;
       case 'setVisibility':
         for (const id of action.targetIds) {
           const h = this.environment.hotspots.find((x) => x.id === id);
@@ -743,8 +947,10 @@ export class Viewer {
       case 'showRoute':
         this.showRoute(action.routeId);
         return;
-      case 'startModule':
       case 'setLiveLayer':
+        await this.setLiveLayer(action.layerId, action.stateId);
+        return;
+      case 'startModule':
         return;
     }
   }

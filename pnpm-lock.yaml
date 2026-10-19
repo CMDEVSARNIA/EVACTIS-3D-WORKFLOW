@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@napi-rs/canvas': '-'
+
 importers:
 
   .:
@@ -185,12 +188,18 @@ importers:
         specifier: workspace:*
         version: link:../schema
     devDependencies:
+      '@pdf-lib/fontkit':
+        specifier: 1.1.1
+        version: 1.1.1
       '@types/pngjs':
         specifier: 6.0.5
         version: 6.0.5
       jpeg-js:
         specifier: 0.4.4
         version: 0.4.4
+      pdf-lib:
+        specifier: 1.17.1
+        version: 1.17.1
       pngjs:
         specifier: 7.0.0
         version: 7.0.0
@@ -266,6 +275,9 @@ importers:
       '@evactis-3dworkflow/schema':
         specifier: workspace:*
         version: link:../schema
+      pdfjs-dist:
+        specifier: 4.10.38
+        version: 4.10.38
       three:
         specifier: 0.186.1
         version: 0.186.1
@@ -2001,6 +2013,10 @@ packages:
 
   pdf-lib@1.17.1:
     resolution: {integrity: sha512-V/mpyJAoTsN4cnP31vc0wfNA1+p20evqqnap0KLoRUN0Yk/p3wN52DOEsL4oBFcLdb76hlpKPtzJIgo67j/XLw==}
+
+  pdfjs-dist@4.10.38:
+    resolution: {integrity: sha512-/Y3fcFrXEAsMjJXeL9J8+ZG9U01LbuWaYypvDW2ycW1jL269L3js3DVBjDJ0Up9Np1uqDXsDrRihHANhZOlwdQ==}
+    engines: {node: '>=20'}
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -3930,6 +3946,8 @@ snapshots:
       '@pdf-lib/upng': 1.0.1
       pako: 1.0.11
       tslib: 1.14.1
+
+  pdfjs-dist@4.10.38: {}
 
   picocolors@1.1.1: {}
 

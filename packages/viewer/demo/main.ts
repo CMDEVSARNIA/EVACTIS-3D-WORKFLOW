@@ -23,6 +23,7 @@ try {
     sceneId: params.get('scene') ?? undefined,
     reducedMotion: params.has('reduced-motion') || undefined,
     editing: params.has('editing') || undefined,
+    radar: !params.has('no-radar'),
   });
   window.viewer = viewer;
   document.documentElement.lang = viewer.language;
@@ -91,6 +92,35 @@ try {
     viewer.on('languagechange', fill);
     viewer.on('audiencechange', ({ audience }) => (select.value = audience ?? ''));
     select.addEventListener('change', () => viewer.setAudience(select.value || null));
+    label.append(name, select);
+    toolbar.append(label);
+  }
+  // Live layers (e.g. "Conditions: Normal / Smoke"), one switcher each.
+  for (const layer of viewer.environment.liveLayers) {
+    const label = document.createElement('label');
+    label.className = 'demo-audience';
+    const name = document.createElement('span');
+    const select = document.createElement('select');
+    select.dataset.layerId = layer.id;
+    const L = (t: Record<string, string>) => t[viewer.language] ?? t.en ?? '';
+    const fill = () => {
+      name.textContent = L(layer.name);
+      select.replaceChildren(
+        ...layer.states.map((st) => {
+          const o = document.createElement('option');
+          o.value = st.id;
+          o.textContent = L(st.name);
+          return o;
+        }),
+      );
+      select.value = viewer.liveLayers.find((l) => l.layerId === layer.id)?.stateId ?? '';
+    };
+    fill();
+    viewer.on('languagechange', fill);
+    viewer.on('livelayerchange', ({ layerId, stateId }) => {
+      if (layerId === layer.id) select.value = stateId;
+    });
+    select.addEventListener('change', () => void viewer.setLiveLayer(layer.id, select.value));
     label.append(name, select);
     toolbar.append(label);
   }

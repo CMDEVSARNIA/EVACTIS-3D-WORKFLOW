@@ -2,25 +2,28 @@ import {
   Box3,
   BufferAttribute,
   BufferGeometry,
-  DoubleSide,
   Frustum,
   LinearFilter,
   Matrix4,
   Mesh,
-  MeshBasicMaterial,
   PerspectiveCamera,
   SRGBColorSpace,
   Scene,
   Texture,
   Vector3,
+  VideoTexture,
   WebGLRenderer,
 } from 'three';
 import type { SceneMedia } from '@evactis-3dworkflow/schema';
 import { loadImage, type AssetResolver } from '../assets.ts';
 import { DEG, direction } from '../math.ts';
+import { adaptation, type LuminanceMap } from './adaptive.ts';
 import { FACES, facePoint, tilePath, type Face } from './cube.ts';
+import { Grading, NEUTRAL, type Grade } from './grading.ts';
+import { RegionLayer, type RegionSource } from './regions.ts';
 
 type Equirect = Extract<SceneMedia, { type: 'equirect' }>;
+type Video360 = Extract<SceneMedia, { type: 'video360' }>;
 
 export interface View {
   yaw: number;
@@ -89,8 +92,8 @@ function quadGeometry(
   return g;
 }
 
-function textureFrom(img: HTMLImageElement): Texture {
-  const t = new Texture(img);
+function textureFrom(img: HTMLImageElement | HTMLVideoElement): Texture {
+  const t = img instanceof HTMLVideoElement ? new VideoTexture(img) : new Texture(img);
   t.colorSpace = SRGBColorSpace;
   t.minFilter = LinearFilter;
   t.magFilter = LinearFilter;
@@ -99,8 +102,13 @@ function textureFrom(img: HTMLImageElement): Texture {
   return t;
 }
 
-function material(map: Texture): MeshBasicMaterial {
-  return new MeshBasicMaterial({ map, side: DoubleSide, depthTest: false, depthWrite: false });
+interface Content {
+  readonly group: Scene;
+  readonly pending: number;
+  readonly video: HTMLVideoElement | null;
+  load(): Promise<void>;
+  update(camera: PerspectiveCamera, viewportHeightPx: number): void;
+  dispose(): void;
 }
 
 interface Tile {
@@ -120,8 +128,9 @@ interface Tile {
  * One panorama loaded into the renderer: an equirectangular image, or multi-resolution
  * cube tiles over an optional low-resolution equirectangular preview.
  */
-class PanoramaContent {
+class PanoramaContent implements Content {
   readonly group = new Scene();
+  readonly video = null;
   private tiles: Tile[] = [];
   private levelSizes: number[] = [];
   private active = 0;
@@ -133,6 +142,7 @@ class PanoramaContent {
     private media: Equirect,
     private resolve: AssetResolver,
     private onChange: () => void,
+    private grading: Grading,
   ) {}
 
   get pending(): number {
@@ -197,7 +207,7 @@ class PanoramaContent {
   private addSphere(img: HTMLImageElement, order: number) {
     const tex = textureFrom(img);
     const geo = sphereGeometry(5);
-    const mat = material(tex);
+    const mat = this.grading.material(tex);
     const mesh = new Mesh(geo, mat);
     mesh.renderOrder = order;
     this.group.add(mesh);
@@ -212,7 +222,7 @@ class PanoramaContent {
       .then((img) => {
         const tex = textureFrom(img);
         const geo = quadGeometry(tile.face, tile.u0, tile.u1, tile.v0, tile.v1);
-        const mat = material(tex);
+        const mat = this.grading.material(tex);
         tile.mesh = new Mesh(geo, mat);
         tile.mesh.renderOrder = 10 + tile.level;
         this.group.add(tile.mesh);
@@ -260,12 +270,86 @@ class PanoramaContent {
   }
 }
 
+/**
+ * A 360° video on the panorama sphere. The video starts muted and paused on its first
+ * frame (or poster); the Viewer's controls play it. Stereo videos show the left eye.
+ */
+class VideoContent implements Content {
+  readonly group = new Scene();
+  readonly video: HTMLVideoElement;
+  readonly pending = 0;
+  private disposables: { dispose(): void }[] = [];
+
+  constructor(
+    private media: Video360,
+    resolve: AssetResolver,
+    private grading: Grading,
+  ) {
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.loop = media.loop;
+    v.preload = 'auto';
+    v.crossOrigin = 'anonymous';
+    v.src = resolve(media.source);
+    if (media.poster) v.poster = resolve(media.poster);
+    this.video = v;
+  }
+
+  load(): Promise<void> {
+    const v = this.video;
+    return new Promise((ok, fail) => {
+      const done = () => {
+        v.removeEventListener('loadeddata', done);
+        v.removeEventListener('error', bad);
+        const tex = textureFrom(v);
+        const geo = sphereGeometry(5);
+        // Stereo: keep the left eye (top half, or left half).
+        if (this.media.stereo !== 'mono') {
+          const uv = geo.getAttribute('uv') as BufferAttribute;
+          for (let i = 0; i < uv.count; i++)
+            if (this.media.stereo === 'top-bottom') uv.setY(i, 0.5 + uv.getY(i) / 2);
+            else uv.setX(i, uv.getX(i) / 2);
+        }
+        const mat = this.grading.material(tex);
+        this.group.add(new Mesh(geo, mat));
+        this.disposables.push(tex, geo, mat);
+        ok();
+      };
+      const bad = () => fail(new Error(`The video could not be played: ${this.media.source}`));
+      v.addEventListener('loadeddata', done);
+      v.addEventListener('error', bad);
+      v.load();
+    });
+  }
+
+  update(): void {}
+
+  dispose(): void {
+    this.video.pause();
+    this.video.removeAttribute('src');
+    this.video.load();
+    for (const d of this.disposables) d.dispose();
+    this.group.clear();
+  }
+}
+
 /** WebGL panorama renderer. Renders on demand only (nothing runs while the view is still). */
 export class PanoramaRenderer {
   readonly canvas: HTMLCanvasElement;
   private renderer: WebGLRenderer;
   private camera = new PerspectiveCamera(90, 1, 0.01, 20);
-  private content: PanoramaContent | null = null;
+  private content: Content | null = null;
+  private root = new Scene();
+  private grading = new Grading();
+  private grade: Grade = NEUTRAL;
+  private regions: RegionLayer;
+  private overlay = new Scene();
+  private luminance: LuminanceMap | null = null;
+  /** Current adaptive-HDR shift (stops) and when it was last stepped. */
+  private adapt = { value: 0, at: 0 };
+  /** Snap adaptation instead of easing it (reduced motion). */
+  instantAdaptation = false;
   private dirty = true;
   private raf = 0;
   private resize: ResizeObserver;
@@ -290,17 +374,96 @@ export class PanoramaRenderer {
     host.append(this.canvas);
     this.resize = new ResizeObserver(() => this.invalidate());
     this.resize.observe(host);
+    this.regions = new RegionLayer(this.overlay, this.grading);
+    this.root.add(this.overlay);
   }
 
   /** Replaces the panorama. Resolves once it can be shown. */
   async show(media: SceneMedia, resolve: AssetResolver): Promise<void> {
-    if (media.type !== 'equirect')
-      throw new Error(`Scene media "${media.type}" is not supported by the Viewer core yet`);
-    const next = new PanoramaContent(media, resolve, () => this.invalidate());
+    let next: Content;
+    if (media.type === 'equirect')
+      next = new PanoramaContent(media, resolve, () => this.invalidate(), this.grading);
+    else if (media.type === 'video360') next = new VideoContent(media, resolve, this.grading);
+    else throw new Error(`Scene media "${media.type}" is not supported by the Viewer core yet`);
     await next.load();
-    this.content?.dispose();
+    if (this.content) {
+      this.root.remove(this.content.group);
+      this.content.dispose();
+    }
+    this.regions.clear();
     this.content = next;
+    this.root.add(next.group);
+    // Video frames arrive on their own clock: draw each one while playing.
+    const v = next.video;
+    if (v)
+      for (const e of ['play', 'seeked', 'timeupdate'])
+        v.addEventListener(e, () => this.invalidate());
     this.invalidate();
+  }
+
+  /** The current scene's video, if it is a 360° video scene. */
+  get video(): HTMLVideoElement | null {
+    return this.content?.video ?? null;
+  }
+
+  /** Exposure and haze for every panorama surface (live layers). */
+  setGrade(grade: Grade): void {
+    this.grade = grade;
+    this.applyGrade();
+    this.invalidate();
+  }
+
+  /** HDR luminance map of the current scene; null turns adaptive exposure off. */
+  setLuminance(map: LuminanceMap | null): void {
+    this.luminance = map;
+    if (!map) this.adapt.value = 0;
+    this.adapt.at = 0;
+    this.applyGrade();
+    this.invalidate();
+  }
+
+  /** Current adaptive-HDR exposure shift in stops (0 without a luminance map). */
+  get adaptation(): number {
+    return this.adapt.value;
+  }
+
+  /** Animated regions of the current scene (replaces any shown). */
+  setRegions(sources: RegionSource[]): void {
+    this.regions.set(sources);
+    for (const s of sources)
+      if (s.element instanceof HTMLVideoElement)
+        s.element.addEventListener('play', () => this.invalidate());
+    this.invalidate();
+  }
+
+  get regionIds(): string[] {
+    return this.regions.ids;
+  }
+
+  private applyGrade() {
+    this.grading.set(this.grade, this.adapt.value);
+  }
+
+  /** Steps adaptive exposure towards the view's target; true while still moving. */
+  private stepAdaptation(): boolean {
+    if (!this.luminance) return false;
+    const target = adaptation(
+      this.luminance.viewStops(this.view.yaw, this.view.pitch, this.view.fov),
+    );
+    const now = performance.now();
+    const dt = this.adapt.at ? (now - this.adapt.at) / 1000 : Infinity;
+    this.adapt.at = now;
+    const k = this.instantAdaptation ? 1 : 1 - Math.exp(-dt / 0.35);
+    this.adapt.value += (target - this.adapt.value) * k;
+    if (Math.abs(target - this.adapt.value) < 0.01) this.adapt.value = target;
+    this.applyGrade();
+    return this.adapt.value !== target;
+  }
+
+  /** Something keeps changing without input: a video playing, or eyes adapting. */
+  private animating(): boolean {
+    const v = this.content?.video;
+    return (!!v && !v.paused && !v.ended) || this.regions.playing;
   }
 
   setView(view: View): void {
@@ -330,8 +493,14 @@ export class PanoramaRenderer {
   }
 
   private isIdle() {
-    return !this.dirty && !this.raf && (this.content?.pending ?? 0) === 0;
+    // Playing video never settles; it counts as idle once everything else has.
+    return (
+      ((!this.dirty && !this.raf) || this.animating()) &&
+      (this.content?.pending ?? 0) === 0 &&
+      !this.adapting
+    );
   }
+  private adapting = false;
 
   /** Projects a direction to CSS pixels in the host; null when behind the camera. */
   project(yaw: number, pitch: number): { x: number; y: number } | null {
@@ -369,7 +538,8 @@ export class PanoramaRenderer {
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld();
     this.content?.update(this.camera, h * this.renderer.getPixelRatio());
-    if (this.content) this.renderer.render(this.content.group, this.camera);
+    this.adapting = this.stepAdaptation();
+    if (this.content) this.renderer.render(this.root, this.camera);
     else this.renderer.clear();
   }
 
@@ -379,12 +549,14 @@ export class PanoramaRenderer {
     this.dirty = false;
     this.draw();
     this.onFrame();
+    if (this.adapting || this.animating()) this.invalidate();
     if (this.isIdle()) for (const w of this.idleWaiters.splice(0)) w();
   }
 
   dispose(): void {
     cancelAnimationFrame(this.raf);
     this.resize.disconnect();
+    this.regions.clear();
     this.content?.dispose();
     this.renderer.dispose();
     this.canvas.remove();

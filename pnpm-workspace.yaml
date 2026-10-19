@@ -6,3 +6,8 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - '@tailwindcss/oxide'
+
+# pdf.js lists a native Node canvas as optional (server-side rendering only). The Viewer
+# renders PDFs in the browser canvas, so it is never installed or shipped.
+overrides:
+  '@napi-rs/canvas': '-'
