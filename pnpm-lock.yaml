@@ -50,6 +50,9 @@ importers:
       '@evactis-3dworkflow/desktop-bridge':
         specifier: workspace:*
         version: link:../../packages/desktop-bridge
+      '@evactis-3dworkflow/print':
+        specifier: workspace:*
+        version: link:../../packages/print
       '@evactis-3dworkflow/schema':
         specifier: workspace:*
         version: link:../../packages/schema
@@ -69,6 +72,9 @@ importers:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
     devDependencies:
+      '@evactis-3dworkflow/demo-facility':
+        specifier: workspace:*
+        version: link:../../packages/demo-facility
       '@tailwindcss/vite':
         specifier: 4.1.18
         version: 4.1.18(vite@7.3.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.30.2))

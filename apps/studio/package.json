@@ -15,6 +15,7 @@
   "dependencies": {
     "@evactis-3dworkflow/brand": "workspace:*",
     "@evactis-3dworkflow/desktop-bridge": "workspace:*",
+    "@evactis-3dworkflow/print": "workspace:*",
     "@evactis-3dworkflow/schema": "workspace:*",
     "@evactis-3dworkflow/viewer": "workspace:*",
     "@radix-ui/react-dialog": "1.3.1",
@@ -23,6 +24,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@evactis-3dworkflow/demo-facility": "workspace:*",
     "@tailwindcss/vite": "4.1.18",
     "@tauri-apps/cli": "2.12.2",
     "@testing-library/react": "16.3.3",
