@@ -15,6 +15,10 @@ const mock = vi.hoisted(() => ({
     openProject: vi.fn(),
     saveProject: vi.fn(),
     closeProject: vi.fn(async () => {}),
+    snapshot: vi.fn(async () => null),
+    snapshots: vi.fn(async () => []),
+    readSnapshot: vi.fn(),
+    restoreSnapshot: vi.fn(),
     listLibrary: vi.fn(),
     importMedia: vi.fn(),
     cancelImport: vi.fn(async () => {}),
@@ -95,7 +99,7 @@ const en = STRINGS.en;
 
 describe('media library', () => {
   it('lists assets and shows metadata for the selected one', async () => {
-    render(<Library t={en} lang="en" project={project} onClose={() => {}} />);
+    render(<Library t={en} lang="en" project={project} />);
     const card = await screen.findByRole('button', { name: /Lobby east/ });
     expect(card.textContent).toContain('Panorama · 4096 × 2048');
     expect(card.querySelector('img')?.getAttribute('src')).toBe(
@@ -113,7 +117,7 @@ describe('media library', () => {
 
   it('imports with live progress, localised errors and a summary', async () => {
     mock.api.pickMedia.mockResolvedValue(['/in/a.jpg', 'C:\\in\\b.png']);
-    render(<Library t={en} lang="en" project={project} onClose={() => {}} />);
+    render(<Library t={en} lang="en" project={project} />);
     fireEvent.click(await screen.findByRole('button', { name: en.importMedia }));
     await waitFor(() =>
       expect(mock.api.importMedia).toHaveBeenCalledWith(
@@ -156,7 +160,7 @@ describe('media library', () => {
   });
 
   it('imports files dropped on the window', async () => {
-    const { container } = render(<Library t={en} lang="en" project={project} onClose={() => {}} />);
+    const { container } = render(<Library t={en} lang="en" project={project} />);
     await waitFor(() => expect(mock.drop).not.toBeNull());
     act(() => mock.drop!({ type: 'over' }));
     expect(container.querySelector('.evx-dropzone--active')).not.toBeNull();
@@ -169,14 +173,14 @@ describe('media library', () => {
 
   it('cancels a running import', async () => {
     mock.api.pickMedia.mockResolvedValue(['/in/a.jpg']);
-    render(<Library t={en} lang="en" project={project} onClose={() => {}} />);
+    render(<Library t={en} lang="en" project={project} />);
     fireEvent.click(await screen.findByRole('button', { name: en.importMedia }));
     fireEvent.click(await screen.findByRole('button', { name: en.cancelImport }));
     expect(mock.api.cancelImport).toHaveBeenCalledWith(7);
   });
 
   it('removes only after confirmation', async () => {
-    render(<Library t={en} lang="en" project={project} onClose={() => {}} />);
+    render(<Library t={en} lang="en" project={project} />);
     fireEvent.click(await screen.findByRole('button', { name: /Lobby east/ }));
     fireEvent.click(screen.getByRole('button', { name: en.remove }));
     expect(mock.api.removeAsset).not.toHaveBeenCalled();
@@ -187,7 +191,7 @@ describe('media library', () => {
 
   it('speaks French', async () => {
     const fr = STRINGS.fr;
-    render(<Library t={fr} lang="fr" project={project} onClose={() => {}} />);
+    render(<Library t={fr} lang="fr" project={project} />);
     fireEvent.click(await screen.findByRole('button', { name: /Lobby east/ }));
     expect(screen.getByRole('button', { name: fr.importMedia })).toBeTruthy();
     expect(screen.getByRole('complementary').textContent).toContain('50 Mo');
@@ -196,7 +200,7 @@ describe('media library', () => {
 
   it('warns when the video converter is missing', async () => {
     mock.api.mediaTools.mockResolvedValueOnce({ ffmpegVersion: null, ffmpegRedistributable: null });
-    render(<Library t={en} lang="en" project={project} onClose={() => {}} />);
+    render(<Library t={en} lang="en" project={project} />);
     expect(await screen.findByText(en.noFfmpeg)).toBeTruthy();
   });
 });

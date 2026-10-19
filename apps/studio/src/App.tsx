@@ -1,13 +1,14 @@
 import lockupUrl from '@evactis-3dworkflow/brand/product-lockup.svg?url';
 import type { AppInfo } from '@evactis-3dworkflow/desktop-bridge';
-import { parseEnvironment } from '@evactis-3dworkflow/schema';
+import { parseEnvironment, type Environment } from '@evactis-3dworkflow/schema';
 import { useEffect, useState } from 'react';
 import { AboutDialog } from './AboutDialog.tsx';
 import { api, desktop, type ProjectInfo } from './api.ts';
 import { describeError, newProjectManifest } from './format.ts';
 import { STRINGS, detectLang, type Lang } from './i18n.ts';
-import { Library, type SmokeResult } from './Library.tsx';
+import type { SmokeResult } from './Library.tsx';
 import { NewProjectDialog } from './NewProjectDialog.tsx';
+import { Workspace } from './Workspace.tsx';
 
 type Theme = 'dark' | 'light';
 
@@ -21,7 +22,7 @@ export function App({
 }) {
   const [lang, setLang] = useState<Lang>(() => detectLang());
   const [theme, setTheme] = useState<Theme>('dark');
-  const [project, setProject] = useState<ProjectInfo | null>(null);
+  const [open_, setOpen] = useState<{ project: ProjectInfo; env: Environment } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const t = STRINGS[lang];
   const smokeImport = info?.smokeTest ? info.smokeImport : null;
@@ -45,7 +46,7 @@ export function App({
       return;
     }
     setError(null);
-    setProject(p);
+    setOpen({ project: p, env: parsed.environment });
   }
 
   async function open(path?: string | null) {
@@ -78,7 +79,7 @@ export function App({
 
   async function close() {
     await api.closeProject();
-    setProject(null);
+    setOpen(null);
   }
 
   return (
@@ -104,11 +105,13 @@ export function App({
         </div>
       </header>
 
-      {project ? (
-        <Library
+      {open_ ? (
+        <Workspace
+          key={open_.project.manifestPath}
           t={t}
           lang={lang}
-          project={project}
+          project={open_.project}
+          environment={open_.env}
           onClose={() => void close()}
           initialImport={smokeImport ? [smokeImport] : undefined}
           onSmoke={onSmoke}

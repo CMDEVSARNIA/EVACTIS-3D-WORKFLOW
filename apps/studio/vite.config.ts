@@ -9,6 +9,7 @@ export default defineConfig({
   clearScreen: false,
   plugins: [react(), tailwindcss(), cspPlugin({ localFiles: true })],
   server: { host: '127.0.0.1', port: 1420, strictPort: true },
-  build: { target: 'es2022', assetsInlineLimit: 0, sourcemap: false },
+  // A desktop app loads its bundle from disk: one large chunk is fine.
+  build: { target: 'es2022', assetsInlineLimit: 0, sourcemap: false, chunkSizeWarningLimit: 4096 },
   test: { environment: 'jsdom' },
 });

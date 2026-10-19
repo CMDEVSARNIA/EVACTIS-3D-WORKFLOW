@@ -32,14 +32,15 @@ export function Library({
   t,
   lang,
   project,
-  onClose,
+  onChange,
   initialImport,
   onSmoke,
 }: {
   t: Strings;
   lang: Lang;
   project: ProjectInfo;
-  onClose: () => void;
+  /** The library's assets, after every listing (imports, removals). */
+  onChange?: (assets: AssetRecord[]) => void;
   /** Smoke-test runs: files to import as soon as the library opens. */
   initialImport?: string[];
   onSmoke?: (r: SmokeResult) => void;
@@ -59,7 +60,8 @@ export function Library({
     const l = await api.listLibrary();
     setAssets(l.assets);
     setProblems(l.problems);
-  }, []);
+    onChange?.(l.assets);
+  }, [onChange]);
 
   useEffect(() => {
     void refresh();
@@ -184,22 +186,16 @@ export function Library({
   const thumb = (a: AssetRecord) => (a.thumbnail ? api.fileUrl(project.root, a.thumbnail) : null);
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl flex-1 content-start gap-8 px-6 py-10">
+    <div className="mx-auto grid w-full max-w-7xl flex-1 content-start gap-8 px-6 py-8">
       <section className="flex flex-wrap items-end justify-between gap-6">
         <div>
           <p className="evx-eyebrow">{t.libraryEyebrow}</p>
-          <h1 className="evx-heading mt-4 text-4xl" data-testid="project-name">
-            {project.name}
-          </h1>
           <p className="mt-3 max-w-[60ch] opacity-80">{t.libraryLead}</p>
           <p className="mt-1 text-sm break-all opacity-60">{project.root}</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button type="button" className="evx-cta" onClick={pick} disabled={job !== null}>
             {t.importMedia}
-          </button>
-          <button type="button" className="evx-cta evx-cta--ghost" onClick={onClose}>
-            {t.closeProject}
           </button>
         </div>
       </section>

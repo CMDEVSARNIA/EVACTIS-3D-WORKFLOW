@@ -104,9 +104,12 @@ export function isCommandError(e: unknown): e is CommandError {
   return typeof e === 'object' && e !== null && 'code' in e && 'message' in e;
 }
 
-export const desktop = isTauri;
+/** The browser e2e build (`vite build --mode e2e`) runs on an in-memory backend. */
+const E2E = import.meta.env.MODE === 'e2e';
 
-export const api = {
+export const desktop = E2E ? () => true : isTauri;
+
+const tauriApi = {
   createProject: (parent: string, name: string, manifest: string) =>
     invoke<ProjectInfo>('project_create', { parent, name, manifest }),
   openProject: (path: string) => invoke<ProjectInfo>('project_open', { path }),
@@ -135,7 +138,8 @@ export const api = {
   pickFolder: (title: string) => invoke<string | null>('pick_folder', { title }),
   pickProject: (title: string, filter: string) =>
     invoke<string | null>('pick_project', { title, filter }),
-  pickMedia: (title: string, filter: string) => invoke<string[]>('pick_media', { title, filter }),
+  pickMedia: (title: string, filter: string, purpose: ImportPurpose = 'scene') =>
+    invoke<string[]>('pick_media', { title, filter, purpose }),
   smokeWorkspace: () => invoke<string>('smoke_workspace'),
   /** Files dragged onto the window; Tauri delivers their real paths. Returns unlisten. */
   onFileDrop: (handler: (e: FileDrop) => void) =>
@@ -151,4 +155,7 @@ export const api = {
   },
 };
 
-export type StudioApi = typeof api;
+export type StudioApi = typeof tauriApi;
+
+// Statically false in every other build, so the test backend is not even bundled.
+export const api: StudioApi = E2E ? (await import('./testing/memoryApi.ts')).memoryApi : tauriApi;

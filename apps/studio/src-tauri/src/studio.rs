@@ -354,6 +354,10 @@ const MEDIA_EXTENSIONS: &[&str] = &[
     "insp", "insv",
 ];
 
+/// Floor plans: raster images (evx_media::probe::probe_plan). PDF is offered too, so
+/// Studio can explain the export step instead of hiding the file.
+const PLAN_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "tif", "tiff", "pdf"];
+
 fn path_string(p: impl AsRef<Path>) -> String {
     p.as_ref().display().to_string()
 }
@@ -375,11 +379,15 @@ async fn pick_project(window: WebviewWindow, title: String, filter: String) -> O
 }
 
 #[tauri::command]
-async fn pick_media(window: WebviewWindow, title: String, filter: String) -> Vec<String> {
+async fn pick_media(window: WebviewWindow, title: String, filter: String, purpose: Option<Purpose>) -> Vec<String> {
+    let extensions = match purpose.unwrap_or_default() {
+        Purpose::Scene => MEDIA_EXTENSIONS,
+        Purpose::FloorPlan => PLAN_EXTENSIONS,
+    };
     rfd::AsyncFileDialog::new()
         .set_parent(&window)
         .set_title(title)
-        .add_filter(filter, MEDIA_EXTENSIONS)
+        .add_filter(filter, extensions)
         .pick_files()
         .await
         .unwrap_or_default()

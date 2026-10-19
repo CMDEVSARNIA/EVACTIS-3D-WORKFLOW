@@ -1,3 +1,5 @@
+import { EDITOR } from './editor/strings.ts';
+
 export const STRINGS = {
   en: {
     eyebrow: 'Safe plans . Clear paths',
@@ -102,6 +104,7 @@ export const STRINGS = {
       'Remove this item and its generated files from the project? The original file elsewhere on this computer is not touched.',
     noFfmpeg: 'Video import is unavailable: the bundled video converter was not found.',
     seconds: 's',
+    editor: EDITOR.en,
   },
   fr: {
     eyebrow: 'Plans sûrs . Chemins clairs',
@@ -210,6 +213,7 @@ export const STRINGS = {
       'Retirer cet élément et ses fichiers générés du projet ? Le fichier d’origine ailleurs sur cet ordinateur n’est pas modifié.',
     noFfmpeg: 'Importation vidéo indisponible : le convertisseur vidéo fourni est introuvable.',
     seconds: 's',
+    editor: EDITOR.fr,
   },
 };
 

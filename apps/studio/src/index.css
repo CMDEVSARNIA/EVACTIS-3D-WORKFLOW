@@ -3,6 +3,8 @@
 @import '@evactis-3dworkflow/brand/fonts.css';
 @import '@evactis-3dworkflow/brand/button.css';
 @import '@evactis-3dworkflow/brand/chrome.css';
+/* The Viewer's own styles repeat the brand chrome: import them before Studio's rules. */
+@import '@evactis-3dworkflow/viewer/viewer.css';
 
 /* Brand tokens as Tailwind theme values (bg-navy, text-green, font-sans …). */
 @theme {
@@ -131,4 +133,364 @@ body,
 }
 .evx-details > dt {
   color: var(--evx-fg-subtle);
+}
+
+/* ------------------------------------------------------------------ editor */
+
+/* Small controls. White on green-strong is only 3.6:1, too low for small text, so small
+   primary buttons use the button kit's default state: navy tile, green bar. */
+.evx-cta--small {
+  min-block-size: 36px;
+  padding: 0.45em 0.95em;
+  background: var(--evx-navy);
+  box-shadow: inset 0 -3px 0 var(--evx-green);
+  font: 600 0.875rem/1.2 var(--evx-font-body);
+}
+.evx-cta--small.evx-cta--ghost {
+  background: transparent;
+  box-shadow: none;
+}
+.evx-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.evx-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 30px;
+  min-block-size: 30px;
+  border: 1px solid var(--evx-rule);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--evx-fg);
+  font-weight: 700;
+  cursor: pointer;
+}
+.evx-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.evx-icon-btn:focus-visible,
+.evx-scene:focus-visible,
+.evx-tabs > button:focus-visible,
+.evx-segmented > button:focus-visible {
+  outline: 3px solid var(--evx-accent);
+  outline-offset: 2px;
+}
+.evx-field--small {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.875rem;
+}
+textarea.evx-field {
+  resize: vertical;
+}
+.evx-subheading {
+  margin: 0;
+  color: var(--evx-fg);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.evx-hint {
+  margin: 0;
+  color: var(--evx-fg-subtle);
+  font-size: 0.85rem;
+}
+.evx-dt {
+  color: var(--evx-fg-subtle);
+}
+.evx-form-row {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+}
+.evx-form-row > label {
+  font-weight: 600;
+}
+.evx-badge {
+  display: inline-block;
+  border: 1px solid var(--evx-accent);
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  color: var(--evx-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Project bar: name and save state, section tabs, undo/redo/close. */
+.evx-projectbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  border-block-end: 1px solid var(--evx-rule);
+  padding: 1rem 1.5rem;
+}
+.evx-save {
+  margin: 0.25rem 0 0;
+  color: var(--evx-fg-subtle);
+  font-size: 0.85rem;
+}
+.evx-save--saved::before {
+  content: '';
+  display: inline-block;
+  inline-size: 0.6em;
+  block-size: 0.6em;
+  margin-inline-end: 0.45em;
+  border-radius: 2px;
+  background: var(--evx-green);
+}
+.evx-save--invalid,
+.evx-save--error {
+  color: var(--evx-fg);
+  font-weight: 600;
+}
+.evx-tabs,
+.evx-segmented {
+  display: inline-flex;
+  gap: 0.25rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 10px;
+  padding: 0.25rem;
+}
+.evx-tabs > button,
+.evx-segmented > button {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--evx-fg);
+  padding: 0.45rem 1rem;
+  font: 600 0.9rem/1.2 var(--evx-font-body);
+  cursor: pointer;
+}
+.evx-segmented > button {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+.evx-tabs > button[aria-selected='true'],
+.evx-segmented > button[aria-checked='true'] {
+  background: var(--evx-navy);
+  box-shadow: inset 0 -3px 0 var(--evx-green);
+  color: var(--evx-white);
+}
+
+/* Three columns: list, stage, inspector. */
+.evx-editor {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 17rem minmax(0, 1fr) 21rem;
+  gap: 1rem;
+  padding: 1rem 1.5rem 1.5rem;
+  min-block-size: 0;
+}
+@media (max-width: 1100px) {
+  .evx-editor {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+  .evx-editor__inspector {
+    grid-column: 1 / -1;
+  }
+}
+.evx-editor__scenes,
+.evx-editor__inspector {
+  align-self: start;
+  max-block-size: calc(100vh - 12rem);
+  overflow: auto;
+  padding: 1rem;
+}
+.evx-editor__stage {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  min-inline-size: 0;
+}
+.evx-editor__empty {
+  display: grid;
+  min-block-size: 20rem;
+  place-items: center;
+  text-align: center;
+}
+.evx-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.evx-scene-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evx-scene {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.25rem 0.6rem;
+  inline-size: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  padding: 0.35rem;
+  text-align: start;
+  cursor: pointer;
+}
+.evx-scene:hover {
+  border-color: var(--evx-rule);
+}
+.evx-scene[aria-current='true'] {
+  border-color: var(--evx-accent);
+  background: var(--evx-panel);
+}
+.evx-scene > img,
+.evx-scene > span:first-child {
+  grid-row: span 2;
+  aspect-ratio: 2 / 1;
+  inline-size: 100%;
+  border-radius: 4px;
+  background: var(--evx-rule);
+  object-fit: cover;
+}
+.evx-scene__name {
+  overflow: hidden;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evx-scene > .evx-badge {
+  justify-self: start;
+}
+.evx-scene > .evx-scene__level {
+  display: grid;
+  grid-row: auto;
+  aspect-ratio: auto;
+  place-items: center;
+  min-block-size: 2rem;
+  font-weight: 800;
+}
+
+.evx-preview {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--evx-rule);
+  border-radius: 0.75rem;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  max-block-size: calc(100vh - 16rem);
+  inline-size: 100%;
+}
+.evx-preview__stage,
+.evx-preview__stage > .evx-viewer {
+  position: absolute;
+  inset: 0;
+}
+.evx-preview[data-editing='true'] .evx-viewer {
+  cursor: crosshair;
+}
+.evx-preview__error {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  background: var(--evx-ink);
+  color: var(--evx-white);
+}
+
+.evx-action {
+  display: grid;
+  gap: 0.6rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+.evx-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+}
+
+.evx-asset--check {
+  position: relative;
+}
+.evx-asset--check > input {
+  position: absolute;
+  inset: 0.9rem auto auto 0.9rem;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
+  accent-color: var(--evx-green-strong);
+}
+.evx-asset--check:has(input:checked) {
+  border-color: var(--evx-accent);
+  box-shadow: 0 0 0 2px var(--evx-accent);
+}
+.evx-asset--check:has(input:disabled) {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Floor plan with scene markers and the calibration line, in plan pixels. */
+.evx-plan {
+  position: relative;
+  margin-inline: auto;
+  border: 1px solid var(--evx-rule);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #fff;
+}
+.evx-plan > img,
+.evx-plan > svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.evx-plan > img {
+  pointer-events: none;
+  user-select: none;
+}
+.evx-plan > svg[data-mode='place'],
+.evx-plan > svg[data-mode='calibrate'] {
+  cursor: crosshair;
+}
+.evx-plan circle {
+  fill: var(--evx-navy);
+  stroke: #fff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.evx-plan text {
+  fill: var(--evx-navy);
+  font-family: var(--evx-font-body);
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+.evx-plan .evx-plan__active circle {
+  fill: var(--evx-green-strong);
+}
+.evx-plan .evx-plan__scale {
+  fill: var(--evx-fire-red);
+  stroke: var(--evx-fire-red);
+}
+
+.evx-version {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
 }
