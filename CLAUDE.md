@@ -57,13 +57,13 @@ makes network calls at runtime.
 | `crates/evx-media` | Studio media pipeline: validation, EXIF, cube tiling, previews, HDR, stereo, video via LGPL FFmpeg, GLB/splat checks. No network code. |
 | `crates/evx-core` | UI-free Rust core (identity, launch args, navigation guard, project location, smoke report). |
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
-| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. |
+| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, autolink, Tour/Floors/Versions); `src/testing/` is the e2e-only in-memory backend. |
 | `apps/viewer-desktop` | 3DWORKFLOW Viewer desktop: Tauri v2 + vanilla TS. |
 | `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
 | `scripts/linux` | Real-app smoke test: built Studio/Viewer in a network namespace with no interfaces, screenshots. |
 | `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator, smoke-report checker. |
-| `e2e/` | Playwright tests; all run in network-blocked mode (`e2e/offline.ts`). |
+| `e2e/` | Playwright tests; all run in network-blocked mode (`e2e/offline.ts`). Fixtures in `e2e/fixtures/` import real media with the Rust pipeline. |
 | `docs/` | Decisions (`docs/decisions/`), licences, IT deployment, brand usage, signage note. |
 
 ## Commands
@@ -74,6 +74,8 @@ makes network calls at runtime.
 - `pnpm brand:generate` — regenerate tokens.css, logos, kit SVGs, fonts, app/file icons,
   installer bitmaps. `pnpm installers:templates` — regenerate NSIS/WiX templates.
 - `pnpm test:e2e:update` — refresh visual baselines (Linux; review the diff first).
+- `node e2e/fixtures/studio-project.mjs` — build Studio's browser test build + imported test media
+  (`target/e2e-studio-project`); Playwright does this itself.
 - `pnpm --filter @evactis-3dworkflow/viewer dev` — Viewer demo facility at http://127.0.0.1:1430.
 - `cargo test --workspace` — all Rust tests (Linux needs webkit2gtk-4.1 dev packages).
 - `scripts/linux/real-app-smoke.sh` — run the built apps with no network interfaces (Studio
@@ -136,7 +138,14 @@ makes network calls at runtime.
   - [x] Windows: LGPL FFmpeg bundled; 12K panorama (~10 s) + 360 video import pass in the installed app with Studio and FFmpeg firewalled (windows-2022/2025)
   - [x] Studio-made tiles render in the right directions in the Viewer (e2e compass test)
   - [x] Phase 1 carry-over: first green Windows workflow
-- [ ] Phase 4 — Studio core editing
+- [x] **Phase 4 — Studio core editing** (awaiting review)
+  - [x] Tour editor: scenes from the library, live preview (the real Viewer, editing mode), start view, north
+  - [x] Hotspots placed by clicking the preview, dragged to move; link and information hotspots
+  - [x] Action editor (go to scene, information, turn view, floor plan, packaged file)
+  - [x] Floors: buildings/floors, plan import (raster), two-point scale, plan north, scene placement
+  - [x] Link suggestions from plan positions, GPS and capture order (author accepts each)
+  - [x] Undo/redo (Ctrl+Z/Ctrl+Y, labelled), validated autosave, local versions in `.evx-history`
+  - [x] Acceptance: 10-scene, 2-floor tour built in the UI and walked in the Viewer (`e2e/studio-tour.spec.ts`)
 - [ ] Phase 5 — Safety and emergency layer
 - [ ] Phase 6 — Rich features
 - [ ] Phase 7 — Skin designer and Evactis default skin
@@ -202,6 +211,23 @@ makes network calls at runtime.
     the website) is unchanged. *Flag for Evactis review.*
 20. **Contrast is enforced by test** (`e2e/contrast.ts`): every visible text in Studio
     (both themes, both languages, About dialog) and the Viewer shell must meet WCAG AA.
+
+## Assumptions (Phase 4)
+
+21. **Versions save the project file only** (`<project>/.evx-history/`): media is
+    content-addressed and never modified, so the manifest is a complete version. A
+    version may point at media removed from the library since; restoring reports it.
+22. **Floor plans are raster images** (PNG/JPG/TIFF, scaled to 4096 px). PDF and CAD
+    plans are exported to PNG first; native PDF/DXF import would need a large renderer.
+23. **Links are suggested, never created automatically**: from plan positions, then GPS,
+    then capture order, within 30 m. Hotspots are aimed at the floor where the neighbour
+    stands (camera height 1.6 m); the author checks where each lands.
+24. **Phase 4 action editor** covers navigation and information actions; safety,
+    training and media actions get their editors in Phases 5, 6 and 8 (existing ones are
+    kept and listed).
+25. **Undo history lasts for the session** (100 steps); versions are the long-term
+    history. Automatic versions: on open and every 10 minutes of editing, 30 kept.
+26. **Plan placement is by mouse**; a keyboard alternative is planned for Phase 12.
 
 ## Requirements added by Evactis
 

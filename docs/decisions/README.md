@@ -15,3 +15,4 @@ accepted record; supersede it with a new one.
 | [0008](0008-offline-code-signing.md) | Offline signing on a USB hardware token; no cloud; offline builds | Accepted (Evactis, 2026-10-14) |
 | [0009](0009-viewer-core-architecture.md) | Viewer core: Three.js on demand, shared cube tiles, DOM hotspots | Accepted |
 | [0010](0010-local-media-pipeline.md) | Local media pipeline: Rust tiler, content-hash library, LGPL FFmpeg sidecar | Accepted |
+| [0011](0011-studio-editing.md) | Studio editing: whole-document undo, validated autosave, manifest versions, raster floor plans, suggested links | Accepted |
