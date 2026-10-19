@@ -39,8 +39,19 @@ pub struct Progress {
     pub total: u64,
 }
 
+/// What the file is for; decides how it is validated and processed.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Purpose {
+    /// A scene: panorama, 360 video, GLB or splat.
+    #[default]
+    Scene,
+    FloorPlan,
+}
+
 #[derive(Debug, Clone)]
 pub struct ImportOptions {
+    pub purpose: Purpose,
     pub tile_size: u32,
     pub jpeg_quality: u8,
     pub preview_width: u32,
@@ -53,6 +64,7 @@ pub struct ImportOptions {
 impl Default for ImportOptions {
     fn default() -> Self {
         Self {
+            purpose: Purpose::Scene,
             tile_size: 512,
             jpeg_quality: 88,
             preview_width: 2048,
@@ -65,6 +77,11 @@ impl Default for ImportOptions {
 
 /// HDR panoramas are decoded as 32-bit float; cap their size to keep memory sane.
 const MAX_HDR_WIDTH: u32 = 16_384;
+/// Plan images are scaled to fit this (sharp at full-screen zoom, small enough to load
+/// fast on modest hardware).
+pub const PLAN_MAX_SIDE: u32 = 4096;
+/// Below this (longest side) a plan is too coarse to place scenes on precisely.
+const PLAN_MIN_SIDE: u32 = 1000;
 
 pub type ProgressFn<'a> = &'a (dyn Fn(Progress) + Sync);
 
@@ -83,7 +100,10 @@ pub fn import_file(
             src.display()
         )));
     }
-    let probed = probe::probe(src)?;
+    let probed = match opts.purpose {
+        Purpose::Scene => probe::probe(src)?,
+        Purpose::FloorPlan => probe::probe_plan(src)?,
+    };
     if let Probe::Panorama {
         hdr: true, width, ..
     } = probed
@@ -224,6 +244,15 @@ pub fn import_file(
                 rec.kind = AssetKind::Splat;
                 rec.points = model::check_splat(&source, format)?;
                 rec.splat_format = Some(format.clone());
+            }
+            Probe::Plan { width, height } => {
+                rec.kind = AssetKind::FloorPlan;
+                if (*width).max(*height) < PLAN_MIN_SIDE {
+                    rec.warnings.push(format!(
+                        "low-resolution: {width}×{height} px; at least {PLAN_MIN_SIDE} px on the long side is recommended"
+                    ));
+                }
+                plan(&source, &staging, &id, opts, &report, &mut rec)?;
             }
         }
         if cancel.load(Ordering::Relaxed) {
@@ -411,5 +440,58 @@ fn panorama(
         })?;
         rec.tiles = Some(set);
     }
+    Ok(())
+}
+
+/// Writes the plan image (PNG for PNG/TIFF sources, which are usually line art; JPEG for
+/// photos and scans) and a thumbnail, both keeping the aspect ratio.
+fn plan(
+    source: &Path,
+    staging: &Path,
+    id: &str,
+    opts: &ImportOptions,
+    report: &(dyn Fn(Stage, u64, u64) + Sync),
+    rec: &mut AssetRecord,
+) -> Result<()> {
+    report(Stage::Decoding, 0, 1);
+    let img = decode(source)?.to_rgb8();
+    report(Stage::Decoding, 1, 1);
+    report(Stage::Previews, 0, 1);
+    let fit = |img: &RgbImage, max: u32| {
+        let (w, h) = img.dimensions();
+        if w.max(h) <= max {
+            return img.clone();
+        }
+        let s = max as f64 / w.max(h) as f64;
+        let (nw, nh) = (
+            ((w as f64 * s).round() as u32).max(1),
+            ((h as f64 * s).round() as u32).max(1),
+        );
+        image::imageops::resize(img, nw, nh, FilterType::Lanczos3)
+    };
+    let plan = fit(&img, PLAN_MAX_SIDE);
+    drop(img);
+    let lossless = matches!(
+        source
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(str::to_ascii_lowercase)
+            .as_deref(),
+        Some("png" | "tif" | "tiff")
+    );
+    let name = if lossless {
+        plan.save_with_format(staging.join("plan.png"), image::ImageFormat::Png)?;
+        "plan.png"
+    } else {
+        tiles::encode_jpeg(&plan, &staging.join("plan.jpg"), opts.jpeg_quality.max(92))?;
+        "plan.jpg"
+    };
+    let thumb = fit(&plan, opts.thumb_width);
+    tiles::encode_jpeg(&thumb, &staging.join("thumb.jpg"), opts.jpeg_quality)?;
+    rec.width = Some(plan.width());
+    rec.height = Some(plan.height());
+    rec.preview = Some(library::rel(id, name));
+    rec.thumbnail = Some(library::rel(id, "thumb.jpg"));
+    report(Stage::Previews, 1, 1);
     Ok(())
 }

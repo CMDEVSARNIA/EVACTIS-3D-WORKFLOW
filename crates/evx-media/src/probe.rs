@@ -31,6 +31,11 @@ pub enum Probe {
     Splat {
         format: String,
     },
+    /// A floor plan: any aspect ratio, raster only.
+    Plan {
+        width: u32,
+        height: u32,
+    },
 }
 
 /// Largest panorama accepted (32K × 16K); beyond this decoding needs > 1.5 GB RAM.
@@ -108,4 +113,31 @@ fn probe_image(path: &Path, e: &str) -> Result<Probe> {
         hdr: e == "hdr",
         format: format!("{format:?}").to_lowercase(),
     })
+}
+
+/// Floor plans are raster images (PDF and vector plans need a renderer; export a PNG).
+pub fn probe_plan(path: &Path) -> Result<Probe> {
+    let e = ext(path);
+    if !matches!(e.as_str(), "jpg" | "jpeg" | "png" | "tif" | "tiff") {
+        return Err(MediaError::Invalid(
+            if e == "pdf" || e == "svg" || e == "dwg" || e == "dxf" {
+                format!(".{e} plans are not supported yet: export the plan as a PNG or JPG first")
+            } else if e.is_empty() {
+                "the file has no extension".into()
+            } else {
+                format!(".{e} files are not supported as floor plans")
+            },
+        ));
+    }
+    let reader = ImageReader::open(path)?.with_guessed_format()?;
+    reader
+        .format()
+        .ok_or_else(|| MediaError::Invalid("not a readable image".into()))?;
+    let (width, height) = reader.into_dimensions()?;
+    if width.max(height) > MAX_PANORAMA_WIDTH {
+        return Err(MediaError::Invalid(format!(
+            "the plan is {width}×{height} px; the maximum is {MAX_PANORAMA_WIDTH} px per side"
+        )));
+    }
+    Ok(Probe::Plan { width, height })
 }

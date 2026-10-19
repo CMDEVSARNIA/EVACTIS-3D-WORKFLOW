@@ -4,11 +4,14 @@
 //! library command, and the asset protocol (thumbnails, previews) is widened to the
 //! open project's `media/` folder only. Nothing in this module touches the network.
 
-use evx_core::project::{self, ProjectLocation};
+use evx_core::{
+    history::{self, Snapshot, SnapshotKind},
+    project::{self, ProjectLocation},
+};
 use evx_media::{
     library::{self, AssetRecord},
     video::Ffmpeg,
-    ImportOptions, MediaError, Progress, Stage,
+    ImportOptions, MediaError, Progress, Purpose, Stage,
 };
 use serde::Serialize;
 use std::{
@@ -28,6 +31,10 @@ pub const COMMANDS: &[&str] = &[
     "project_open",
     "project_save",
     "project_close",
+    "project_snapshot",
+    "project_snapshots",
+    "project_snapshot_read",
+    "project_restore",
     "library_list",
     "media_import",
     "media_cancel",
@@ -45,6 +52,10 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         project_open,
         project_save,
         project_close,
+        project_snapshot,
+        project_snapshots,
+        project_snapshot_read,
+        project_restore,
         library_list,
         media_import,
         media_cancel,
@@ -71,11 +82,14 @@ impl Studio {
     }
 
     fn root(&self) -> Result<PathBuf, CommandError> {
+        self.location().map(|p| p.root)
+    }
+
+    fn location(&self) -> Result<ProjectLocation, CommandError> {
         self.project
             .lock()
             .unwrap()
-            .as_ref()
-            .map(|p| p.root.clone())
+            .clone()
             .ok_or_else(|| CommandError::new("no-project", "No project is open"))
     }
 }
@@ -116,6 +130,11 @@ fn activate(app: &AppHandle, state: &Studio, loc: ProjectLocation) -> Result<Pro
     let manifest = std::fs::read_to_string(&loc.manifest).map_err(|e| CommandError::project(e.to_string()))?;
     // Leftovers from an import that was killed (power cut, crash) are never valid.
     let _ = library::clean_staging(&loc.root);
+    // A version of the project as it was opened, unless the newest one already matches.
+    // History is a convenience: a read-only or full disk must not block opening.
+    if history::take(&loc, "Opened", SnapshotKind::Auto, &library::now_iso()).is_ok() {
+        let _ = history::prune_auto(&loc, AUTO_SNAPSHOTS_KEPT);
+    }
     let media = library::media_dir(&loc.root);
     std::fs::create_dir_all(&media).map_err(|e| CommandError::project(e.to_string()))?;
     app.asset_protocol_scope()
@@ -130,6 +149,9 @@ fn activate(app: &AppHandle, state: &Studio, loc: ProjectLocation) -> Result<Pro
     *state.project.lock().unwrap() = Some(loc);
     Ok(info)
 }
+
+/// Automatic versions kept per project; manual and "before restore" ones are kept.
+const AUTO_SNAPSHOTS_KEPT: usize = 30;
 
 fn check_json(manifest: &str) -> Result<(), CommandError> {
     serde_json::from_str::<serde_json::Value>(manifest)
@@ -159,9 +181,44 @@ fn project_open(app: AppHandle, state: State<'_, Studio>, path: String) -> Resul
 #[tauri::command]
 fn project_save(state: State<'_, Studio>, manifest: String) -> Result<(), CommandError> {
     check_json(&manifest)?;
-    let loc = state.project.lock().unwrap().clone();
-    let loc = loc.ok_or_else(|| CommandError::new("no-project", "No project is open"))?;
-    project::save_manifest(&loc, manifest.as_bytes()).map_err(CommandError::project)
+    project::save_manifest(&state.location()?, manifest.as_bytes()).map_err(CommandError::project)
+}
+
+/// Saves a version of the project as last saved. Automatic versions (taken by Studio
+/// while editing) are skipped when nothing changed and pruned to the newest few.
+#[tauri::command]
+fn project_snapshot(state: State<'_, Studio>, label: String, auto: bool) -> Result<Option<Snapshot>, CommandError> {
+    let loc = state.location()?;
+    let kind = if auto { SnapshotKind::Auto } else { SnapshotKind::Manual };
+    let snap = history::take(&loc, &label, kind, &library::now_iso()).map_err(CommandError::project)?;
+    if auto {
+        history::prune_auto(&loc, AUTO_SNAPSHOTS_KEPT).map_err(CommandError::project)?;
+    }
+    Ok(snap)
+}
+
+#[tauri::command]
+fn project_snapshots(state: State<'_, Studio>) -> Result<Vec<Snapshot>, CommandError> {
+    history::list(&state.location()?).map_err(CommandError::project)
+}
+
+/// A version's manifest, so the UI can validate it before restoring.
+#[tauri::command]
+fn project_snapshot_read(state: State<'_, Studio>, id: String) -> Result<String, CommandError> {
+    let bytes = history::read(&state.location()?, &id).map_err(CommandError::project)?;
+    String::from_utf8(bytes).map_err(|_| CommandError::project("the version is not UTF-8 text".into()))
+}
+
+/// Replaces the project with a version, after saving the current state as a
+/// "before restore" version so the restore itself can be undone. Returns the manifest.
+#[tauri::command]
+fn project_restore(state: State<'_, Studio>, id: String, label: String) -> Result<String, CommandError> {
+    let loc = state.location()?;
+    let text = project_snapshot_read(state, id)?;
+    check_json(&text)?;
+    history::take(&loc, &label, SnapshotKind::BeforeRestore, &library::now_iso()).map_err(CommandError::project)?;
+    project::save_manifest(&loc, text.as_bytes()).map_err(CommandError::project)?;
+    Ok(text)
 }
 
 #[tauri::command]
@@ -225,13 +282,16 @@ fn media_import(
     app: AppHandle,
     state: State<'_, Studio>,
     paths: Vec<String>,
+    purpose: Option<Purpose>,
     on_event: Channel<ImportEvent>,
 ) -> Result<u32, CommandError> {
     let root = state.root()?;
     let job = state.next_job.fetch_add(1, Ordering::Relaxed);
     let cancel = Arc::new(AtomicBool::new(false));
     state.jobs.lock().unwrap().insert(job, cancel.clone());
-    let opts = ImportOptions { ffmpeg: find_ffmpeg(&app), ..Default::default() };
+    let purpose = purpose.unwrap_or_default();
+    let ffmpeg = if purpose == Purpose::Scene { find_ffmpeg(&app) } else { None };
+    let opts = ImportOptions { purpose, ffmpeg, ..Default::default() };
     std::thread::spawn(move || {
         let (mut imported, mut failed) = (0, 0);
         for (index, path) in paths.iter().enumerate() {

@@ -5,7 +5,15 @@
 import { Channel, convertFileSrc, invoke, isTauri } from '@tauri-apps/api/core';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 
-export type AssetKind = 'panorama' | 'panorama-stereo' | 'video360' | 'glb' | 'splat';
+export type AssetKind =
+  | 'panorama'
+  | 'panorama-stereo'
+  | 'video360'
+  | 'glb'
+  | 'splat'
+  | 'floor-plan';
+/** What an import is for: scenes (the default) or floor plans (any aspect ratio). */
+export type ImportPurpose = 'scene' | 'floor-plan';
 export type ImageLayout = 'mono' | 'stereo-top-bottom' | 'stereo-side-by-side';
 export type Stage =
   | 'validating'
@@ -57,6 +65,15 @@ export interface AssetRecord {
   warnings: string[];
 }
 
+/** Mirrors evx_core::history::Snapshot: one saved version of the manifest. */
+export interface Snapshot {
+  id: string;
+  label: string;
+  kind: 'auto' | 'manual' | 'before-restore';
+  createdAt: string;
+  bytes: number;
+}
+
 export interface ProjectInfo {
   name: string;
   root: string;
@@ -95,11 +112,22 @@ export const api = {
   openProject: (path: string) => invoke<ProjectInfo>('project_open', { path }),
   saveProject: (manifest: string) => invoke<void>('project_save', { manifest }),
   closeProject: () => invoke<void>('project_close'),
+  /** Saves a version of the project as last saved; null when an automatic one is unchanged. */
+  snapshot: (label: string, auto: boolean) =>
+    invoke<Snapshot | null>('project_snapshot', { label, auto }),
+  snapshots: () => invoke<Snapshot[]>('project_snapshots'),
+  readSnapshot: (id: string) => invoke<string>('project_snapshot_read', { id }),
+  /** Replaces the project with a version (after saving a "before restore" one). */
+  restoreSnapshot: (id: string, label: string) => invoke<string>('project_restore', { id, label }),
   listLibrary: () => invoke<{ assets: AssetRecord[]; problems: string[] }>('library_list'),
-  importMedia: (paths: string[], onEvent: (e: ImportEvent) => void) => {
+  importMedia: (
+    paths: string[],
+    onEvent: (e: ImportEvent) => void,
+    purpose: ImportPurpose = 'scene',
+  ) => {
     const channel = new Channel<ImportEvent>();
     channel.onmessage = onEvent;
-    return invoke<number>('media_import', { paths, onEvent: channel });
+    return invoke<number>('media_import', { paths, purpose, onEvent: channel });
   },
   cancelImport: (job: number) => invoke<void>('media_cancel', { job }),
   removeAsset: (id: string) => invoke<void>('media_remove', { id }),

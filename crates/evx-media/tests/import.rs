@@ -3,7 +3,7 @@ use evx_media::{
     library::{self, AssetKind},
     probe::ImageLayout,
     video::Ffmpeg,
-    ImportOptions, MediaError, Progress, Stage,
+    ImportOptions, MediaError, Progress, Purpose, Stage,
 };
 use image::{codecs::jpeg::JpegEncoder, Rgb, RgbImage};
 use std::{
@@ -445,4 +445,65 @@ fn imports_a_12k_panorama() {
     let sizes: Vec<u32> = rec.tiles.unwrap().levels.iter().map(|l| l.size).collect();
     assert_eq!(sizes, [512, 1024, 2048, 4096]);
     assert!(rec.warnings.is_empty());
+}
+
+#[test]
+fn imports_floor_plans_scaled_with_their_aspect_ratio() {
+    let f = fixture();
+    let plan_opts = ImportOptions {
+        purpose: Purpose::FloorPlan,
+        ..ImportOptions::default()
+    };
+    // Line art (PNG) larger than the plan limit: kept lossless, scaled to fit.
+    let src = f.inbox.join("Level 1.png");
+    RgbImage::from_fn(6000, 3000, |x, y| {
+        if x % 300 < 4 || y % 300 < 4 {
+            Rgb([10, 47, 91])
+        } else {
+            Rgb([250, 250, 250])
+        }
+    })
+    .save(&src)
+    .unwrap();
+    let rec = run(&f, &src, &plan_opts).0.unwrap();
+    assert_eq!(rec.kind, AssetKind::FloorPlan);
+    assert_eq!((rec.width, rec.height), (Some(4096), Some(2048)));
+    let plan = rec.preview.clone().unwrap();
+    assert!(plan.ends_with("/plan.png"), "{plan}");
+    assert_eq!(
+        image::image_dimensions(f.root.join(&plan)).unwrap(),
+        (4096, 2048)
+    );
+    let thumb = image::image_dimensions(f.root.join(rec.thumbnail.as_ref().unwrap())).unwrap();
+    assert_eq!(thumb, (512, 256));
+    assert!(rec.warnings.is_empty());
+    assert!(rec.tiles.is_none());
+    assert_eq!(library::list(&f.root).unwrap().assets.len(), 1);
+
+    // A small scanned plan (JPEG, portrait): kept at its size, with a warning.
+    let scan = f.inbox.join("Basement scan.jpg");
+    RgbImage::from_pixel(600, 900, Rgb([200, 200, 200]))
+        .save(&scan)
+        .unwrap();
+    let rec = run(&f, &scan, &plan_opts).0.unwrap();
+    assert_eq!((rec.width, rec.height), (Some(600), Some(900)));
+    assert!(rec.preview.unwrap().ends_with("/plan.jpg"));
+    assert!(rec.warnings[0].starts_with("low-resolution"));
+
+    // A plan is not a panorama, and a PDF needs exporting first.
+    assert_eq!(
+        run(&f, &scan, &ImportOptions::default())
+            .0
+            .unwrap_err()
+            .code(),
+        "invalid"
+    );
+    let pdf = f.inbox.join("Level 2.pdf");
+    std::fs::write(&pdf, b"%PDF-1.7").unwrap();
+    let err = run(&f, &pdf, &plan_opts).0.unwrap_err();
+    assert!(
+        err.to_string().contains("export the plan as a PNG"),
+        "{err}"
+    );
+    assert_eq!(media_entries(&f.root).len(), 2);
 }

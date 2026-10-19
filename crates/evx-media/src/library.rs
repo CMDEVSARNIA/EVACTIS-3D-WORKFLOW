@@ -8,6 +8,7 @@
 //!                      thumb.jpg       512×256 library thumbnail
 //!                      tiles/…         multi-resolution cube tiles (mono panoramas)
 //!                      video.mp4|webm  playback copy (360 video)
+//!                      plan.png|jpg    plan image, ≤ 4096 px per side (floor plans)
 //!                      asset.json      this record
 //! ```
 
@@ -34,6 +35,9 @@ pub enum AssetKind {
     Video360,
     Glb,
     Splat,
+    /// A floor plan. `preview` is the plan image scenes and calibration points refer to,
+    /// and `width`/`height` are its size (the source may be larger).
+    FloorPlan,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

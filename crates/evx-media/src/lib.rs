@@ -14,5 +14,5 @@ pub mod tiles;
 pub mod video;
 
 pub use error::MediaError;
-pub use import::{import_file, ImportOptions, Progress, Stage};
+pub use import::{import_file, ImportOptions, Progress, Purpose, Stage};
 pub use library::{AssetKind, AssetRecord};

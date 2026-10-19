@@ -69,6 +69,7 @@ export const STRINGS = {
       video360: '360° video',
       glb: '3D model',
       splat: 'Gaussian splat',
+      'floor-plan': 'Floor plan',
     },
     errors: {
       invalid: 'This file cannot be used: ',
@@ -175,6 +176,7 @@ export const STRINGS = {
       video360: 'Vidéo 360°',
       glb: 'Modèle 3D',
       splat: 'Nuage gaussien',
+      'floor-plan': 'Plan d’étage',
     },
     errors: {
       invalid: 'Ce fichier ne peut pas être utilisé : ',
