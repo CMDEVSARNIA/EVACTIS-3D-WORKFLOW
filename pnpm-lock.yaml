@@ -176,9 +176,15 @@ importers:
         specifier: workspace:*
         version: link:../schema
     devDependencies:
+      '@types/pngjs':
+        specifier: 6.0.5
+        version: 6.0.5
       jpeg-js:
         specifier: 0.4.4
         version: 0.4.4
+      pngjs:
+        specifier: 7.0.0
+        version: 7.0.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3

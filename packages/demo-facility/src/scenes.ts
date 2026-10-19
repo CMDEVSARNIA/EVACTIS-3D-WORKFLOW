@@ -66,6 +66,8 @@ export const SCENES: SceneSpec[] = [
       { kind: 'extinguisher', wall: 'w', at: -1.5 },
       { kind: 'aed', wall: 'w', at: 1 },
       { kind: 'alarm', wall: 'n', at: 3.2 },
+      // Fire alarm annunciator panel by the main entrance (first responders).
+      { kind: 'panel', wall: 's', at: 2.4 },
     ],
   },
   {
@@ -99,6 +101,8 @@ export const SCENES: SceneSpec[] = [
       { kind: 'opening', wall: 'n', at: 0 },
       { kind: 'hazard', wall: 'e', at: 1 },
       { kind: 'extinguisher', wall: 's', at: 1.2 },
+      // Sprinkler riser and control valve (first responders).
+      { kind: 'panel', wall: 's', at: -1.2 },
     ],
   },
   {

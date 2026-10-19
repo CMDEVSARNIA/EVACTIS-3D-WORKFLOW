@@ -18,7 +18,9 @@
     "@evactis-3dworkflow/schema": "workspace:*"
   },
   "devDependencies": {
+    "@types/pngjs": "6.0.5",
     "jpeg-js": "0.4.4",
+    "pngjs": "7.0.0",
     "typescript": "5.9.3",
     "vitest": "3.2.7"
   }

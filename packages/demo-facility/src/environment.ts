@@ -3,12 +3,21 @@ import {
   type Environment,
   type EnvironmentInput,
 } from '@evactis-3dworkflow/schema';
+import {
+  equipment,
+  equipmentTypes,
+  floorPlans,
+  postings,
+  routes,
+  scenePlacement,
+  zones,
+} from './safety.ts';
 import { featureAngles, sceneSpec, anglesOf } from './scenes.ts';
 
 /**
  * The seeded demo facility environment. Hotspot directions come from the procedural
  * scene geometry, so markers sit exactly on the doors and equipment in the panoramas.
- * Safety equipment, routes and zones arrive with Phase 5.
+ * Safety equipment, routes, zones and plan postings come from safety.ts (Phase 5).
  */
 const T = (en: string, fr: string) => ({ en, fr });
 const nav = (
@@ -26,30 +35,6 @@ const nav = (
   appearance: { kind: 'button' as const, icon: 'next' as const },
   actions: [{ type: 'goToScene' as const, sceneId: to, transition: { kind, durationMs: 700 } }],
 });
-const sign = (
-  id: string,
-  sceneId: string,
-  at: { yaw: number; pitch: number },
-  s: 'emergency-exit' | 'first-aid' | 'aed' | 'fire-extinguisher' | 'fire-alarm' | 'warning',
-  title: [string, string],
-  body: [string, string],
-  audienceIds: string[] = [],
-) => ({
-  id,
-  sceneId,
-  title: T(...title),
-  position: { kind: 'spherical' as const, ...at },
-  appearance: { kind: 'safety-sign' as const, sign: s, style: 'A' as const },
-  audienceIds,
-  actions: [
-    {
-      type: 'openPopup' as const,
-      title: T(...title),
-      content: { kind: 'text' as const, body: T(...body) },
-    },
-  ],
-});
-
 /** Points slightly above a door so the arrow does not cover the exit sign. */
 const door = (scene: string, wall: 'n' | 'e' | 's' | 'w', at?: number) =>
   featureAngles(scene, 'door', wall, at);
@@ -86,8 +71,8 @@ export function demoEnvironmentInput(): EnvironmentInput {
         id: 'main',
         name: T('Main building', 'Bâtiment principal'),
         floors: [
-          { id: 'f1', name: T('Ground floor', 'Rez-de-chaussée'), level: 0 },
-          { id: 'f2', name: T('Second floor', 'Deuxième étage'), level: 1 },
+          { id: 'f1', name: T('Ground floor', 'Rez-de-chaussée'), level: 0, plan: floorPlans.f1 },
+          { id: 'f2', name: T('Second floor', 'Deuxième étage'), level: 1, plan: floorPlans.f2 },
         ],
       },
     ],
@@ -96,35 +81,35 @@ export function demoEnvironmentInput(): EnvironmentInput {
         id: 'lobby',
         name: T('Main lobby', 'Hall principal'),
         media: media('lobby'),
-        floorId: 'f1',
+        ...scenePlacement('lobby'),
         initialView: { yaw: 0, pitch: -2, fov: 90 },
       },
       {
         id: 'corridor',
         name: T('East corridor', 'Couloir est'),
         media: media('corridor'),
-        floorId: 'f1',
+        ...scenePlacement('corridor'),
         initialView: { yaw: 0, pitch: 0, fov: 85 },
       },
       {
         id: 'stairwell',
         name: T('Stairwell A', 'Escalier A'),
         media: media('stairwell'),
-        floorId: 'f1',
+        ...scenePlacement('stairwell'),
         initialView: { yaw: 0, pitch: 0, fov: 90 },
       },
       {
         id: 'office',
         name: T('Open office', 'Bureau ouvert'),
         media: media('office'),
-        floorId: 'f2',
+        ...scenePlacement('office'),
         initialView: { yaw: 90, pitch: 0, fov: 90 },
       },
       {
         id: 'electrical',
         name: T('Electrical room', 'Salle électrique'),
         media: media('electrical'),
-        floorId: 'f2',
+        ...scenePlacement('electrical'),
         audienceIds: ['first-responders'],
         initialView: { yaw: 0, pitch: 0, fov: 90 },
       },
@@ -132,6 +117,7 @@ export function demoEnvironmentInput(): EnvironmentInput {
         id: 'assembly',
         name: T('Assembly point', 'Point de rassemblement'),
         media: media('assembly', false),
+        ...scenePlacement('assembly'),
         initialView: { yaw: assemblyYaw, pitch: 2, fov: 80 },
       },
     ],
@@ -200,73 +186,6 @@ export function demoEnvironmentInput(): EnvironmentInput {
         ),
         appearance: { kind: 'label' as const, text: T('Back inside', 'Retour à l’intérieur') },
       },
-      // Safety signs on equipment (placed and confirmed by a person in real projects)
-      sign(
-        'lobby-extinguisher',
-        'lobby',
-        featureAngles('lobby', 'extinguisher', 'w'),
-        'fire-extinguisher',
-        ['Fire extinguisher', 'Extincteur'],
-        [
-          'ABC dry chemical, 5 lb. Pull the pin, aim at the base of the fire, squeeze, sweep.',
-          'Poudre ABC, 5 lb. Tirez la goupille, visez la base du feu, pressez, balayez.',
-        ],
-      ),
-      sign(
-        'lobby-aed',
-        'lobby',
-        featureAngles('lobby', 'aed', 'w'),
-        'aed',
-        ['AED', 'DEA'],
-        [
-          'Automated external defibrillator. Open the cabinet and follow the voice prompts.',
-          'Défibrillateur externe automatisé. Ouvrez l’armoire et suivez les instructions vocales.',
-        ],
-      ),
-      sign(
-        'lobby-alarm',
-        'lobby',
-        featureAngles('lobby', 'alarm', 'n'),
-        'fire-alarm',
-        ['Fire alarm pull station', 'Avertisseur d’incendie manuel'],
-        [
-          'Pull down firmly to sound the building alarm.',
-          'Tirez fermement vers le bas pour déclencher l’alarme.',
-        ],
-      ),
-      sign(
-        'corridor-extinguisher',
-        'corridor',
-        featureAngles('corridor', 'extinguisher', 'e'),
-        'fire-extinguisher',
-        ['Fire extinguisher', 'Extincteur'],
-        ['ABC dry chemical, 10 lb.', 'Poudre ABC, 10 lb.'],
-      ),
-      sign(
-        'office-first-aid',
-        'office',
-        featureAngles('office', 'first-aid', 'n'),
-        'first-aid',
-        ['First aid kit', 'Trousse de premiers soins'],
-        ['Type 2 kit. Inspected monthly.', 'Trousse de type 2. Inspectée chaque mois.'],
-      ),
-      sign(
-        'stairs-hazard',
-        'stairwell',
-        featureAngles('stairwell', 'hazard', 'e'),
-        'warning',
-        ['Caution: steep stairs', 'Attention : escalier abrupt'],
-        ['Use the handrail.', 'Utilisez la main courante.'],
-      ),
-      sign(
-        'electrical-hazard',
-        'electrical',
-        featureAngles('electrical', 'hazard', 'n'),
-        'warning',
-        ['Electrical hazard', 'Danger électrique'],
-        ['600 V. Qualified personnel only.', '600 V. Personnel qualifié seulement.'],
-        ['first-responders'],
-      ),
       // Information and first-responder content
       {
         id: 'lobby-welcome',
@@ -351,6 +270,11 @@ export function demoEnvironmentInput(): EnvironmentInput {
       },
     ],
     variables: [{ id: 'welcomed', kind: 'boolean', initial: false }],
+    equipmentTypes,
+    equipment,
+    zones,
+    routes,
+    postings,
     audiences: [
       { id: 'staff', name: T('Staff', 'Personnel') },
       { id: 'contractors', name: T('Contractors', 'Entrepreneurs') },

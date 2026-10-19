@@ -10,9 +10,11 @@ import { fileURLToPath } from 'node:url';
 import { FACES, facePixelDirection, tilePath } from '../../viewer/src/panorama/cube.ts';
 import { direction } from '../../viewer/src/math.ts';
 import { demoEnvironment } from './environment.ts';
+import { drawPlan } from './plans.ts';
 import { SCENES, shade, type SceneSpec } from './scenes.ts';
 
 const require = createRequire(import.meta.url);
+const { PNG } = require('pngjs') as typeof import('pngjs');
 const jpeg = require('jpeg-js') as {
   encode(img: { data: Uint8Array; width: number; height: number }, q: number): { data: Buffer };
 };
@@ -108,6 +110,14 @@ for (const scene of env.scenes) {
     write(m.source, equirect(2048, 1024));
   }
   console.log(`  ${scene.id}`);
+}
+for (const f of env.buildings.flatMap((b) => b.floors)) {
+  if (!f.plan) continue;
+  const { width, height, rgba } = drawPlan(f.id as 'f1' | 'f2');
+  const png = new PNG({ width, height });
+  png.data = Buffer.from(rgba);
+  write(f.plan.image, PNG.sync.write(png, { colorType: 2 }));
+  console.log(`  plan ${f.id}`);
 }
 write('environment.json', JSON.stringify(env, null, 2) + '\n');
 console.log(`Demo facility rendered to ${out} in ${((Date.now() - started) / 1000).toFixed(1)} s`);
