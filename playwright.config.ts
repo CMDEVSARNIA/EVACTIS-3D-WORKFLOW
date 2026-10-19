@@ -61,5 +61,12 @@ export default defineConfig({
       url: `http://127.0.0.1:${PORT + 4}/index.html`,
       reuseExistingServer: !process.env.CI,
       timeout: 300_000,
+    })
+    .concat({
+      // Studio's browser test build over media imported by the real pipeline (Rust).
+      command: `node e2e/fixtures/studio-project.mjs && node tools/static-server.mjs target/e2e-studio-project ${PORT + 5}`,
+      url: `http://127.0.0.1:${PORT + 5}/index.html`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 300_000,
     }),
 });
