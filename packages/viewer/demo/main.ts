@@ -40,6 +40,13 @@ try {
     return b;
   };
   add('home', () => void viewer.goToScene(viewer.environment.initialSceneId ?? 'lobby'));
+  add('floor-plan', () => void viewer.showFloorPlan());
+  // The evac-route button shows the nearest primary route; the banner offers the other.
+  const evac = add('evac-route', () => {
+    if (viewer.activeRoute) viewer.hideRoute();
+    else viewer.showRoute();
+  });
+  viewer.on('routechange', ({ routeId }) => setButtonPressed(evac, routeId !== null));
   add('zoom-in', () => viewer.zoom(1.25));
   add('zoom-out', () => viewer.zoom(0.8));
   add(
@@ -61,6 +68,32 @@ try {
       setButtonIcon(b, 'fullscreen-exit');
     }
   });
+  // Audience switcher (hidden when the package locks the audience).
+  if (!viewer.environment.settings.lockAudience) {
+    const label = document.createElement('label');
+    label.className = 'demo-audience';
+    const name = document.createElement('span');
+    const select = document.createElement('select');
+    const fill = () => {
+      const fr = viewer.language.startsWith('fr');
+      name.textContent = fr ? 'Public' : 'Audience';
+      select.replaceChildren(
+        ...viewer.environment.audiences.map((a) => {
+          const o = document.createElement('option');
+          o.value = a.id;
+          o.textContent = a.name[viewer.language] ?? a.name.en ?? a.id;
+          return o;
+        }),
+      );
+      select.value = viewer.audience ?? '';
+    };
+    fill();
+    viewer.on('languagechange', fill);
+    viewer.on('audiencechange', ({ audience }) => (select.value = audience ?? ''));
+    select.addEventListener('change', () => viewer.setAudience(select.value || null));
+    label.append(name, select);
+    toolbar.append(label);
+  }
   document.body.dataset.ready = 'true';
 } catch (e) {
   window.viewerError = String(e);

@@ -24,3 +24,27 @@ body {
 .demo-toolbar > * {
   pointer-events: auto;
 }
+.demo-audience {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-block-size: var(--evx-btn-size);
+  border-radius: 12px;
+  background: var(--evx-navy);
+  padding: 0 12px;
+  color: var(--evx-white);
+  font: 600 0.95rem/1 var(--evx-font-body);
+}
+.demo-audience > select {
+  min-block-size: 40px;
+  border: 1px solid rgb(255 255 255 / 0.4);
+  border-radius: 8px;
+  background: var(--evx-ink);
+  padding: 0 8px;
+  color: var(--evx-white);
+  font: inherit;
+}
+.demo-audience > select:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}

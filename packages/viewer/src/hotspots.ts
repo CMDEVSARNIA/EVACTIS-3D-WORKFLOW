@@ -2,6 +2,7 @@ import type { Hotspot } from '@evactis-3dworkflow/schema';
 import { localize } from '@evactis-3dworkflow/schema';
 import { createButton, createMarker, createSign } from '@evactis-3dworkflow/brand';
 import type { PanoramaRenderer } from './panorama/renderer.ts';
+import { createSymbol, type SymbolAppearance } from './safety.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -113,6 +114,8 @@ export class HotspotLayer {
       if (a.kind === 'button') b = createButton({ icon: a.icon, label });
       else if (a.kind === 'marker') b = createMarker({ marker: a.marker, label });
       else if (a.kind === 'safety-sign') b = createSign(a.sign, a.style, label);
+      else if ((a as unknown as SymbolAppearance).kind === 'symbol')
+        b = createSymbol(a as unknown as SymbolAppearance, label);
       else {
         b = document.createElement('button');
         b.setAttribute('type', 'button');

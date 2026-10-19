@@ -1,5 +1,12 @@
-import type { Action, Environment, Hotspot, Scene, Transition } from '@evactis-3dworkflow/schema';
-import { localize, parseEnvironment } from '@evactis-3dworkflow/schema';
+import type {
+  Action,
+  Environment,
+  Hotspot,
+  Route,
+  Scene,
+  Transition,
+} from '@evactis-3dworkflow/schema';
+import { localize, parseEnvironment, routesForScene } from '@evactis-3dworkflow/schema';
 import {
   AssetError,
   baseResolver,
@@ -14,6 +21,7 @@ import { HotspotLayer } from './hotspots.ts';
 import { uiStrings } from './i18n.ts';
 import { clamp, easeInOut, lerp, wrapYaw, yawDelta } from './math.ts';
 import { PanoramaRenderer, type View } from './panorama/renderer.ts';
+import { equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
 import { runTransition } from './transitions.ts';
 
@@ -67,6 +75,10 @@ export interface ViewerEvents extends Record<string, unknown> {
   audiencechange: { audience: string | null };
   languagechange: { language: string };
   error: { error: Error };
+  /** An evacuation route was shown (or hidden: `routeId` null). */
+  routechange: { routeId: string | null; priority: Route['priority'] | null };
+  /** The floor plan was opened. */
+  floorplan: { floorId: string };
 }
 
 export interface GoToOptions {
@@ -101,6 +113,8 @@ export class Viewer {
   private renderer: PanoramaRenderer;
   private controls: Controls;
   private hotspots: HotspotLayer;
+  private routes: RouteLayer;
+  private route: Route | null = null;
   private dialogs: Dialogs;
   private overlay: HTMLDivElement;
   private live: HTMLDivElement;
@@ -137,6 +151,7 @@ export class Viewer {
 
     this.renderer = new PanoramaRenderer(this.element, () => {
       this.hotspots.update();
+      this.routes.update();
       this.events.emit('viewchange', { ...this.renderer.view });
     });
     this.overlay = document.createElement('div');
@@ -154,6 +169,14 @@ export class Viewer {
         ? (h, yaw, pitch) => this.events.emit('hotspotmove', { hotspotId: h.id, yaw, pitch })
         : null,
     );
+    this.routes = new RouteLayer(this.element, this.renderer, {
+      alternative: () => {
+        const other = this.routeChoice().find((r) => r && r !== this.route);
+        if (other) this.showRoute(other.id);
+      },
+      plan: () => void this.showFloorPlan(),
+      close: () => this.hideRoute(),
+    });
     this.dialogs = new Dialogs(this.element, () => uiStrings(this.lang));
     this.live = document.createElement('div');
     this.live.className = 'evx-viewer__live';
@@ -239,7 +262,9 @@ export class Viewer {
       await this.renderer.show(now.media, this.resolver);
       this.setView(view);
     }
+    if (this.route) this.route = environment.routes.find((r) => r.id === this.route!.id) ?? null;
     this.refreshHotspots();
+    this.refreshRoute();
     this.updateLabels();
   }
 
@@ -298,6 +323,64 @@ export class Viewer {
     return this.environment.scenes.filter((s) => this.state.inAudience(s.audienceIds));
   }
 
+  /** The evacuation route shown, if any. */
+  get activeRoute(): Route | null {
+    return this.route;
+  }
+
+  /**
+   * Shows an evacuation route: the given one, or the nearest confirmed primary route
+   * for the current scene (the evac-route button). Returns the route shown, or null
+   * when no route applies (a message says so).
+   */
+  showRoute(routeId?: string): Route | null {
+    const candidates = this.environment.routes.filter((r) => this.state.inAudience(r.audienceIds));
+    const route = routeId
+      ? (candidates.find((r) => r.id === routeId) ?? null)
+      : (this.routeChoice()[0] ?? null);
+    this.route = route;
+    this.refreshRoute();
+    if (!route && !routeId)
+      void this.dialogs.show('', [this.dialogs.text(uiStrings(this.lang).noRoute)]);
+    this.events.emit('routechange', {
+      routeId: route?.id ?? null,
+      priority: route?.priority ?? null,
+    });
+    return route;
+  }
+
+  hideRoute(): void {
+    if (!this.route) return;
+    this.route = null;
+    this.refreshRoute();
+    this.events.emit('routechange', { routeId: null, priority: null });
+  }
+
+  /** Opens the floor plan: the given floor, else the current scene's. */
+  async showFloorPlan(floorId?: string): Promise<void> {
+    const floors = planFloors(this.environment);
+    const id = floorId ?? this.scene?.floorId ?? floors[0]?.id;
+    const floor = floors.find((f) => f.id === id) ?? floors[0];
+    const t = uiStrings(this.lang);
+    if (!floor) {
+      await this.dialogs.show(t.floorPlan, [this.dialogs.text(t.noPlan)]);
+      return;
+    }
+    const content = planView({
+      env: this.environment,
+      floorId: floor.id,
+      lang: this.lang,
+      audience: this.state.audience,
+      t,
+      scene: this.scene,
+      viewYaw: this.renderer.view.yaw,
+      route: this.route ?? this.routeChoice()[0] ?? null,
+      resolve: (p) => this.resolve(p),
+    });
+    this.events.emit('floorplan', { floorId: floor.id });
+    await this.dialogs.show(t.floorPlan, [content], 'evx-viewer__dialog--plan');
+  }
+
   /** Navigates to a scene. Navigations are serialised; resolves when the scene is shown. */
   goToScene(sceneId: string, opts: GoToOptions = {}): Promise<void> {
     this.navigating = this.navigating
@@ -312,6 +395,7 @@ export class Viewer {
     this.lang = lang;
     this.updateLabels();
     this.refreshHotspots();
+    this.refreshRoute();
     this.events.emit('languagechange', { language: lang });
   }
 
@@ -322,7 +406,10 @@ export class Viewer {
     if (audience !== null && !this.environment.audiences.some((a) => a.id === audience))
       throw new Error(`Unknown audience "${audience}"`);
     this.state.audience = audience;
+    // A route the new audience may not see is closed.
+    if (this.route && !this.state.inAudience(this.route.audienceIds)) this.hideRoute();
     this.refreshHotspots();
+    this.refreshRoute();
     this.events.emit('audiencechange', { audience });
   }
 
@@ -403,12 +490,45 @@ export class Viewer {
 
   private visibleHotspots(): Hotspot[] {
     if (!this.scene) return [];
-    return this.environment.hotspots.filter(
-      (h) =>
-        h.sceneId === this.scene!.id &&
-        (this.state.visibility.get(h.id) ?? !h.hidden) &&
-        this.state.inAudience(h.audienceIds) &&
-        this.state.test(h.condition),
+    return [
+      ...this.environment.hotspots.filter(
+        (h) =>
+          h.sceneId === this.scene!.id &&
+          (this.state.visibility.get(h.id) ?? !h.hidden) &&
+          this.state.inAudience(h.audienceIds) &&
+          this.state.test(h.condition),
+      ),
+      ...equipmentHotspots(
+        this.environment,
+        this.scene.id,
+        this.state.audience,
+        this.lang,
+        uiStrings(this.lang),
+      ),
+    ];
+  }
+
+  /** [nearest primary, alternative] for the current scene; Studio previews drafts too. */
+  private routeChoice(): (Route | null)[] {
+    if (!this.scene) return [];
+    const c = routesForScene(this.environment, this.scene.id, this.state.audience, {
+      includeUnconfirmed: this.options.editing,
+    });
+    const active = this.route;
+    if (active && active === c.secondary) return [c.secondary, c.primary];
+    return [c.primary, c.secondary];
+  }
+
+  private refreshRoute() {
+    const r = this.route;
+    const alternative = r ? (this.routeChoice().find((x) => x && x !== r) ?? null) : null;
+    this.routes.set(
+      r ? { route: r, alternative } : null,
+      this.environment,
+      this.scene,
+      this.lang,
+      uiStrings(this.lang),
+      this.reducedMotion,
     );
   }
 
@@ -461,6 +581,7 @@ export class Viewer {
         const v = { ...scene.initialView, ...opts.view };
         this.renderer.setView({ yaw: wrapYaw(v.yaw), pitch: v.pitch, fov: v.fov });
         this.refreshHotspots();
+        this.refreshRoute();
         this.updateLabels();
       },
     );
@@ -608,7 +729,11 @@ export class Viewer {
       // Delegated to later modules (floor plan, routes, training, live layers) through
       // the 'action' event already emitted above.
       case 'showFloorPlan':
+        await this.showFloorPlan(action.floorId);
+        return;
       case 'showRoute':
+        this.showRoute(action.routeId);
+        return;
       case 'startModule':
       case 'setLiveLayer':
         return;

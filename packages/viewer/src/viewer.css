@@ -171,3 +171,296 @@
 .evx-viewer__dialog-close {
   margin-block-start: 20px;
 }
+.evx-viewer__text {
+  white-space: pre-line;
+}
+
+/* ------------------------------------------------------------- safety layer */
+
+/* Equipment without a sign: a short code on a square tile (fire red, others navy). */
+.evx-symbol {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 44px;
+  block-size: 44px;
+  padding: 0 6px;
+  border: 3px solid var(--evx-white);
+  border-radius: 8px;
+  background: var(--evx-navy);
+  box-shadow: var(--evx-shadow-soft);
+  color: var(--evx-white);
+  font: 800 0.8125rem/1 var(--evx-font-body);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.evx-symbol--fire {
+  background: var(--evx-fire-red);
+}
+.evx-symbol:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+.evx-viewer__hotspot.evx-symbol {
+  pointer-events: auto;
+}
+
+/* Route chevrons on the floor, pulsing one after another towards the exit. */
+.evx-viewer__route-arrows {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.evx-viewer__chevron {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 64px;
+  block-size: 64px;
+  animation: evx-chevron 1.4s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.16s);
+  will-change: transform, opacity;
+}
+.evx-viewer__chevron > svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.evx-viewer__chevron-edge {
+  stroke: var(--evx-white);
+  stroke-width: 11;
+}
+.evx-viewer__chevron-fill {
+  stroke: var(--evx-safe-green);
+  stroke-width: 6;
+}
+@keyframes evx-chevron {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.evx-viewer__route-arrows--still .evx-viewer__chevron {
+  animation: none;
+  opacity: 1;
+}
+
+/* Route banner: what to follow, the alternative route, the floor plan. */
+.evx-viewer__route {
+  position: absolute;
+  inset: 12px 12px auto;
+  display: grid;
+  gap: 6px;
+  max-inline-size: 40rem;
+  margin-inline: auto;
+  border-inline-start: 6px solid var(--evx-safe-green);
+  border-radius: 10px;
+  background: rgb(10 10 10 / 0.88);
+  padding: 12px 14px;
+  color: var(--evx-white);
+  cursor: default;
+}
+.evx-viewer__route[hidden] {
+  display: none;
+}
+.evx-viewer__route-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.evx-viewer__route-title > svg {
+  inline-size: 24px;
+  block-size: 24px;
+  flex: none;
+  --evx-icon-accent: var(--evx-green);
+}
+.evx-viewer__route-hint {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.evx-viewer__route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.evx-viewer__route-button {
+  min-block-size: 40px;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: 8px;
+  background: var(--evx-navy);
+  padding: 6px 14px;
+  color: var(--evx-white);
+  font: 600 0.9rem/1.2 var(--evx-font-body);
+  cursor: pointer;
+}
+.evx-viewer__route-button:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+.evx-viewer__route-close {
+  background: transparent;
+}
+
+/* Floor plan dialog. */
+.evx-viewer__dialog--plan {
+  inline-size: min(96vw, 72rem);
+}
+.evx-viewer__plan-floors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block-end: 12px;
+}
+.evx-viewer__plan-floors > button {
+  min-block-size: 40px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 8px;
+  background: transparent;
+  padding: 6px 14px;
+  color: var(--evx-white);
+  font: 600 0.95rem/1.2 var(--evx-font-body);
+  cursor: pointer;
+}
+.evx-viewer__plan-floors > button[aria-pressed='true'] {
+  background: var(--evx-navy);
+  box-shadow: inset 0 -3px 0 var(--evx-green);
+}
+.evx-viewer__plan {
+  position: relative;
+  max-block-size: 62vh;
+  max-inline-size: 100%;
+  margin: 0 auto;
+  inline-size: min(100%, calc(62vh * var(--evx-plan-ratio, 1)));
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--evx-white);
+}
+.evx-viewer__plan > img,
+.evx-viewer__plan-svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.evx-viewer__plan-zone {
+  fill: var(--evx-navy);
+  font-family: var(--evx-font-body);
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  paint-order: stroke;
+  stroke: var(--evx-white);
+  stroke-width: 6px;
+}
+.evx-viewer__plan-route {
+  fill: none;
+  stroke: var(--evx-safe-green);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.evx-viewer__plan-route--secondary {
+  stroke-dasharray: 2 1.6;
+}
+.evx-viewer__plan-svg .evx-viewer__plan-route {
+  stroke-dasharray: 18 12;
+  animation: evx-route-dash 1.2s linear infinite;
+}
+.evx-viewer__plan-svg .evx-viewer__plan-route--secondary {
+  stroke-dasharray: 6 12;
+}
+@keyframes evx-route-dash {
+  to {
+    stroke-dashoffset: -30;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .evx-viewer__plan-svg .evx-viewer__plan-route {
+    animation: none;
+  }
+}
+.evx-viewer__plan-item,
+.evx-viewer__you-are-here {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.evx-viewer__plan-item > svg {
+  display: block;
+  inline-size: clamp(18px, 2.6vw, 30px);
+  block-size: auto;
+}
+.evx-viewer__plan-item > .evx-symbol,
+.evx-viewer__plan-legend .evx-symbol {
+  min-inline-size: 28px;
+  block-size: 22px;
+  border-width: 2px;
+  border-radius: 5px;
+  font-size: 0.625rem;
+  cursor: default;
+}
+.evx-viewer__you-are-here {
+  inline-size: 0;
+  block-size: 0;
+}
+.evx-viewer__you-are-here-cone {
+  position: absolute;
+  inset-inline-start: -28px;
+  inset-block-start: -56px;
+  inline-size: 56px;
+  block-size: 56px;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--facing));
+  background: conic-gradient(
+    from -30deg at 50% 100%,
+    rgb(200 16 46 / 0.4) 0 60deg,
+    transparent 60deg
+  );
+}
+.evx-viewer__you-are-here-dot {
+  position: absolute;
+  inset: -9px;
+  inline-size: 18px;
+  block-size: 18px;
+  border: 3px solid var(--evx-white);
+  border-radius: 50%;
+  background: var(--evx-fire-red);
+  box-shadow: 0 0 0 2px var(--evx-fire-red);
+}
+.evx-viewer__you-are-here-label {
+  position: absolute;
+  inset-inline-start: 14px;
+  inset-block-start: 8px;
+  border-radius: 4px;
+  background: var(--evx-fire-red);
+  padding: 2px 6px;
+  color: var(--evx-white);
+  font: 800 0.75rem/1.2 var(--evx-font-body);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.evx-viewer__plan-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 8px 16px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.evx-viewer__plan-legend > li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.evx-viewer__plan-legend > li > svg {
+  flex: none;
+  inline-size: 28px;
+  block-size: auto;
+}

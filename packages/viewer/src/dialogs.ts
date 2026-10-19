@@ -43,7 +43,8 @@ export class Dialogs {
   }
 
   /** Shows content; resolves when the dialog closes. */
-  show(title: string, content: Node[]): Promise<void> {
+  show(title: string, content: Node[], modifier?: string): Promise<void> {
+    this.el.className = modifier ? `evx-viewer__dialog ${modifier}` : 'evx-viewer__dialog';
     this.title.textContent = title;
     this.title.hidden = !title;
     this.body.replaceChildren(...content);
