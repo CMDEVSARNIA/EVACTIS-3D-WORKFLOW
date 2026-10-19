@@ -50,7 +50,7 @@ describe('demo safety layer', () => {
   });
 
   it('routes every scene to the primary route, with the other one tap away', () => {
-    for (const s of env.scenes) {
+    for (const s of env.scenes.filter((x) => x.planPosition)) {
       const r = routesForScene(env, s.id, 'first-responders');
       expect(r.primary?.id, s.id).toBe('route-south');
       expect(r.secondary?.id, s.id).toBe('route-north');

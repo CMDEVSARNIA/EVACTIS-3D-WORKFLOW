@@ -4,13 +4,15 @@
  * Deterministic; run by `pnpm build`.
  */
 import { createRequire } from 'node:module';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { FACES, facePixelDirection, tilePath } from '../../viewer/src/panorama/cube.ts';
 import { direction } from '../../viewer/src/math.ts';
 import { demoEnvironment } from './environment.ts';
 import { drawPlan } from './plans.ts';
+import { procedures } from './procedures.ts';
+import { alarmWav, hdrShade, logAverage, luminanceMap, photo } from './rich.ts';
 import { SCENES, shade, type SceneSpec } from './scenes.ts';
 
 const require = createRequire(import.meta.url);
@@ -46,8 +48,10 @@ function encode(
   return jpeg.encode({ data, width: w, height: h }, QUALITY).data;
 }
 
+type Shader = (d: [number, number, number]) => [number, number, number];
+
 /** 2×2 supersampled shading for smoother edges. */
-function sample(spec: SceneSpec, dirAt: (sx: number, sy: number) => [number, number, number]) {
+function sample(shader: Shader, dirAt: (sx: number, sy: number) => [number, number, number]) {
   return (x: number, y: number): [number, number, number] => {
     let r = 0;
     let g = 0;
@@ -60,7 +64,7 @@ function sample(spec: SceneSpec, dirAt: (sx: number, sy: number) => [number, num
     ] as const) {
       const d = dirAt(x + ox, y + oy);
       const n = Math.hypot(...d);
-      const c = shade(spec, [d[0] / n, d[1] / n, d[2] / n]);
+      const c = shader([d[0] / n, d[1] / n, d[2] / n]);
       r += c[0];
       g += c[1];
       b += c[2];
@@ -72,14 +76,24 @@ function sample(spec: SceneSpec, dirAt: (sx: number, sy: number) => [number, num
 const env = demoEnvironment();
 const started = Date.now();
 for (const scene of env.scenes) {
-  const spec = SCENES.find((s) => s.id === scene.id)!;
   const m = scene.media;
   if (m.type !== 'equirect') continue;
+  const spec: SceneSpec = SCENES.find((s) => s.id === scene.id)!;
+  let shader: Shader = (d) => shade(spec, d);
+  // HDR capture: tone-mapped tiles plus the luminance map for adaptive exposure.
+  if (m.hdr && m.luminance) {
+    const avg = logAverage(scene.id);
+    shader = hdrShade(scene.id, avg);
+    const png = new PNG({ width: 128, height: 64, colorType: 0 });
+    const grey = luminanceMap(scene.id, avg);
+    for (let i = 0; i < grey.length; i++) png.data.set([grey[i]!, grey[i]!, grey[i]!, 255], i * 4);
+    write(m.luminance, PNG.sync.write(png, { colorType: 0 }));
+  }
   const equirect = (w: number, h: number) =>
     encode(
       w,
       h,
-      sample(spec, (sx, sy) => direction(-180 + (360 * sx) / w, 90 - (180 * sy) / h)),
+      sample(shader, (sx, sy) => direction(-180 + (360 * sx) / w, 90 - (180 * sy) / h)),
     );
   if (m.tiles) {
     write(m.preview!, equirect(1024, 512));
@@ -94,7 +108,7 @@ for (const scene of env.scenes) {
             const img = encode(
               w,
               h,
-              sample(spec, (sx, sy) =>
+              sample(shader, (sx, sy) =>
                 facePixelDirection(
                   face,
                   level.size,
@@ -119,5 +133,30 @@ for (const f of env.buildings.flatMap((b) => b.floors)) {
   write(f.plan.image, PNG.sync.write(png, { colorType: 2 }));
   console.log(`  plan ${f.id}`);
 }
+// Phase 6 media: sound, album photos, procedures PDF, and the committed WebM videos.
+write('media/audio/alarm.wav', Buffer.from(alarmWav()));
+const photos: [string, string, { yaw: number; pitch: number; hfov: number }][] = [
+  ['entrance', 'lobby', { yaw: 180, pitch: 0, hfov: 70 }],
+  ['extinguisher', 'lobby', { yaw: -85, pitch: -6, hfov: 55 }],
+  ['assembly', 'assembly', { yaw: 20, pitch: 3, hfov: 50 }],
+];
+for (const [name, sceneId, view] of photos)
+  write(`media/album/${name}.jpg`, encode(800, 533, photo(sceneId, view, 800, 533)));
+write('docs/emergency-procedures.pdf', Buffer.from(await procedures()));
+const assets = resolve(dirname(fileURLToPath(import.meta.url)), '../assets');
+for (const [from, to] of [
+  ['drill.webm', 'media/drill/drill.webm'],
+  ['strobe.webm', 'media/lobby/strobe.webm'],
+] as const) {
+  mkdirSync(dirname(join(out, to)), { recursive: true });
+  copyFileSync(join(assets, from), join(out, to));
+}
+const corridor = SCENES.find((x) => x.id === 'corridor')!;
+write(
+  'media/drill/poster.jpg',
+  encode(1024, 512, (x, y) =>
+    shade(corridor, direction(-180 + ((x + 0.5) / 1024) * 360, 90 - ((y + 0.5) / 512) * 180)),
+  ),
+);
 write('environment.json', JSON.stringify(env, null, 2) + '\n');
 console.log(`Demo facility rendered to ${out} in ${((Date.now() - started) / 1000).toFixed(1)} s`);

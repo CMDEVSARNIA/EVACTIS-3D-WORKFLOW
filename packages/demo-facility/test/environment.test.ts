@@ -6,9 +6,11 @@ import { SCENES, anglesOf, featureAngles, shade } from '../src/scenes.ts';
 describe('demo facility', () => {
   const env = demoEnvironment();
 
-  it('is a valid, fully bilingual environment with 4–6 scenes on two floors', () => {
-    expect(env.scenes.length).toBeGreaterThanOrEqual(4);
-    expect(env.scenes.length).toBeLessThanOrEqual(6);
+  it('is a valid, fully bilingual environment with 4–6 panoramas on two floors', () => {
+    // Panoramas are the places; the fire-drill 360° video is training content on top.
+    const panoramas = env.scenes.filter((s) => s.media.type === 'equirect');
+    expect(panoramas.length).toBeGreaterThanOrEqual(4);
+    expect(panoramas.length).toBeLessThanOrEqual(6);
     expect(new Set(env.scenes.map((s) => s.floorId).filter(Boolean))).toEqual(
       new Set(['f1', 'f2']),
     );

@@ -12,6 +12,7 @@ import {
   scenePlacement,
   zones,
 } from './safety.ts';
+import { lobbyAlarm, strobePolygon } from './rich.ts';
 import { featureAngles, sceneSpec, anglesOf } from './scenes.ts';
 
 /**
@@ -101,7 +102,8 @@ export function demoEnvironmentInput(): EnvironmentInput {
       {
         id: 'office',
         name: T('Open office', 'Bureau ouvert'),
-        media: media('office'),
+        // Captured in HDR: bright east windows; the view adapts like an eye.
+        media: { ...media('office'), hdr: true, luminance: 'media/office/luminance.png' },
         ...scenePlacement('office'),
         initialView: { yaw: 90, pitch: 0, fov: 90 },
       },
@@ -119,6 +121,18 @@ export function demoEnvironmentInput(): EnvironmentInput {
         media: media('assembly', false),
         ...scenePlacement('assembly'),
         initialView: { yaw: assemblyYaw, pitch: 2, fov: 80 },
+      },
+      {
+        id: 'drill',
+        name: T('Fire drill (360° video)', 'Exercice d’incendie (vidéo 360°)'),
+        media: {
+          type: 'video360' as const,
+          source: 'media/drill/drill.webm',
+          poster: 'media/drill/poster.jpg',
+          loop: true,
+        },
+        floorId: 'f1',
+        initialView: { yaw: 0, pitch: 0, fov: 90 },
       },
     ],
     initialSceneId: 'lobby',
@@ -185,6 +199,116 @@ export function demoEnvironmentInput(): EnvironmentInput {
           'fade',
         ),
         appearance: { kind: 'label' as const, text: T('Back inside', 'Retour à l’intérieur') },
+      },
+      // Rich media (Phase 6)
+      {
+        id: 'corridor-drill',
+        sceneId: 'corridor',
+        title: T('Watch the fire drill (360° video)', 'Voir l’exercice d’incendie (vidéo 360°)'),
+        position: { kind: 'spherical' as const, yaw: 160, pitch: -6 },
+        appearance: {
+          kind: 'label' as const,
+          text: T('▶ Fire drill video', '▶ Vidéo de l’exercice'),
+        },
+        actions: [
+          {
+            type: 'goToScene' as const,
+            sceneId: 'drill',
+            transition: { kind: 'fade' as const, durationMs: 600 },
+          },
+        ],
+      },
+      nav('drill-to-corridor', 'drill', 'corridor', door('corridor', 's'), [
+        'Back to the corridor',
+        'Retour au couloir',
+      ]),
+      {
+        id: 'drill-alarm',
+        sceneId: 'drill',
+        title: T('The alarm sounds: stop work', 'L’alarme retentit : arrêtez le travail'),
+        position: { kind: 'spherical' as const, ...featureAngles('corridor', 'alarm', 'w') },
+        appearance: { kind: 'marker' as const, marker: 'info' as const },
+        timeRange: { start: 0, end: 4 },
+        actions: [
+          {
+            type: 'openPopup' as const,
+            content: {
+              kind: 'text' as const,
+              body: T(
+                'When the alarm sounds, stop what you are doing. Do not collect belongings.',
+                'Quand l’alarme retentit, arrêtez ce que vous faites. Ne ramassez pas vos effets.',
+              ),
+            },
+          },
+        ],
+      },
+      {
+        id: 'drill-exit',
+        sceneId: 'drill',
+        title: T('Leave by the nearest exit', 'Sortez par la sortie la plus proche'),
+        position: { kind: 'spherical' as const, ...door('corridor', 'n') },
+        appearance: { kind: 'marker' as const, marker: 'evac-route' as const },
+        timeRange: { start: 4, end: 10 },
+        actions: [
+          {
+            type: 'openPopup' as const,
+            content: {
+              kind: 'text' as const,
+              body: T(
+                'Walk to the nearest exit, here the north door, and go to the assembly point. Stay low if there is smoke.',
+                'Marchez jusqu’à la sortie la plus proche, ici la porte nord, et rendez-vous au point de rassemblement. Restez bas s’il y a de la fumée.',
+              ),
+            },
+          },
+        ],
+      },
+      {
+        id: 'lobby-alarm-on',
+        sceneId: 'lobby',
+        title: T('Sound the alarm (drill)', 'Déclencher l’alarme (exercice)'),
+        position: {
+          kind: 'spherical' as const,
+          yaw: lobbyAlarm().yaw + 9,
+          pitch: lobbyAlarm().pitch,
+        },
+        appearance: { kind: 'button' as const, icon: 'sound-on' as const },
+        condition: { variable: 'alarmOn', op: 'eq' as const, value: false },
+        actions: [
+          { type: 'playAudio' as const, audioId: 'alarm' },
+          { type: 'setVariable' as const, variable: 'alarmOn', op: 'set' as const, value: true },
+        ],
+      },
+      {
+        id: 'lobby-alarm-off',
+        sceneId: 'lobby',
+        title: T('Silence the alarm', 'Arrêter l’alarme'),
+        position: {
+          kind: 'spherical' as const,
+          yaw: lobbyAlarm().yaw + 9,
+          pitch: lobbyAlarm().pitch,
+        },
+        appearance: { kind: 'button' as const, icon: 'sound-off' as const },
+        condition: { variable: 'alarmOn', op: 'eq' as const, value: true },
+        actions: [
+          { type: 'stopAudio' as const, audioId: 'alarm' },
+          { type: 'setVariable' as const, variable: 'alarmOn', op: 'set' as const, value: false },
+        ],
+      },
+      {
+        id: 'lobby-procedures',
+        sceneId: 'lobby',
+        title: T('Emergency procedures (PDF)', 'Procédures d’urgence (PDF)'),
+        position: { kind: 'spherical' as const, yaw: -60, pitch: 6 },
+        appearance: { kind: 'button' as const, icon: 'checklist' as const },
+        actions: [{ type: 'openDocument' as const, documentId: 'procedures' }],
+      },
+      {
+        id: 'assembly-photos',
+        sceneId: 'assembly',
+        title: T('Photos of the site', 'Photos du site'),
+        position: { kind: 'spherical' as const, yaw: assemblyYaw - 30, pitch: -2 },
+        appearance: { kind: 'label' as const, text: T('Photos', 'Photos') },
+        actions: [{ type: 'openAlbum' as const, albumId: 'site-photos' }],
       },
       // Information and first-responder content
       {
@@ -269,7 +393,76 @@ export function demoEnvironmentInput(): EnvironmentInput {
         ],
       },
     ],
-    variables: [{ id: 'welcomed', kind: 'boolean', initial: false }],
+    variables: [
+      { id: 'welcomed', kind: 'boolean', initial: false },
+      { id: 'alarmOn', kind: 'boolean', initial: false },
+    ],
+    liveLayers: [
+      {
+        id: 'conditions',
+        name: T('Conditions', 'Conditions'),
+        kind: 'smoke' as const,
+        states: [
+          { id: 'normal', name: T('Normal', 'Normales') },
+          { id: 'smoke', name: T('Smoke', 'Fumée') },
+        ],
+        defaultStateId: 'normal',
+        // Smoke conditions: visibility about 3 m, dimmer lighting, everywhere indoors.
+        overrides: ['lobby', 'corridor', 'stairwell', 'office', 'electrical'].map((sceneId) => ({
+          sceneId,
+          stateId: 'smoke',
+          lighting: { exposure: -0.6, visibilityM: 3, fogColor: '#6f6c66' },
+        })),
+      },
+    ],
+    animatedRegions: [
+      {
+        id: 'lobby-strobe',
+        sceneId: 'lobby',
+        polygon: strobePolygon(),
+        source: 'media/lobby/strobe.webm',
+        condition: { variable: 'alarmOn', op: 'eq' as const, value: true },
+      },
+    ],
+    audio: [
+      {
+        id: 'alarm',
+        name: T('Fire alarm', 'Alarme incendie'),
+        kind: 'spatial' as const,
+        source: 'media/audio/alarm.wav',
+        sceneIds: ['lobby'],
+        position: lobbyAlarm(),
+        loop: true,
+        volume: 0.8,
+      },
+    ],
+    albums: [
+      {
+        id: 'site-photos',
+        name: T('Site photos', 'Photos du site'),
+        items: [
+          {
+            source: 'media/album/entrance.jpg',
+            caption: T('Main entrance, from the lobby', 'Entrée principale, vue du hall'),
+          },
+          {
+            source: 'media/album/extinguisher.jpg',
+            caption: T('Fire extinguisher FE-101 and the AED', 'Extincteur FE-101 et le DEA'),
+          },
+          {
+            source: 'media/album/assembly.jpg',
+            caption: T('Assembly point A sign', 'Panneau du point de rassemblement A'),
+          },
+        ],
+      },
+    ],
+    documents: [
+      {
+        id: 'procedures',
+        title: T('Emergency procedures', 'Procédures d’urgence'),
+        source: 'docs/emergency-procedures.pdf',
+      },
+    ],
     equipmentTypes,
     equipment,
     zones,

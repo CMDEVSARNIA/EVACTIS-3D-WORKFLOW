@@ -248,9 +248,7 @@ function featureColor(f: Feature, du: number, dv: number, wall: RGB): RGB | null
       return [26, 28, 30];
     case 'window': {
       const mullion = Math.abs(du) < 0.03 || hu - Math.abs(du) < 0.05 || hv - Math.abs(dv) < 0.05;
-      return mullion
-        ? [210, 214, 218]
-        : mix([200, 225, 245], [250, 252, 255], (dv + hv) / (2 * hv));
+      return mullion ? MULLION : mix([200, 225, 245], [250, 252, 255], (dv + hv) / (2 * hv));
     }
     case 'extinguisher':
       return Math.abs(du) < 0.05 && dv > hv - 0.06 ? [30, 30, 30] : RED;
@@ -276,7 +274,16 @@ function featureColor(f: Feature, du: number, dv: number, wall: RGB): RGB | null
   }
 }
 
+const MULLION: RGB = [210, 214, 218];
+
+/** Light sources are brighter than paper-white: daylight through windows, ceiling panels. */
+const GLOW = { window: 14, light: 3 };
+
 function shadeRoom(room: RoomSpec, d: V3): RGB {
+  return shadeRoomGlow(room, d)[0];
+}
+
+function shadeRoomGlow(room: RoomSpec, d: V3): [RGB, number] {
   const { xMin, xMax, zMin, zMax } = room.bounds;
   const floorY = -EYE;
   const ceilY = room.height - EYE;
@@ -297,6 +304,7 @@ function shadeRoom(room: RoomSpec, d: V3): RGB {
   const p: V3 = [d[0] * t, d[1] * t, d[2] * t];
   let c: RGB;
   let edge: number;
+  let glow = 1;
   if (surface === 'floor') {
     const tile = (Math.floor(p[0] / 0.6) + Math.floor(p[2] / 0.6)) & 1;
     c = room.floor[tile]!;
@@ -312,7 +320,7 @@ function shadeRoom(room: RoomSpec, d: V3): RGB {
     const light = lx > 0.6 && lx < 1.8 && lz > 0.9 && lz < 1.5;
     c = light ? [255, 253, 244] : [236, 236, 232];
     edge = Math.min(p[0] - xMin, xMax - p[0], p[2] - zMin, zMax - p[2]);
-    if (light) return c;
+    if (light) return [c, GLOW.light];
   } else {
     const along = surface === 'n' || surface === 's' ? p[0] : p[2];
     const height = p[1] - floorY;
@@ -324,6 +332,8 @@ function shadeRoom(room: RoomSpec, d: V3): RGB {
       const fc = featureColor(f, along - fa, p[1] - centre[1], c);
       if (fc) {
         c = fc;
+        // Window panes (not the frame) let daylight in.
+        if (f.kind === 'window' && fc.join() !== MULLION.join()) glow = GLOW.window;
         break;
       }
     }
@@ -332,7 +342,27 @@ function shadeRoom(room: RoomSpec, d: V3): RGB {
   }
   const ao = 0.72 + 0.28 * smooth(0, 0.6, edge);
   const fall = 1 / (1 + 0.004 * t * t);
-  return scale(c, ao * (0.55 + 0.45 * fall));
+  if (glow > 1) return [c, glow];
+  return [scale(c, ao * (0.55 + 0.45 * fall)), 1];
+}
+
+const toLinear = (v: number) => {
+  const x = v / 255;
+  return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+};
+
+/**
+ * Scene radiance in direction `d` (linear RGB, paper white ≈ 1, light sources above it),
+ * for HDR scenes: the same picture as `shade`, with windows and lights as bright as
+ * they would be to a camera.
+ */
+export function radiance(spec: SceneSpec, d: V3): V3 {
+  if (spec.outdoor) {
+    const c = shade(spec, d);
+    return [toLinear(c[0]), toLinear(c[1]), toLinear(c[2])];
+  }
+  const [c, glow] = shadeRoomGlow(spec, d);
+  return [toLinear(c[0]) * glow, toLinear(c[1]) * glow, toLinear(c[2]) * glow];
 }
 
 function shadeOutdoor(d: V3): RGB {
