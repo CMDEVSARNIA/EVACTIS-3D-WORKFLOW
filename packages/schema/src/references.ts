@@ -38,6 +38,7 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
   const equipmentIds = ids(env.equipment, 'equipment');
   const routeIds = ids(env.routes, 'routes');
   const zoneIds = ids(env.zones, 'zones');
+  ids(env.postings, 'postings');
   const audienceIds = ids(env.audiences, 'audiences');
   const moduleIds = ids(env.modules, 'modules');
   const documentIds = ids(env.documents, 'documents');
@@ -171,6 +172,11 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
     if (!end) add([...p, 'assemblyPointId'], `Unknown equipment "${r.assemblyPointId}"`);
     else if (end.typeId !== 'assembly-point')
       add([...p, 'assemblyPointId'], `Route must end at an assembly point, not "${end.typeId}"`);
+  });
+
+  env.postings.forEach((x, i) => {
+    ref(floorIds, x.floorId, ['postings', i, 'floorId'], 'floor');
+    ref(sceneIds, x.sceneId, ['postings', i, 'sceneId'], 'scene');
   });
 
   env.modules.forEach((m, i) => {

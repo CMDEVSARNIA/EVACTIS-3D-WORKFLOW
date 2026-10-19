@@ -11,6 +11,7 @@ export * from './environment.ts';
 export * from './references.ts';
 export * from './translations.ts';
 export * from './migrations.ts';
+export * from './safety.ts';
 
 /** Full validator: field shapes plus unique IDs and reference integrity. */
 export const EnvironmentSchema = EnvironmentObjectSchema.superRefine((env, ctx) => {

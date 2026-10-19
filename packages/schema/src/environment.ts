@@ -282,6 +282,8 @@ export const EquipmentTypeSchema = z.object({
   category: z.enum(['safe-condition', 'fire', 'warning', 'utility', 'access', 'custom']),
   sign: SafetySignNameSchema.optional(),
   icon: AssetPathSchema.optional(),
+  /** Short code drawn on the marker when there is no sign, e.g. "FDC". */
+  symbol: z.string().min(1).max(4).optional(),
 });
 export type EquipmentType = z.infer<typeof EquipmentTypeSchema>;
 
@@ -345,6 +347,22 @@ export const RouteSchema = z.object({
   confirmed: HumanConfirmationSchema.optional(),
 });
 export type Route = z.infer<typeof RouteSchema>;
+
+/**
+ * Where a printed evacuation plan is posted: its "You are here" variant marks this
+ * point (and the direction the reader faces) on the plan.
+ */
+export const PostingSchema = z.object({
+  id: IdSchema,
+  name: LocalizedTextSchema,
+  floorId: IdSchema,
+  planPosition: PlanPointSchema,
+  /** Direction the reader faces, degrees clockwise from the top of the plan. */
+  facingDeg: z.number().min(0).lt(360).optional(),
+  /** The scene captured at this spot, if any. */
+  sceneId: IdSchema.optional(),
+});
+export type Posting = z.infer<typeof PostingSchema>;
 
 export const BUILT_IN_AUDIENCES = [
   'staff',
@@ -455,6 +473,7 @@ export const EnvironmentObjectSchema = z.object({
   equipment: z.array(EquipmentSchema).default([]),
   routes: z.array(RouteSchema).default([]),
   zones: z.array(ZoneSchema).default([]),
+  postings: z.array(PostingSchema).default([]),
   audiences: z.array(AudienceSchema).default([]),
   modules: z.array(TrainingModuleSchema).default([]),
   documents: z.array(DocumentSchema).default([]),
