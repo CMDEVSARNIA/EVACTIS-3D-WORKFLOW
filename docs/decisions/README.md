@@ -16,3 +16,4 @@ accepted record; supersede it with a new one.
 | [0009](0009-viewer-core-architecture.md) | Viewer core: Three.js on demand, shared cube tiles, DOM hotspots | Accepted |
 | [0010](0010-local-media-pipeline.md) | Local media pipeline: Rust tiler, content-hash library, LGPL FFmpeg sidecar | Accepted |
 | [0011](0011-studio-editing.md) | Studio editing: whole-document undo, validated autosave, manifest versions, raster floor plans, suggested links | Accepted |
+| [0012](0012-safety-layer.md) | Safety layer: confirmed content only, plan-drawn routes, local printing and exports | Accepted |

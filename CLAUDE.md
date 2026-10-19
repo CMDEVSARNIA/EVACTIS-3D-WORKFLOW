@@ -52,12 +52,13 @@ makes network calls at runtime.
 | `packages/schema` | Environment document: Zod schema, `schemaVersion`, migrations, reference checks, i18n helpers. |
 | `packages/brand` | Tokens, logo/lockups, icons, button/marker/sign components, fonts, brand sheet, asset generator. |
 | `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots. Demo page in `demo/`. |
+| `packages/print` | Evacuation plan PDFs (letter/tabloid, bilingual, "You are here") and equipment register (CSV/XLSX/PDF); pdf-lib, no network. |
 | `packages/demo-facility` | Seeded demo facility: procedural panoramas + tiles + validated environment (`pnpm build` renders it). |
 | `packages/desktop-bridge` | UI side of the desktop shell (app info, smoke-test report, network watch). |
 | `crates/evx-media` | Studio media pipeline: validation, EXIF, cube tiling, previews, HDR, stereo, video via LGPL FFmpeg, GLB/splat checks. No network code. |
 | `crates/evx-core` | UI-free Rust core (identity, launch args, navigation guard, project location, smoke report). |
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
-| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, autolink, Tour/Floors/Versions); `src/testing/` is the e2e-only in-memory backend. |
+| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, autolink, Tour/Floors/Safety/Versions); `src/testing/` is the e2e-only in-memory backend. |
 | `apps/viewer-desktop` | 3DWORKFLOW Viewer desktop: Tauri v2 + vanilla TS. |
 | `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
@@ -146,7 +147,13 @@ makes network calls at runtime.
   - [x] Link suggestions from plan positions, GPS and capture order (author accepts each)
   - [x] Undo/redo (Ctrl+Z/Ctrl+Y, labelled), validated autosave, local versions in `.evx-history`
   - [x] Acceptance: 10-scene, 2-floor tour built in the UI and walked in the Viewer (`e2e/studio-tour.spec.ts`)
-- [ ] Phase 5 — Safety and emergency layer
+- [x] **Phase 5 — Safety and emergency layer** (awaiting review)
+  - [x] Schema: postings, type symbols, shared safety helpers (audience filter, nearest route, bearings)
+  - [x] Demo facility: equipment on both floors, primary + alternative routes, assembly point, postings, first-responder-only layer (FACP, riser, FDC, key box, electrical)
+  - [x] Viewer: equipment sign hotspots from one position per item, floor-plan view with "You are here", animated route chevrons, evac-route button (nearest primary, alternative one tap away), audience switcher and lock
+  - [x] Studio Safety tab: equipment synced between list, scene and plan; route drawing with suggested scenes/directions; postings; named confirmation (cleared on move); audience lock
+  - [x] Printable evacuation plans (PDF, letter + tabloid, bilingual, "You are here" per posting, legend, verify-on-site note + date); register CSV/XLSX/PDF
+  - [x] Acceptance: first responders see layers staff do not, routes animate (`e2e/viewer-safety.spec.ts`); Studio places, routes, prints legibly at letter and tabloid (`e2e/studio-safety.spec.ts`)
 - [ ] Phase 6 — Rich features
 - [ ] Phase 7 — Skin designer and Evactis default skin
 - [ ] Phase 8 — Training modules
@@ -228,6 +235,22 @@ makes network calls at runtime.
 25. **Undo history lasts for the session** (100 steps); versions are the long-term
     history. Automatic versions: on open and every 10 minutes of editing, 30 kept.
 26. **Plan placement is by mouse**; a keyboard alternative is planned for Phase 12.
+
+## Assumptions (Phase 5)
+
+27. **Only confirmed content prints or routes** in the delivered Viewer; the register
+    lists every item and marks unconfirmed ones. Moving, retyping or redrawing clears
+    a confirmation; text and inspection-date edits keep it (ADR 0012).
+28. **Postings and type symbols were added to schema v1** without a version bump: v1
+    is unreleased and both default to empty.
+29. **Printed plans are bilingual on one sheet** (English then French), as commonly
+    posted in Canadian workplaces; print fonts are static Inter, latin subset.
+30. **Legible = nothing under 8 pt on letter**, scaled up on tabloid; checked by unit
+    and e2e tests. *Evactis to review a physical print of both sizes.*
+31. **Route scenes and walking directions are suggested from the drawing** (scenes
+    within 3 m of the line) and applied by the author; never set automatically.
+32. **Register scene links are relative** (`index.html?scene=<id>`), valid inside the
+    Phase 10 delivery package.
 
 ## Requirements added by Evactis
 
