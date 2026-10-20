@@ -22,6 +22,8 @@ interface Fixture {
   path: string;
   purpose: ImportPurpose;
   asset: AssetRecord;
+  /** Offered only by the file dialog with this title (e.g. the client-logo picker). */
+  picker?: string;
 }
 
 const ROOT = 'project';
@@ -147,10 +149,13 @@ export const memoryApi: StudioApi = {
     return res.ok ? `${ROOT}/${((await res.json()) as { file: string }).file}` : null;
   },
   // Every test file of that kind not yet in the library, in fixture order.
-  pickMedia: async (_title, _filter, purpose = 'scene') =>
-    (await fixtures())
-      .filter((f) => f.purpose === purpose && !state.library.some((a) => a.id === f.asset.id))
-      .map((f) => f.path),
+  pickMedia: async (title, _filter, purpose = 'scene') => {
+    const open = (await fixtures()).filter(
+      (f) => f.purpose === purpose && !state.library.some((a) => a.id === f.asset.id),
+    );
+    const named = open.filter((f) => f.picker === title);
+    return (named.length ? named : open.filter((f) => !f.picker)).map((f) => f.path);
+  },
   smokeWorkspace: async () => '/e2e',
   readMedia: async (path) => new Uint8Array(await (await fetch(`./${ROOT}/${path}`)).arrayBuffer()),
   pickSave: async (_title, defaultName) => `/e2e/exports/${defaultName}`,

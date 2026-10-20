@@ -1,5 +1,6 @@
 import { CONTENT } from './editor/contentStrings.ts';
 import { SAFETY } from './editor/safetyStrings.ts';
+import { SKIN } from './editor/skinStrings.ts';
 import { EDITOR } from './editor/strings.ts';
 
 export const STRINGS = {
@@ -112,6 +113,7 @@ export const STRINGS = {
     editor: EDITOR.en,
     safety: SAFETY.en,
     content: CONTENT.en,
+    skin: SKIN.en,
   },
   fr: {
     eyebrow: 'Plans sûrs . Chemins clairs',
@@ -226,6 +228,7 @@ export const STRINGS = {
     editor: EDITOR.fr,
     safety: SAFETY.fr,
     content: CONTENT.fr,
+    skin: SKIN.fr,
   },
 };
 
