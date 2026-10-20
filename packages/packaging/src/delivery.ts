@@ -64,6 +64,11 @@ export interface DeliveryInput {
    * itself (Studio copies it on disk instead of passing hundreds of megabytes through).
    */
   webview2Copied?: boolean;
+  /**
+   * installer: the caller puts Microsoft's offline WebView2 Runtime installer beside the
+   * script (WEBVIEW2_INSTALLER); the setup runs it only on a PC without the runtime.
+   */
+  webview2Installer?: boolean;
   /** installer: the setup program's icon (.ico; the Viewer's). */
   installerIcon?: Uint8Array;
   scorm?: { version: ScormVersion; moduleIds?: string[] };
@@ -87,6 +92,7 @@ export class DeliveryError extends Error {
 
 export const EVX_NAME = 'environment.evx';
 export const VIEWER_EXE = 'EVACTIS-3DWORKFLOW-Viewer.exe';
+export const WEBVIEW2_INSTALLER = 'MicrosoftEdgeWebView2RuntimeInstallerX64.exe';
 /** Above this a single HTML file gets slow to open; Studio asks before making one. */
 export const SINGLE_FILE_WARN_BYTES = 50 * 1024 * 1024;
 
@@ -383,6 +389,30 @@ ${blocks.join('\n')}
 }
 
 /** NSIS script for the setup .exe: per-user install, Start menu shortcut, uninstaller. */
+/**
+ * Installs the WebView2 Runtime from the offline installer when the PC has none (per
+ * machine or per user), as the 3DWORKFLOW Viewer's own setup does. Nothing is downloaded.
+ */
+const WEBVIEW2_CLIENT = 'Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}';
+const webview2Section = `Section "WebView2"
+  ReadRegStr $4 HKLM "SOFTWARE\\WOW6432Node\\${WEBVIEW2_CLIENT}" "pv"
+  \${If} $4 == ""
+  \${OrIf} $4 == "0.0.0.0"
+    ReadRegStr $4 HKCU "SOFTWARE\\${WEBVIEW2_CLIENT}" "pv"
+  \${EndIf}
+  \${If} $4 == ""
+  \${OrIf} $4 == "0.0.0.0"
+    InitPluginsDir
+    File "/oname=$PLUGINSDIR\\webview2-setup.exe" "${WEBVIEW2_INSTALLER}"
+    ExecWait '"$PLUGINSDIR\\webview2-setup.exe" /silent /install' $1
+    \${If} $1 <> 0
+      Abort "The Microsoft WebView2 Runtime could not be installed (code $1)."
+    \${EndIf}
+  \${EndIf}
+SectionEnd
+
+`;
+
 export function nsisScript(i: DeliveryInput, envTitle: string): string {
   const facility = safeName(envTitle);
   const shortcut = `Evactis – ${facility}`;
@@ -405,6 +435,7 @@ InstallDir "$LOCALAPPDATA\\Programs\\Evactis\\${q(facility)}"
 ShowInstDetails nevershow
 ShowUninstDetails nevershow
 !include "MUI2.nsh"
+!include "LogicLib.nsh"
 !define MUI_ICON "${icon}"
 !define MUI_UNICON "${icon}"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\\${VIEWER_EXE}"
@@ -416,7 +447,7 @@ ShowUninstDetails nevershow
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "French"
 
-Section "Install"
+${i.webview2Installer ? webview2Section : ''}Section "Install"
   SetOutPath "$INSTDIR"
 ${files.map((f) => `  File "${q(f)}"`).join('\n')}
 ${webview2 ? '  File /r "webview2"\n' : ''}  WriteUninstaller "$INSTDIR\\Uninstall.exe"

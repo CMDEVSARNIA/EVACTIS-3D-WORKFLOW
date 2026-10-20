@@ -100,6 +100,9 @@ try {
     Check (Test-Path (Join-Path $installDir 'viewer\icon.ico')) 'Viewer icon bundled for installers'
     Check (Test-Path (Join-Path $installDir 'nsis\makensis.exe')) 'NSIS bundled for per-facility installers'
     Check (Test-Path (Join-Path $installDir 'nsis\Include\MUI2.nsh')) 'NSIS Modern UI bundled'
+    Check (Test-Path (Join-Path $installDir 'nsis\COPYING*')) 'NSIS licence text bundled'
+    $wv2 = Join-Path $installDir 'webview2-installer\MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
+    Check ((Test-Path $wv2) -and (Get-AuthenticodeSignature $wv2).SignerCertificate.Subject -like '*Microsoft*') 'Microsoft WebView2 offline installer bundled for setups'
   }
 
   # ---- Studio media pipeline: bundled LGPL ffmpeg, a 12K panorama and a 360 video ----

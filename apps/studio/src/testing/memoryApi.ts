@@ -166,7 +166,12 @@ export const memoryApi: StudioApi = {
     return path;
   },
   // A stand-in Viewer program; no NSIS, so the installer kind is offered as unavailable.
-  packageTools: async (): Promise<PackageTools> => ({ viewer: true, webview2: false, nsis: false }),
+  packageTools: async (): Promise<PackageTools> => ({
+    viewer: true,
+    webview2: false,
+    webview2Installer: false,
+    nsis: false,
+  }),
   packageBundled: async (name) => new TextEncoder().encode(`MZ test ${name}`),
   packageTarget: async (dir, outputs) => {
     for (const o of outputs) {

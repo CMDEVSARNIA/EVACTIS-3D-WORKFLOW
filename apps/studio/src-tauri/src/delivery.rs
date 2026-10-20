@@ -1,8 +1,8 @@
 //! Delivery packages made in Studio (Package dialog): the UI builds each package with
 //! @evactis-3dworkflow/packaging and writes it here, file by file, into a folder the
 //! author picked. Studio also brings what the desktop kinds need: the 3DWORKFLOW Viewer
-//! program, an optional fixed WebView2 runtime and the NSIS compiler for per-facility
-//! installers. Nothing here touches the network; makensis runs on local files only.
+//! program, an optional fixed WebView2 runtime or Microsoft's offline WebView2
+//! installer, and the NSIS compiler for per-facility installers. Nothing here touches the network; makensis runs on local files only.
 
 use std::{
     io::Write,
@@ -19,14 +19,16 @@ use tauri::{
 use crate::studio::{percent_decode, safe_file_name, CommandError, Studio};
 
 pub const VIEWER_EXE: &str = "EVACTIS-3DWORKFLOW-Viewer.exe";
+pub const WEBVIEW2_INSTALLER: &str = "MicrosoftEdgeWebView2RuntimeInstallerX64.exe";
 
 /// What Studio can bring to a package. Installed Studio carries them in its resources
-/// (`viewer/`, `webview2/`, `nsis/`); development builds find the Viewer beside the
+/// (`viewer/`, `webview2/`, `webview2-installer/`, `nsis/`); development builds find the Viewer beside the
 /// Studio executable (same Cargo target folder), and NSIS on PATH (or EVX_MAKENSIS).
 struct Tools {
     viewer: Option<PathBuf>,
     viewer_icon: Option<PathBuf>,
     webview2: Option<PathBuf>,
+    webview2_installer: Option<PathBuf>,
     makensis: Option<PathBuf>,
 }
 
@@ -57,26 +59,35 @@ fn tools(app: &AppHandle) -> Tools {
         .as_ref()
         .map(|r| r.join("webview2"))
         .filter(|d| d.join("msedgewebview2.exe").is_file());
+    let webview2_installer = res.as_ref().and_then(|r| existing(r.join("webview2-installer").join(WEBVIEW2_INSTALLER)));
     let makensis = res
         .as_ref()
         .and_then(|r| existing(r.join("nsis").join(format!("makensis{exe}"))))
         .or_else(|| std::env::var_os("EVX_MAKENSIS").map(PathBuf::from).and_then(existing))
         .or_else(|| on_path(&format!("makensis{exe}")));
-    Tools { viewer, viewer_icon, webview2, makensis }
+    Tools { viewer, viewer_icon, webview2, webview2_installer, makensis }
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageTools {
     viewer: bool,
+    /// A fixed WebView2 runtime (portable viewers and installers carry it).
     webview2: bool,
+    /// Microsoft's offline WebView2 installer (installers run it on PCs without one).
+    webview2_installer: bool,
     nsis: bool,
 }
 
 #[tauri::command]
 pub fn package_tools(app: AppHandle) -> PackageTools {
     let t = tools(&app);
-    PackageTools { viewer: t.viewer.is_some(), webview2: t.webview2.is_some(), nsis: t.makensis.is_some() }
+    PackageTools {
+        viewer: t.viewer.is_some(),
+        webview2: t.webview2.is_some(),
+        webview2_installer: t.webview2_installer.is_some(),
+        nsis: t.makensis.is_some(),
+    }
 }
 
 /// Bytes of a bundled file: `viewer` (the Viewer program) or `viewer-icon`.
@@ -184,17 +195,31 @@ pub fn package_discard(state: State<'_, Studio>, dir: String, outputs: Vec<Strin
     Ok(())
 }
 
-/// Copies the bundled fixed WebView2 runtime into `<dir>/<folder>/webview2/`.
+/// Copies the bundled WebView2 into `<dir>/<folder>/`: `runtime` (the fixed runtime, into
+/// `webview2/`) or `installer` (the offline installer, beside the installer script).
 #[tauri::command]
 pub async fn package_webview2(
     app: AppHandle,
     state: State<'_, Studio>,
     dir: String,
     folder: String,
+    what: String,
 ) -> Result<(), CommandError> {
-    let from = tools(&app).webview2.ok_or_else(|| CommandError::new("missing-tool", "WebView2 runtime"))?;
-    let to = target(&state, &dir, &folder)?.join("webview2");
-    tauri::async_runtime::spawn_blocking(move || copy_dir(&from, &to))
+    let t = tools(&app);
+    let base = target(&state, &dir, &folder)?;
+    let (from, to, is_dir) = match what.as_str() {
+        "runtime" => (t.webview2, base.join("webview2"), true),
+        "installer" => (t.webview2_installer, base.join(WEBVIEW2_INSTALLER), false),
+        _ => (None, base, false),
+    };
+    let from = from.ok_or_else(|| CommandError::new("missing-tool", format!("WebView2 {what}")))?;
+    tauri::async_runtime::spawn_blocking(move || {
+        if is_dir {
+            copy_dir(&from, &to)
+        } else {
+            std::fs::copy(&from, &to).map(|_| ())
+        }
+    })
         .await
         .map_err(|e| CommandError::new("io", e.to_string()))?
         .map_err(|e| CommandError::new("io", e.to_string()))

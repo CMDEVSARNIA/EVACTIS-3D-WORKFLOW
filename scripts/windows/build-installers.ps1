@@ -64,8 +64,8 @@ if ($signing) {
 #    that provides Get-AuthenticodeSignature;
 #  - Studio: the ffmpeg files as resources, and what its Package dialog bundles into
 #    delivery packages: the signed Viewer program and its icon, NSIS (from the Tauri
-#    tools folder, filled by the Viewer's own build just before) and, if given, a fixed
-#    WebView2 runtime. The app's own resources are repeated so the result is the same
+#    tools folder, filled by the Viewer's own build just before), Microsoft's offline
+#    WebView2 installer and, if given, a fixed WebView2 runtime. The app's own resources are repeated so the result is the same
 #    whether the bundler merges or replaces the map.
 $shell = (Get-Process -Id $PID).Path
 function New-Overlay($app) {
@@ -90,6 +90,9 @@ function New-Overlay($app) {
     $nsis = Join-Path $repo 'target\.tauri\NSIS'
     if (-not (Test-Path (Join-Path $nsis 'makensis.exe'))) { throw "NSIS not found in $nsis" }
     $resources['../../../target/.tauri/NSIS/'] = 'nsis/'
+    # Microsoft's offline WebView2 installer (staged above): per-facility setups carry it
+    # for PCs without the runtime and run it only there.
+    $resources[($env:TAURI_EVX_WEBVIEW2_INSTALLER -replace '\\', '/')] = 'webview2-installer/MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
     if ($WebView2FixedRuntime) {
       if (-not (Test-Path (Join-Path $WebView2FixedRuntime 'msedgewebview2.exe'))) {
         throw "No msedgewebview2.exe in $WebView2FixedRuntime"

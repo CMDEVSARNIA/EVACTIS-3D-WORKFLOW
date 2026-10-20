@@ -21,10 +21,10 @@ describe('Package dialog', () => {
   });
 
   it('offers the desktop kinds only with the bundled Viewer, the installer only with NSIS', () => {
-    const none = { viewer: false, webview2: false, nsis: false };
+    const none = { viewer: false, webview2: false, webview2Installer: false, nsis: false };
     expect(KINDS.filter((k) => missingTool(k, none))).toEqual(['installer', 'portable']);
     expect(missingTool('installer', { ...none, viewer: true })).toBe('nsis');
-    expect(missingTool('installer', { viewer: true, webview2: false, nsis: true })).toBeNull();
+    expect(missingTool('installer', { ...none, viewer: true, nsis: true })).toBeNull();
   });
 
   it('counts the safety items left out because nobody confirmed them', () => {

@@ -89,6 +89,8 @@ export interface MakeOptions {
   kiosk: boolean;
   scormVersion: ScormVersion;
   tools: PackageTools;
+  /** installer: carry Microsoft's offline WebView2 installer for PCs without the runtime. */
+  withWebView2Installer: boolean;
   onProgress: (step: 'files' | 'runtime' | 'installer', done: number, total: number) => void;
 }
 
@@ -104,7 +106,11 @@ export async function makePackage(api: StudioApi, o: MakeOptions): Promise<strin
   const outputs = outputsOf(kind, name);
   await api.packageTarget(dir, outputs);
   const desktop = kind === 'installer' || kind === 'portable';
+  // A fixed runtime makes the installer independent of the PC; else, if asked, the setup
+  // carries Microsoft's offline installer and runs it only where the runtime is missing.
   const webview2 = desktop && o.tools.webview2;
+  const webview2Installer =
+    kind === 'installer' && !webview2 && o.tools.webview2Installer && o.withWebView2Installer;
   try {
     const createdAt = new Date().toISOString();
     await buildDelivery(
@@ -129,15 +135,16 @@ export async function makePackage(api: StudioApi, o: MakeOptions): Promise<strin
         viewerExe: desktop ? await api.packageBundled('viewer') : undefined,
         installerIcon: kind === 'installer' ? await api.packageBundled('viewer-icon') : undefined,
         webview2Copied: webview2,
+        webview2Installer,
         scorm: kind === 'scorm' ? { version: o.scormVersion } : undefined,
         maxFaceSize: kind === 'single-file' ? SINGLE_FILE_MAX_FACE : undefined,
         onProgress: (d, n) => o.onProgress('files', d, n),
       },
       { write: (path, data, append) => api.packageWrite(dir, path, data, !!append) },
     );
-    if (webview2) {
+    if (webview2 || webview2Installer) {
       o.onProgress('runtime', 0, 1);
-      await api.packageWebView2(dir, name);
+      await api.packageWebView2(dir, name, webview2 ? 'runtime' : 'installer');
     }
     if (kind === 'installer') {
       o.onProgress('installer', 0, 1);

@@ -43,6 +43,10 @@ export const PACKAGING = {
     nameHint: 'File or folder name; the installer’s shortcut uses the facility name.',
     scormVersion: 'SCORM version',
     kiosk: 'Kiosk deployment (larger buttons, no full-screen switch)',
+    webview2Installer:
+      'Include the Microsoft WebView2 Runtime for PCs that lack it (installed only where missing; about 180 MB more)',
+    needsWebView2:
+      'Runs on PCs that already have the Microsoft WebView2 Runtime (built into Windows 11 and updated Windows 10).',
     encrypt: 'Encrypt with a passphrase',
     encryptHint:
       'AES-256 with an Argon2id key. Without the passphrase nobody can open the environment, and it cannot be recovered: keep it somewhere safe.',
@@ -122,6 +126,10 @@ export const PACKAGING = {
       'Nom du fichier ou du dossier; le raccourci de l’installation utilise le nom de l’installation.',
     scormVersion: 'Version SCORM',
     kiosk: 'Déploiement en borne (boutons plus grands, pas de plein écran)',
+    webview2Installer:
+      'Inclure l’environnement d’exécution Microsoft WebView2 pour les PC qui ne l’ont pas (installé seulement s’il manque; environ 180 Mo de plus)',
+    needsWebView2:
+      'Fonctionne sur les PC qui ont déjà l’environnement d’exécution Microsoft WebView2 (intégré à Windows 11 et à Windows 10 à jour).',
     encrypt: 'Chiffrer avec une phrase secrète',
     encryptHint:
       'AES-256 avec une clé Argon2id. Sans la phrase secrète, personne ne peut ouvrir l’environnement, et elle ne peut pas être récupérée : conservez-la en lieu sûr.',

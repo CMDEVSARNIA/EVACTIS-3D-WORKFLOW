@@ -122,7 +122,19 @@ describe('delivery packages', { timeout: 60_000 }, () => {
       )!,
     );
     expect(plain).not.toContain('webview2');
+    expect(plain).not.toContain('Section "WebView2"');
     expect(plain).toContain('modern-install.ico');
+    const withRuntime = dec.decode(
+      (
+        await build({ kind: 'installer', viewerExe: enc.encode('MZ'), webview2Installer: true })
+      ).out.get('Riverside/installer.nsi')!,
+    );
+    // Installed only where missing, from the offline installer; never downloaded.
+    expect(withRuntime).toContain('Section "WebView2"');
+    expect(withRuntime).toContain(
+      'File "/oname=$PLUGINSDIR\\webview2-setup.exe" "MicrosoftEdgeWebView2RuntimeInstallerX64.exe"',
+    );
+    expect(withRuntime).not.toMatch(/https?:|NSISdl|inetc/i);
   });
 
   it('a single HTML file keeps tile levels up to the cap only', () => {

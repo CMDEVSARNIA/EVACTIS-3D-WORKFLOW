@@ -31,6 +31,7 @@ export function PackageDialog({ t, lang, env }: { t: Strings; lang: Lang; env: E
   const [kind, setKind] = useState<PackageKind>('evx');
   const [name, setName] = useState('');
   const [kiosk, setKiosk] = useState(false);
+  const [withWebView2, setWithWebView2] = useState(true);
   const [scormVersion, setScormVersion] = useState<ScormVersion>('2004');
   const [encrypt, setEncrypt] = useState(false);
   const [pass, setPass] = useState('');
@@ -96,6 +97,7 @@ export function PackageDialog({ t, lang, env }: { t: Strings; lang: Lang; env: E
         kiosk,
         scormVersion,
         tools,
+        withWebView2Installer: withWebView2,
         onProgress: (step, d, n) =>
           setProgress({ text: p.steps[step](d, n), ratio: n ? d / n : 0 }),
       });
@@ -213,6 +215,24 @@ export function PackageDialog({ t, lang, env }: { t: Strings; lang: Lang; env: E
                 />
                 {p.kiosk}
               </label>
+            )}
+            {tools && (kind === 'installer' || kind === 'portable') && !tools.webview2 && (
+              <div className="grid gap-1 text-sm" data-testid="package-webview2">
+                {kind === 'installer' && tools.webview2Installer && (
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={withWebView2}
+                      disabled={busy}
+                      onChange={(e) => setWithWebView2(e.target.checked)}
+                    />
+                    {p.webview2Installer}
+                  </label>
+                )}
+                {(kind === 'portable' || !tools.webview2Installer || !withWebView2) && (
+                  <p className="evx-hint">{p.needsWebView2}</p>
+                )}
+              </div>
             )}
 
             <div className="grid gap-2 text-sm">

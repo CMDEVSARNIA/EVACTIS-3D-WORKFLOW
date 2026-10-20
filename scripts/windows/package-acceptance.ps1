@@ -71,6 +71,7 @@ try {
   # ---- per-facility installer --------------------------------------------------
   Write-Host "== per-facility installer: $setup"
   $shortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Evactis – $Name.lnk"
+  Check ((Get-Item $setup).Length -gt 100MB) 'setup carries the WebView2 offline installer for PCs without the runtime'
   $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
   Check ($p.ExitCode -eq 0) "silent per-user install exit code 0 (got $($p.ExitCode))"
   Check (Test-Path $installed) "installed to $installDir"

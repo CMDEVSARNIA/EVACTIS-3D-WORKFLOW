@@ -113,7 +113,10 @@ export type FileDrop = { type: 'over' } | { type: 'leave' } | { type: 'drop'; pa
 
 export interface PackageTools {
   viewer: boolean;
+  /** A fixed WebView2 runtime (portable viewers and installers carry it). */
   webview2: boolean;
+  /** Microsoft's offline WebView2 installer (installers run it on PCs without one). */
+  webview2Installer: boolean;
   nsis: boolean;
 }
 
@@ -196,9 +199,9 @@ const tauriApi = {
     invoke<void>('package_discard', { dir, outputs }),
   /** Sizes in bytes of project media files. */
   mediaSizes: (paths: string[]) => invoke<number[]>('media_sizes', { paths }),
-  /** Copies the bundled fixed WebView2 runtime into <dir>/<folder>/webview2/. */
-  packageWebView2: (dir: string, folder: string) =>
-    invoke<void>('package_webview2', { dir, folder }),
+  /** Copies the bundled WebView2 runtime (webview2/) or offline installer into <dir>/<folder>/. */
+  packageWebView2: (dir: string, folder: string, what: 'runtime' | 'installer') =>
+    invoke<void>('package_webview2', { dir, folder, what }),
   /** Compiles <dir>/<folder>/installer.nsi into "<folder> Setup.exe"; returns its path. */
   packageInstaller: (dir: string, folder: string) =>
     invoke<string>('package_installer', { dir, folder }),

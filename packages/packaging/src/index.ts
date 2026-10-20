@@ -20,6 +20,7 @@ export {
   safeName,
   SINGLE_FILE_WARN_BYTES,
   VIEWER_EXE,
+  WEBVIEW2_INSTALLER,
   type DeliveryInput,
   type DeliveryResult,
   type DeliverySink,

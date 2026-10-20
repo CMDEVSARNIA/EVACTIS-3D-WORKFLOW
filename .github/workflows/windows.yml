@@ -46,6 +46,8 @@ jobs:
           "EVX_TIMESTAMP_URL=http://timestamp.digicert.com" >> $env:GITHUB_ENV
       - name: Build signed installers
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: scripts/windows/build-installers.ps1
       - name: Verify signatures
         shell: pwsh
@@ -68,7 +70,8 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           $viewer = 'target/release/EVACTIS-3DWORKFLOW-Viewer.exe'
           $out = 'out/packages'
-          node tools/package.mjs --kind installer --out $out --name 'Evactis Demo Centre' --viewer $viewer --makensis target/.tauri/NSIS/makensis.exe
+          node tools/package.mjs --kind installer --out $out --name 'Evactis Demo Centre' --viewer $viewer `
+            --makensis target/.tauri/NSIS/makensis.exe --webview2-installer target/webview2/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
           node tools/package.mjs --kind portable --out $out --name portable --viewer $viewer
           node tools/package.mjs --kind evx --out $out --name demo
           node tools/package.mjs --kind evx --out $out --name demo-encrypted --passphrase 'correct horse battery staple'

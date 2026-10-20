@@ -12,16 +12,25 @@
  *     --passphrase  encrypt the environment (or set EVX_PASSPHRASE)
  *     --viewer      the Viewer executable (portable, installer)
  *     --makensis    the NSIS compiler (installer; default `makensis` on PATH)
+ *     --webview2-installer  Microsoft's offline WebView2 installer, run by the setup only
+ *                   on PCs without the runtime (installer)
  *     --scorm       1.2 | 2004 (default 2004)
  *     --kiosk       kiosk deployment
  */
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { localize, parseEnvironment } from '../packages/schema/dist/index.js';
-import { buildDelivery, safeName } from '../packages/packaging/src/index.ts';
+import { buildDelivery, safeName, WEBVIEW2_INSTALLER } from '../packages/packaging/src/index.ts';
 import { quickStartPdf } from '../packages/print/src/index.ts';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -34,6 +43,7 @@ const { values: a } = parseArgs({
     passphrase: { type: 'string', default: process.env.EVX_PASSPHRASE },
     viewer: { type: 'string' },
     makensis: { type: 'string', default: 'makensis' },
+    'webview2-installer': { type: 'string' },
     scorm: { type: 'string', default: '2004' },
     kiosk: { type: 'boolean', default: false },
     'created-at': { type: 'string' },
@@ -126,6 +136,7 @@ const result = await buildDelivery(
       : undefined,
     viewerExe: a.viewer ? bytes(resolve(a.viewer)) : undefined,
     installerIcon: bytes(join(repo, 'apps/viewer-desktop/src-tauri/icons/icon.ico')),
+    webview2Installer: a.kind === 'installer' && !!a['webview2-installer'],
     scorm: a.kind === 'scorm' ? { version: a.scorm } : undefined,
   },
   {
@@ -140,6 +151,8 @@ const result = await buildDelivery(
 
 const outputs = [...new Set(result.outputs.map((p) => p.split('/')[0]))];
 if (a.kind === 'installer') {
+  if (a['webview2-installer'])
+    copyFileSync(resolve(a['webview2-installer']), join(out, name, WEBVIEW2_INSTALLER));
   // A UTF-8 locale: the Linux makensis crashes on accented file names under POSIX.
   execFileSync(a.makensis, ['-V2', 'installer.nsi'], {
     cwd: join(out, name),
