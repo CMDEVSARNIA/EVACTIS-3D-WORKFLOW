@@ -25,7 +25,10 @@ export const ANCHORS = [
 ] as const;
 export type Anchor = (typeof ANCHORS)[number];
 
-/** What a toolbar button does. `sound` toggles mute; `vr` shows only where VR works. */
+/**
+ * What a toolbar button does. `sound` toggles mute; `vr` shows only where VR works;
+ * `start-module` and `checklist` only when the audience has training modules.
+ */
 export const SKIN_COMMANDS = [
   'home',
   'previous',
@@ -40,6 +43,8 @@ export const SKIN_COMMANDS = [
   'zoom-out',
   'fullscreen',
   'vr',
+  'start-module',
+  'checklist',
 ] as const;
 export type SkinCommand = (typeof SKIN_COMMANDS)[number];
 

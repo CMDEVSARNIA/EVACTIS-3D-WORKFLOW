@@ -355,29 +355,72 @@ export const AudienceSchema = z.object({
 });
 export type Audience = z.infer<typeof AudienceSchema>;
 
+/**
+ * Training (Phase 8). Steps are done in order; each earns its points when completed,
+ * half when the learner used the hint, none when skipped. Find steps complete when the
+ * learner activates the target (its sign or hotspot, by pointer or keyboard).
+ */
+const stepBase = {
+  id: IdSchema,
+  /** Shown while the step is active. */
+  instruction: LocalizedTextSchema,
+  /** Shown on request; using it halves the step's points. */
+  hint: LocalizedTextSchema.optional(),
+  points: z.number().min(0).max(100).default(1),
+};
+
+/** A spot to find in a hazard hunt: a direction in a scene and how close a click must be. */
+export const HazardSpotSchema = z.object({
+  id: IdSchema,
+  sceneId: IdSchema,
+  position: SphericalSchema,
+  /** Angular radius (degrees) that counts as finding it. */
+  radius: z.number().min(2).max(45).default(10),
+  label: LocalizedTextSchema,
+});
+export type HazardSpot = z.infer<typeof HazardSpotSchema>;
+
 export const ModuleStepSchema = z.discriminatedUnion('kind', [
+  /** Go to a scene. */
+  z.object({ ...stepBase, kind: z.literal('navigate'), sceneId: IdSchema }),
+  /** Find an equipment item or hotspot and activate it ("locate the AED on floor 2"). */
+  z.object({ ...stepBase, kind: z.literal('find-item'), targetId: IdSchema }),
+  /**
+   * "Find your nearest exit": reach the end of the nearest confirmed primary route from
+   * where the step starts. Routes are never generated; with none, the step is skipped.
+   */
+  z.object({ ...stepBase, kind: z.literal('reach-exit') }),
+  /** Find hazards by pointing at them (click, tap, or "Inspect" at the view centre). */
   z.object({
-    id: IdSchema,
-    kind: z.literal('navigate'),
-    sceneId: IdSchema,
-    instruction: LocalizedTextSchema,
+    ...stepBase,
+    kind: z.literal('hazard-hunt'),
+    hazards: z.array(HazardSpotSchema).min(1),
+    /** How many must be found (default: all). */
+    required: z.number().int().min(1).optional(),
   }),
-  z.object({
-    id: IdSchema,
-    kind: z.literal('find-item'),
-    targetId: IdSchema,
-    instruction: LocalizedTextSchema,
-  }),
+  /** A quiz question (its own points). */
   z.object({ id: IdSchema, kind: z.literal('question'), question: QuizQuestionSchema }),
 ]);
+export type ModuleStep = z.infer<typeof ModuleStepSchema>;
+
+export const ChecklistItemSchema = z.object({
+  id: IdSchema,
+  label: LocalizedTextSchema,
+  /** Ticked automatically when this step is completed; otherwise the learner ticks it. */
+  stepId: IdSchema.optional(),
+});
+export type ChecklistItem = z.infer<typeof ChecklistItemSchema>;
 
 export const TrainingModuleSchema = z.object({
   id: IdSchema,
   title: LocalizedTextSchema,
   description: LocalizedTextSchema.optional(),
   audienceIds: AudienceFilterSchema,
+  /** Where the module begins; omitted, it begins wherever the learner is. */
+  startSceneId: IdSchema.optional(),
   steps: z.array(ModuleStepSchema).min(1),
-  checklist: z.array(z.object({ id: IdSchema, label: LocalizedTextSchema })).default([]),
+  /** Items the learner confirms (or steps tick); all must be ticked to complete. */
+  checklist: z.array(ChecklistItemSchema).default([]),
   /** Percentage required to pass. */
   passMark: z.number().min(0).max(100).default(80),
   certificate: z.boolean().default(true),

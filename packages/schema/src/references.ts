@@ -207,7 +207,18 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
   env.modules.forEach((m, i) => {
     const p = ['modules', i];
     refAudiences(m.audienceIds, [...p, 'audienceIds']);
+    ref(sceneIds, m.startSceneId, [...p, 'startSceneId'], 'scene');
+    const stepIds = new Set<string>();
     m.steps.forEach((s, j) => {
+      if (stepIds.has(s.id)) add([...p, 'steps', j, 'id'], `Duplicate step id "${s.id}"`);
+      stepIds.add(s.id);
+      if (s.kind === 'hazard-hunt') {
+        s.hazards.forEach((h, k) =>
+          ref(sceneIds, h.sceneId, [...p, 'steps', j, 'hazards', k, 'sceneId'], 'scene'),
+        );
+        if (s.required !== undefined && s.required > s.hazards.length)
+          add([...p, 'steps', j, 'required'], 'More hazards required than there are');
+      }
       if (s.kind === 'navigate') ref(sceneIds, s.sceneId, [...p, 'steps', j, 'sceneId'], 'scene');
       if (s.kind === 'find-item')
         ref(
@@ -217,6 +228,7 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
           'equipment or hotspot',
         );
     });
+    m.checklist.forEach((c, j) => ref(stepIds, c.stepId, [...p, 'checklist', j, 'stepId'], 'step'));
   });
 
   env.documents.forEach((d, i) => refAudiences(d.audienceIds, ['documents', i, 'audienceIds']));
