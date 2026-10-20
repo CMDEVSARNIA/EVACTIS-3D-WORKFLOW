@@ -11,7 +11,7 @@ import { test as base, expect } from '@playwright/test';
  *  Content-Security-Policy violations are recorded and fail the test the same way.
  */
 const HARDEN = fileURLToPath(new URL('../crates/evx-desktop/src/harden.js', import.meta.url));
-const LOCAL = /^(http:\/\/127\.0\.0\.1(:\d+)?\/|data:|blob:|about:)/;
+const LOCAL = /^(http:\/\/127\.0\.0\.1(:\d+)?\/|file:|data:|blob:|about:)/;
 
 export const test = base.extend<{ networkGuard: { attempts: string[]; csp: string[] } }>({
   networkGuard: [

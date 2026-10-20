@@ -82,5 +82,13 @@ export default defineConfig({
       url: `http://127.0.0.1:${PORT + 7}/index.html`,
       reuseExistingServer: !process.env.CI,
       timeout: 300_000,
+    })
+    .concat({
+      // Delivery packages (Phase 10) of the demo facility, plain, encrypted and altered;
+      // the intranet bundles are served, the others opened from disk.
+      command: `node e2e/fixtures/packages.mjs && node tools/static-server.mjs target/e2e-packages ${PORT + 8}`,
+      url: `http://127.0.0.1:${PORT + 8}/index.html`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 600_000,
     }),
 });
