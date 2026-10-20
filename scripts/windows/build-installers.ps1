@@ -5,6 +5,11 @@
     EVACTIS-3DWORKFLOW-<App>-<version>-x64-setup.exe
     EVACTIS-3DWORKFLOW-<App>-<version>-x64-<lang>.msi
 
+.PARAMETER WebView2FixedRuntime
+  Optional folder holding an extracted fixed-version WebView2 runtime (x64; the folder
+  with msedgewebview2.exe). Studio then bundles it and adds it to portable viewers and
+  per-facility installers, which then run on machines without the WebView2 Runtime.
+
 .PARAMETER Offline
   Build with no network access: Cargo and pnpm run offline, every HTTP(S) request from
   the toolchain is sent to a dead proxy (so a cache miss fails loudly instead of
@@ -13,7 +18,7 @@
   Signing: set EVX_SIGN_THUMBPRINT (USB token / certificate store) or EVX_SIGN_PFX;
   without either, the installers are built unsigned.
 #>
-param([string]$OutDir = 'out\installers', [switch]$Offline)
+param([string]$OutDir = 'out\installers', [string]$WebView2FixedRuntime, [switch]$Offline)
 $ErrorActionPreference = 'Stop'
 $repo = Resolve-Path "$PSScriptRoot\..\.."
 $sign = Join-Path $repo 'scripts\windows\sign.ps1'
@@ -57,8 +62,11 @@ if ($signing) {
 #  - signing hook, run under the same PowerShell as this script: Windows PowerShell 5.1
 #    started from pwsh 7 inherits pwsh's PSModulePath and then cannot load the module
 #    that provides Get-AuthenticodeSignature;
-#  - Studio: the ffmpeg files as resources. The app's own resources are repeated so the
-#    result is the same whether the bundler merges or replaces the map.
+#  - Studio: the ffmpeg files as resources, and what its Package dialog bundles into
+#    delivery packages: the signed Viewer program and its icon, NSIS (from the Tauri
+#    tools folder, filled by the Viewer's own build just before) and, if given, a fixed
+#    WebView2 runtime. The app's own resources are repeated so the result is the same
+#    whether the bundler merges or replaces the map.
 $shell = (Get-Process -Id $PID).Path
 function New-Overlay($app) {
   $bundle = @{}
@@ -72,6 +80,22 @@ function New-Overlay($app) {
     foreach ($f in @('ffmpeg.exe', 'ffprobe.exe', 'LICENSE.txt', 'SOURCE.txt')) {
       $resources["../../../target/ffmpeg/$f"] = "ffmpeg/$f"
     }
+    $viewerExe = Join-Path $repo 'target\release\EVACTIS-3DWORKFLOW-Viewer.exe'
+    if (-not (Test-Path $viewerExe)) { throw 'The Viewer must be built before Studio' }
+    if ($signing -and -not (Get-AuthenticodeSignature $viewerExe).SignerCertificate) {
+      throw 'The Viewer program bundled with Studio is not signed'
+    }
+    $resources['../../../target/release/EVACTIS-3DWORKFLOW-Viewer.exe'] = 'viewer/EVACTIS-3DWORKFLOW-Viewer.exe'
+    $resources['../../viewer-desktop/src-tauri/icons/icon.ico'] = 'viewer/icon.ico'
+    $nsis = Join-Path $repo 'target\.tauri\NSIS'
+    if (-not (Test-Path (Join-Path $nsis 'makensis.exe'))) { throw "NSIS not found in $nsis" }
+    $resources['../../../target/.tauri/NSIS/'] = 'nsis/'
+    if ($WebView2FixedRuntime) {
+      if (-not (Test-Path (Join-Path $WebView2FixedRuntime 'msedgewebview2.exe'))) {
+        throw "No msedgewebview2.exe in $WebView2FixedRuntime"
+      }
+      $resources["$((Resolve-Path $WebView2FixedRuntime).Path -replace '\\', '/')/"] = 'webview2/'
+    }
     $bundle.resources = $resources
   }
   $path = Join-Path $env:TEMP "evx-$($app.Dir).conf.json"
@@ -79,7 +103,8 @@ function New-Overlay($app) {
   return $path
 }
 
-foreach ($app in @(@{ Dir = 'studio'; Name = 'Studio' }, @{ Dir = 'viewer-desktop'; Name = 'Viewer' })) {
+# The Viewer first: Studio bundles its signed program (and the NSIS it fetched).
+foreach ($app in @(@{ Dir = 'viewer-desktop'; Name = 'Viewer' }, @{ Dir = 'studio'; Name = 'Studio' })) {
   Push-Location (Join-Path $repo "apps\$($app.Dir)")
   try {
     $extra = @('--config', (New-Overlay $app))

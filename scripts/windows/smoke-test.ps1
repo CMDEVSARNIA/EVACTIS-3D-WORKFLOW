@@ -90,6 +90,18 @@ try {
     Check (@($r.blockedRequests).Count -eq 0) "no network requests attempted ($(@($r.blockedRequests) -join ', '))"
   } else { Check $false 'smoke report written' }
 
+  # ---- Studio: what its Package dialog puts into desktop packages ----
+  if ($App -eq 'Studio') {
+    $bundledViewer = Join-Path $installDir 'viewer\EVACTIS-3DWORKFLOW-Viewer.exe'
+    Check (Test-Path $bundledViewer) 'Viewer program bundled for packages'
+    if (Test-Path $bundledViewer) {
+      Check ($null -ne (Get-AuthenticodeSignature $bundledViewer).SignerCertificate) 'bundled Viewer program is signed'
+    }
+    Check (Test-Path (Join-Path $installDir 'viewer\icon.ico')) 'Viewer icon bundled for installers'
+    Check (Test-Path (Join-Path $installDir 'nsis\makensis.exe')) 'NSIS bundled for per-facility installers'
+    Check (Test-Path (Join-Path $installDir 'nsis\Include\MUI2.nsh')) 'NSIS Modern UI bundled'
+  }
+
   # ---- Studio media pipeline: bundled LGPL ffmpeg, a 12K panorama and a 360 video ----
   if ($App -eq 'Studio') {
     Check (Test-Path $ffmpeg) 'bundled ffmpeg installed'

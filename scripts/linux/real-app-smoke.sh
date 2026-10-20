@@ -10,7 +10,7 @@
 #   scripts/linux/real-app-smoke.sh [out-dir]     (default target/real-app-smoke)
 #
 # Needs: release builds from `pnpm tauri build --no-bundle` for both apps (and the built
-# demo facility, `pnpm turbo run build`), python3, the
+# demo facility, `pnpm turbo run build`), the
 # evx-media `import` example (release), Xvfb, ImageMagick (`import`, `convert`), ffmpeg (for the
 # 360 video sample; the system one is fine for a local test), and unprivileged user
 # namespaces (`unshare -rn`).
@@ -42,24 +42,7 @@ node "$repo/tools/package.mjs" --kind evx --out "$out/packages" --name demo-encr
 node "$repo/tools/package.mjs" --kind portable --out "$out/packages" --name portable \
   --viewer "$viewer" >/dev/null
 chmod +x "$out/packages/portable/EVACTIS-3DWORKFLOW-Viewer.exe"
-# One byte of one panorama tile flipped inside the .evx (a stored ZIP: the bytes are
-# the file's own).
-python3 - "$out/packages/demo.evx" "$out/packages/demo-altered.evx" <<'PY'
-import shutil, sys, zipfile
-src, dst = sys.argv[1:]
-shutil.copy(src, dst)
-entry = next(i for i in zipfile.ZipFile(src).infolist() if '/tiles/' in i.filename)
-with open(dst, 'r+b') as f:
-    f.seek(entry.header_offset)
-    header = f.read(30)
-    at = entry.header_offset + 30 + int.from_bytes(header[26:28], 'little') \
-        + int.from_bytes(header[28:30], 'little') + entry.file_size // 2
-    f.seek(at)
-    byte = f.read(1)[0]
-    f.seek(at)
-    f.write(bytes([byte ^ 0xFF]))
-print('   altered', entry.filename)
-PY
+node "$repo/tools/smoke/alter-package.mjs" "$out/packages/demo.evx" "$out/packages/demo-altered.evx"
 
 Xvfb "$display" -screen 0 1440x900x24 -nolisten tcp >/dev/null 2>&1 &
 xvfb=$!

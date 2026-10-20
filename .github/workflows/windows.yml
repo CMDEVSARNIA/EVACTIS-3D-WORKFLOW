@@ -58,6 +58,29 @@ jobs:
           # Public key of the signer, so the smoke-test runner can trust a TEST signature.
           $c = (Get-AuthenticodeSignature (Get-ChildItem out/installers/*.msi | Select-Object -First 1).FullName).SignerCertificate
           [IO.File]::WriteAllBytes('out/installers/signer.cer', $c.Export('Cert'))
+      - name: Delivery packages of the demo facility (Phase 10)
+        # The same packaging library as Studio's Package dialog, with the signed Viewer
+        # and the NSIS that Studio bundles. The per-facility setup is signed here as it
+        # would be at the signing station.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $viewer = 'target/release/EVACTIS-3DWORKFLOW-Viewer.exe'
+          $out = 'out/packages'
+          node tools/package.mjs --kind installer --out $out --name 'Evactis Demo Centre' --viewer $viewer --makensis target/.tauri/NSIS/makensis.exe
+          node tools/package.mjs --kind portable --out $out --name portable --viewer $viewer
+          node tools/package.mjs --kind evx --out $out --name demo
+          node tools/package.mjs --kind evx --out $out --name demo-encrypted --passphrase 'correct horse battery staple'
+          node tools/smoke/alter-package.mjs "$out/demo.evx" "$out/demo-altered.evx"
+          Remove-Item -Recurse "$out/Evactis Demo Centre"
+          & scripts/windows/sign.ps1 "$out/Evactis Demo Centre Setup.exe"
+          Get-ChildItem $out | Format-Table Name, @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: delivery-packages
+          path: out/packages/
+          retention-days: 14
       - name: Offline rebuild (toolchain network blocked, no timestamp)
         # Proves that with warm caches the full build + sign runs with no network,
         # as on an air-gapped Evactis build/signing station.
@@ -92,6 +115,10 @@ jobs:
         with:
           name: windows-installers
           path: out/installers
+      - uses: actions/download-artifact@v4
+        with:
+          name: delivery-packages
+          path: out/packages
       - name: Trust the signer (test certificate only)
         shell: pwsh
         run: |
@@ -110,9 +137,16 @@ jobs:
             scripts/windows/smoke-test.ps1 -App $app -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-$app-*-en-US.msi").FullName
           }
           scripts/windows/smoke-test.ps1 -App Viewer -PerUser -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-Viewer-*-setup.exe").FullName
+      - name: Delivery packages (installer, portable, .evx, passphrase, integrity)
+        shell: pwsh
+        run: |
+          scripts/windows/package-acceptance.ps1 -Packages out/packages `
+            -ViewerInstaller (Get-ChildItem "out/installers/EVACTIS-3DWORKFLOW-Viewer-*-setup.exe").FullName
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: smoke-logs-${{ matrix.os }}
-          path: out/smoke/
+          path: |
+            out/smoke/
+            out/packages-smoke/
           retention-days: 14
