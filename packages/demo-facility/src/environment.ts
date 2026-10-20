@@ -4,6 +4,7 @@ import {
   type EnvironmentInput,
 } from '@evactis-3dworkflow/schema';
 import {
+  DEMO_CONFIRMATION,
   equipment,
   equipmentTypes,
   floorPlans,
@@ -14,6 +15,7 @@ import {
 } from './safety.ts';
 import { lobbyAlarm, strobePolygon } from './rich.ts';
 import { modules } from './training.ts';
+import { dockPath, equipment3d, hotspots3d, scenes3d } from './scenes3d.ts';
 import { featureAngles, sceneSpec, anglesOf } from './scenes.ts';
 
 /**
@@ -135,6 +137,7 @@ export function demoEnvironmentInput(): EnvironmentInput {
         floorId: 'f1',
         initialView: { yaw: 0, pitch: 0, fov: 90 },
       },
+      ...scenes3d,
     ],
     initialSceneId: 'lobby',
     hotspots: [
@@ -393,6 +396,7 @@ export function demoEnvironmentInput(): EnvironmentInput {
           },
         ],
       },
+      ...hotspots3d,
     ],
     variables: [
       { id: 'welcomed', kind: 'boolean', initial: false },
@@ -466,9 +470,10 @@ export function demoEnvironmentInput(): EnvironmentInput {
     ],
     modules,
     equipmentTypes,
-    equipment,
+    equipment: [...equipment, ...equipment3d.map((e) => ({ ...e, confirmed: DEMO_CONFIRMATION }))],
     zones,
-    routes,
+    // The walk out of the loading dock is drawn on the model's floor (both routes).
+    routes: routes.map((r) => ({ ...r, paths3d: [dockPath] })),
     postings,
     audiences: [
       { id: 'staff', name: T('Staff', 'Personnel') },

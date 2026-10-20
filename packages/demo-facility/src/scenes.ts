@@ -303,11 +303,12 @@ const MULLION: RGB = [210, 214, 218];
 /** Light sources are brighter than paper-white: daylight through windows, ceiling panels. */
 const GLOW = { window: 14, light: 3 };
 
-function shadeRoom(room: RoomSpec, d: V3): RGB {
-  return shadeRoomGlow(room, d)[0];
+function shadeRoom(room: RoomSpec, d: V3, o: V3 = [0, 0, 0]): RGB {
+  return shadeRoomGlow(room, d, o)[0];
 }
 
-function shadeRoomGlow(room: RoomSpec, d: V3): [RGB, number] {
+/** Colour along a ray from `o` (the camera, 1.6 m above the floor, at the origin by default). */
+function shadeRoomGlow(room: RoomSpec, d: V3, o: V3 = [0, 0, 0]): [RGB, number] {
   const { xMin, xMax, zMin, zMax } = room.bounds;
   const floorY = -EYE;
   const ceilY = room.height - EYE;
@@ -319,13 +320,13 @@ function shadeRoomGlow(room: RoomSpec, d: V3): [RGB, number] {
       surface = s;
     }
   };
-  if (d[1] < 0) test(floorY / d[1], 'floor');
-  if (d[1] > 0) test(ceilY / d[1], 'ceil');
-  if (d[2] < 0) test(zMin / d[2], 'n');
-  if (d[2] > 0) test(zMax / d[2], 's');
-  if (d[0] < 0) test(xMin / d[0], 'w');
-  if (d[0] > 0) test(xMax / d[0], 'e');
-  const p: V3 = [d[0] * t, d[1] * t, d[2] * t];
+  if (d[1] < 0) test((floorY - o[1]) / d[1], 'floor');
+  if (d[1] > 0) test((ceilY - o[1]) / d[1], 'ceil');
+  if (d[2] < 0) test((zMin - o[2]) / d[2], 'n');
+  if (d[2] > 0) test((zMax - o[2]) / d[2], 's');
+  if (d[0] < 0) test((xMin - o[0]) / d[0], 'w');
+  if (d[0] > 0) test((xMax - o[0]) / d[0], 'e');
+  const p: V3 = [o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t];
   let c: RGB;
   let edge: number;
   let glow = 1;
@@ -430,10 +431,25 @@ function outdoorOverlay(spec: OutdoorSpec, d: V3): RGB | null {
   return null;
 }
 
-/** Colour seen in direction `d` (unit vector) for a scene. */
-export function shade(spec: SceneSpec, d: V3): RGB {
+/** Colour seen in direction `d` (unit vector) for a scene, from `o` (default: the camera). */
+export function shade(spec: SceneSpec, d: V3, o?: V3): RGB {
   if (spec.outdoor) return outdoorOverlay(spec, d) ?? shadeOutdoor(d);
-  return shadeRoom(spec, d);
+  return shadeRoom(spec, d, o);
+}
+
+/** Interpupillary distance for the stereo demo (metres). */
+export const IPD = 0.064;
+
+/**
+ * Omni-directional stereo: each eye looks from a point on a circle of radius IPD/2,
+ * offset perpendicular to the horizontal viewing direction (left eye to the left).
+ */
+export function odsOrigin(d: V3, eye: 'left' | 'right'): V3 {
+  const h = Math.hypot(d[0], d[2]) || 1;
+  // Right of the viewing direction, in the horizontal plane (−Z forward, +X right).
+  const right: V3 = [-d[2] / h, 0, d[0] / h];
+  const k = (eye === 'left' ? -1 : 1) * (IPD / 2);
+  return [right[0] * k, 0, right[2] * k];
 }
 
 /** Yaw/pitch of a world point seen from the camera. */

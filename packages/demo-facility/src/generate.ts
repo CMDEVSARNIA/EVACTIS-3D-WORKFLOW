@@ -13,7 +13,8 @@ import { demoEnvironment } from './environment.ts';
 import { drawPlan } from './plans.ts';
 import { procedures } from './procedures.ts';
 import { alarmWav, hdrShade, logAverage, luminanceMap, photo } from './rich.ts';
-import { SCENES, shade, type SceneSpec } from './scenes.ts';
+import { dockModel, mechanicalSplats } from './models.ts';
+import { odsOrigin, SCENES, shade, type SceneSpec } from './scenes.ts';
 
 const require = createRequire(import.meta.url);
 const { PNG } = require('pngjs') as typeof import('pngjs');
@@ -78,7 +79,8 @@ const started = Date.now();
 for (const scene of env.scenes) {
   const m = scene.media;
   if (m.type !== 'equirect') continue;
-  const spec: SceneSpec = SCENES.find((s) => s.id === scene.id)!;
+  const spec: SceneSpec | undefined = SCENES.find((s) => s.id === scene.id);
+  if (!spec) continue;
   let shader: Shader = (d) => shade(spec, d);
   // HDR capture: tone-mapped tiles plus the luminance map for adaptive exposure.
   if (m.hdr && m.luminance) {
@@ -151,6 +153,28 @@ for (const [from, to] of [
   mkdirSync(dirname(join(out, to)), { recursive: true });
   copyFileSync(join(assets, from), join(out, to));
 }
+// Phase 9: the lobby in omni-directional stereo (left eye on top), the loading dock as a
+// GLB model and the mechanical room as Gaussian splats.
+const lobbySpec = SCENES.find((x) => x.id === 'lobby')!;
+{
+  const W = 2048;
+  const H = 1024;
+  const eyes = (['left', 'right'] as const).map(
+    (eye) => (x: number, y: number) =>
+      sample(
+        (d) => shade(lobbySpec, d, odsOrigin(d, eye)),
+        (sx, sy) => direction(-180 + (360 * sx) / W, 90 - (180 * sy) / H),
+      )(x, y),
+  );
+  write(
+    'media/lobby-stereo/stereo.jpg',
+    encode(W, H * 2, (x, y) => (y < H ? eyes[0]!(x, y) : eyes[1]!(x, y - H))),
+  );
+  console.log('  lobby-stereo');
+}
+write('media/dock/dock.glb', Buffer.from(dockModel()));
+write('media/mechanical/room.splat', Buffer.from(mechanicalSplats()));
+console.log('  dock (GLB), mechanical (splats)');
 const corridor = SCENES.find((x) => x.id === 'corridor')!;
 write(
   'media/drill/poster.jpg',
