@@ -10,6 +10,7 @@ import { ContentEditor } from './editor/ContentEditor.tsx';
 import { SafetyEditor } from './editor/SafetyEditor.tsx';
 import { SkinEditor } from './editor/SkinEditor.tsx';
 import { TrainingEditor } from './editor/TrainingEditor.tsx';
+import { PackageDialog } from './editor/PackageDialog.tsx';
 import { DocumentStore } from './editor/store.ts';
 import { TourEditor } from './editor/TourEditor.tsx';
 import { useDocument } from './editor/useDocument.ts';
@@ -142,6 +143,7 @@ export function Workspace({
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <PackageDialog t={t} lang={lang} env={doc.env} />
           <button
             type="button"
             className="evx-cta evx-cta--ghost evx-cta--small"

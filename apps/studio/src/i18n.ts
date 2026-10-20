@@ -1,4 +1,5 @@
 import { CONTENT } from './editor/contentStrings.ts';
+import { PACKAGING } from './editor/packageStrings.ts';
 import { SAFETY } from './editor/safetyStrings.ts';
 import { SKIN } from './editor/skinStrings.ts';
 import { TRAINING } from './editor/trainingStrings.ts';
@@ -116,6 +117,7 @@ export const STRINGS = {
     content: CONTENT.en,
     skin: SKIN.en,
     training: TRAINING.en,
+    packaging: PACKAGING.en,
   },
   fr: {
     eyebrow: 'Plans sûrs . Chemins clairs',
@@ -232,6 +234,7 @@ export const STRINGS = {
     content: CONTENT.fr,
     skin: SKIN.fr,
     training: TRAINING.fr,
+    packaging: PACKAGING.fr,
   },
 };
 

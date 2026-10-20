@@ -51,6 +51,14 @@ pub const COMMANDS: &[&str] = &[
     "pick_save",
     "pick_export_folder",
     "export_file",
+    "package_tools",
+    "package_bundled",
+    "package_target",
+    "package_write",
+    "package_webview2",
+    "package_installer",
+    "package_discard",
+    "media_sizes",
 ];
 
 pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
@@ -76,6 +84,14 @@ pub fn handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static 
         pick_save,
         pick_export_folder,
         export_file,
+        crate::delivery::package_tools,
+        crate::delivery::package_bundled,
+        crate::delivery::package_target,
+        crate::delivery::package_write,
+        crate::delivery::package_webview2,
+        crate::delivery::package_installer,
+        crate::delivery::package_discard,
+        media_sizes,
     ]
 }
 
@@ -89,11 +105,23 @@ pub struct Studio {
     /// folders picked for an export, in this session only.
     export_files: Mutex<HashSet<PathBuf>>,
     export_dirs: Mutex<HashSet<PathBuf>>,
+    /// Package outputs (top-level files and folders) created by `package_write` in this
+    /// session: the only things `package_discard` may remove.
+    pub(crate) package_outputs: Mutex<HashSet<PathBuf>>,
 }
 
 impl Studio {
     pub fn new(smoke: bool) -> Self {
         Self { smoke, ..Default::default() }
+    }
+
+    pub(crate) fn export_dir_allowed(&self, dir: &Path) -> bool {
+        self.export_dirs.lock().unwrap().contains(dir)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn allow_export_dir(&self, dir: PathBuf) {
+        self.export_dirs.lock().unwrap().insert(dir);
     }
 
     fn root(&self) -> Result<PathBuf, CommandError> {
@@ -117,7 +145,7 @@ pub struct CommandError {
 }
 
 impl CommandError {
-    fn new(code: &'static str, message: impl Into<String>) -> Self {
+    pub(crate) fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self { code, message: message.into() }
     }
     fn project(message: String) -> Self {
@@ -397,6 +425,28 @@ fn project_read_media(state: State<'_, Studio>, path: String) -> Result<Response
     std::fs::read(&file).map(Response::new).map_err(|e| CommandError::new("io", e.to_string()))
 }
 
+/// Sizes in bytes of project media files (same paths and rules as `project_read_media`);
+/// Studio estimates a package's size from them before making it.
+#[tauri::command]
+fn media_sizes(state: State<'_, Studio>, paths: Vec<String>) -> Result<Vec<u64>, CommandError> {
+    let root = state.root()?;
+    let media = library::media_dir(&root).canonicalize().map_err(|e| CommandError::project(e.to_string()))?;
+    paths
+        .iter()
+        .map(|path| {
+            let bad = || CommandError::new("invalid", format!("not a project media path: {path}"));
+            if !path.starts_with("media/") || path.contains('\\') || path.split('/').any(|p| p == ".." || p.is_empty()) {
+                return Err(bad());
+            }
+            let file = root.join(path).canonicalize().map_err(|_| bad())?;
+            if !file.starts_with(&media) {
+                return Err(bad());
+            }
+            file.metadata().map(|m| m.len()).map_err(|_| bad())
+        })
+        .collect()
+}
+
 /// Save dialog for an export; the chosen file becomes writable by `export_file`.
 #[tauri::command]
 async fn pick_save(
@@ -437,7 +487,7 @@ async fn pick_export_folder(
 }
 
 /// File names Studio writes into an export folder: no separators, no dot-names.
-fn safe_file_name(name: &str) -> bool {
+pub(crate) fn safe_file_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= 180
         && !name.starts_with('.')
@@ -474,7 +524,7 @@ fn export_file(state: State<'_, Studio>, request: Request<'_>) -> Result<String,
     Ok(path_string(&path))
 }
 
-fn percent_decode(s: &str) -> Option<String> {
+pub(crate) fn percent_decode(s: &str) -> Option<String> {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;

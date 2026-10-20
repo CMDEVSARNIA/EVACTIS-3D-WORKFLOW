@@ -1,3 +1,4 @@
+mod delivery;
 mod studio;
 
 use tauri::Manager;

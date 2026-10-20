@@ -125,6 +125,7 @@ const result = await buildDelivery(
       ? { js: bytes(join(classicDir, 'player.js')), css: bytes(join(classicDir, 'player.css')) }
       : undefined,
     viewerExe: a.viewer ? bytes(resolve(a.viewer)) : undefined,
+    installerIcon: bytes(join(repo, 'apps/viewer-desktop/src-tauri/icons/icon.ico')),
     scorm: a.kind === 'scorm' ? { version: a.scorm } : undefined,
   },
   {
@@ -139,7 +140,12 @@ const result = await buildDelivery(
 
 const outputs = [...new Set(result.outputs.map((p) => p.split('/')[0]))];
 if (a.kind === 'installer') {
-  execFileSync(a.makensis, ['-V2', 'installer.nsi'], { cwd: join(out, name), stdio: 'inherit' });
+  // A UTF-8 locale: the Linux makensis crashes on accented file names under POSIX.
+  execFileSync(a.makensis, ['-V2', 'installer.nsi'], {
+    cwd: join(out, name),
+    stdio: 'inherit',
+    env: { ...process.env, LC_ALL: 'C.UTF-8' },
+  });
   outputs.push(`${name} Setup.exe`);
 }
 console.log(

@@ -13,6 +13,7 @@ import type {
   ImportEvent,
   ImportPurpose,
   MediaTools,
+  PackageTools,
   ProjectInfo,
   Snapshot,
   StudioApi,
@@ -163,6 +164,39 @@ export const memoryApi: StudioApi = {
   writeExport: async (path, bytes) => {
     state.exports.set(path, bytes);
     return path;
+  },
+  // A stand-in Viewer program; no NSIS, so the installer kind is offered as unavailable.
+  packageTools: async (): Promise<PackageTools> => ({ viewer: true, webview2: false, nsis: false }),
+  packageBundled: async (name) => new TextEncoder().encode(`MZ test ${name}`),
+  packageTarget: async (dir, outputs) => {
+    for (const o of outputs) {
+      const at = `${dir}/${o}`;
+      if ([...state.exports.keys()].some((k) => k === at || k.startsWith(`${at}/`)))
+        throw { code: 'exists', message: at };
+    }
+  },
+  packageWrite: async (dir, path, bytes, append) => {
+    const at = `${dir}/${path}`;
+    const before = append ? (state.exports.get(at) ?? new Uint8Array()) : new Uint8Array();
+    const next = new Uint8Array(before.length + bytes.length);
+    next.set(before);
+    next.set(bytes, before.length);
+    state.exports.set(at, next);
+  },
+  packageDiscard: async (dir, outputs) => {
+    for (const o of outputs)
+      for (const k of [...state.exports.keys()])
+        if (k === `${dir}/${o}` || k.startsWith(`${dir}/${o}/`)) state.exports.delete(k);
+  },
+  mediaSizes: async (paths) =>
+    Promise.all(
+      paths.map(async (p) => (await (await fetch(`./${ROOT}/${p}`)).arrayBuffer()).byteLength),
+    ),
+  packageWebView2: async () => {
+    throw { code: 'missing-tool', message: 'WebView2 runtime' };
+  },
+  packageInstaller: async () => {
+    throw { code: 'missing-tool', message: 'NSIS' };
   },
   joinPath: (dir, name) => `${dir}/${name}`,
   onFileDrop: async () => () => {},

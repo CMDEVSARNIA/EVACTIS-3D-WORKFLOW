@@ -111,6 +111,12 @@ export type ImportEvent =
 
 export type FileDrop = { type: 'over' } | { type: 'leave' } | { type: 'drop'; paths: string[] };
 
+export interface PackageTools {
+  viewer: boolean;
+  webview2: boolean;
+  nsis: boolean;
+}
+
 export interface MediaTools {
   ffmpegVersion: string | null;
   ffmpegRedistributable: boolean | null;
@@ -168,6 +174,34 @@ const tauriApi = {
   /** Writes an export to a path the user chose (raw bytes, no base64). */
   writeExport: (path: string, bytes: Uint8Array) =>
     invoke<string>('export_file', bytes, { headers: { 'x-evx-path': encodeURIComponent(path) } }),
+  /** What Studio can bring to desktop packages (Viewer program, WebView2 runtime, NSIS). */
+  packageTools: () => invoke<PackageTools>('package_tools'),
+  /** A file bundled with Studio: the Viewer program or its icon. */
+  packageBundled: async (name: 'viewer' | 'viewer-icon') =>
+    new Uint8Array(await invoke<ArrayBuffer>('package_bundled', { name })),
+  /** Fails with code "exists" when one of the outputs is already in the folder. */
+  packageTarget: (dir: string, outputs: string[]) =>
+    invoke<void>('package_target', { dir, outputs }),
+  /** Writes (or appends to) a package file inside a folder picked for export. */
+  packageWrite: (dir: string, path: string, bytes: Uint8Array, append: boolean) =>
+    invoke<void>('package_write', bytes, {
+      headers: {
+        'x-evx-dir': encodeURIComponent(dir),
+        'x-evx-path': encodeURIComponent(path),
+        'x-evx-append': append ? '1' : '0',
+      },
+    }),
+  /** Removes a failed package's outputs (only what this session wrote). */
+  packageDiscard: (dir: string, outputs: string[]) =>
+    invoke<void>('package_discard', { dir, outputs }),
+  /** Sizes in bytes of project media files. */
+  mediaSizes: (paths: string[]) => invoke<number[]>('media_sizes', { paths }),
+  /** Copies the bundled fixed WebView2 runtime into <dir>/<folder>/webview2/. */
+  packageWebView2: (dir: string, folder: string) =>
+    invoke<void>('package_webview2', { dir, folder }),
+  /** Compiles <dir>/<folder>/installer.nsi into "<folder> Setup.exe"; returns its path. */
+  packageInstaller: (dir: string, folder: string) =>
+    invoke<string>('package_installer', { dir, folder }),
   /** Joins an export folder and a file name the way the platform does. */
   joinPath: (dir: string, name: string) =>
     `${dir}${dir.includes('\\') && !dir.includes('/') ? '\\' : '/'}${name}`,
