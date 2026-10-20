@@ -29,6 +29,7 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | rfd 0.16.0 | Studio: native open / folder dialogs (Windows COM dialogs; GTK on Linux) | MIT | None. Used directly instead of tauri-plugin-dialog, which also bundles tauri-plugin-fs. |
 | pdf-lib 1.17.1 (+ pako, @pdf-lib/standard-fonts, @pdf-lib/upng) | Studio: printed evacuation plans and register PDFs (`packages/print`); Viewer and packaged player: training certificates (lazy chunk, Phase 8) | MIT (pako: MIT AND Zlib) | None. No network code (its `fetch` mentions are documentation comments). |
 | @pdf-lib/fontkit 1.1.1 | Embeds subsets of the bundled Inter in those PDFs (plans, registers, certificates) | MIT | None. |
+| three/examples GLTFLoader (part of three 0.186.1) | Viewer: GLB scenes (Phase 9; lazy chunk). Draco and meshopt decoders are not included (they need WebAssembly/workers) | MIT | None: loads only the package file it is given. |
 | pdfjs-dist 4.10.38 | Viewer: local PDF reader (loaded on first use, separate chunks) | Apache-2.0 (LICENSE text to ship with the Viewer; no NOTICE file) | None as used: no worker URL, `isEvalSupported: false`, no font/CMap/wasm downloads, no streaming or range fetches; only the package file it is given. Its optional native `@napi-rs/canvas` is removed by a pnpm override. |
 
 ## Fonts (bundled — never loaded from Google Fonts or a CDN)
@@ -56,6 +57,10 @@ TypeScript (Apache-2.0), Vite (MIT), Vitest (MIT), Playwright (Apache-2.0), ESLi
 via `TURBO_TELEMETRY_DISABLED=1`), Tailwind CSS (MIT), React plugin for Vite (MIT),
 jsdom (MIT), Testing Library (MIT), resvg-js (MPL-2.0), opentype.js (MIT), pngjs
 (MIT), jpeg-js (BSD-3-Clause; demo panorama encoding), esbuild (MIT; library minification), Tauri CLI (Apache-2.0 OR MIT), Rust toolchain (Apache-2.0 OR MIT).
+IWER 2.5.0 (Immersive Web Emulation Runtime, Meta; MIT) with gl-matrix (MIT) and
+webxr-layers-polyfill (Apache-2.0): a WebXR headset emulator injected into Playwright
+pages only (`e2e/fixtures/iwer.mjs`), never bundled into Studio or the Viewer. No network
+code (URLs in it are comments).
 
 ## Vendored source
 

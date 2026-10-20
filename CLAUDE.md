@@ -178,7 +178,15 @@ makes network calls at runtime.
   - [x] Packaged player (`packages/viewer/player`) and SCORM 1.2/2004 export (`packages/packaging`), from Studio too
   - [x] Studio Training tab: modules, steps, hazards clicked/dragged in the preview, answers, checklist, audiences, test in the Viewer, export SCORM
   - [x] Acceptance: modules end to end in the Viewer (`e2e/viewer-training.spec.ts`) and in a strict local SCORM harness, both versions (`e2e/scorm.spec.ts`); authored and exported in Studio (`e2e/studio-training.spec.ts`)
-- [ ] Phase 9 — 3D, stereo and VR
+- [x] **Phase 9 — 3D, stereo and VR** (awaiting review)
+  - [x] Schema: scene `viewpoint`, world-point hotspots and equipment placements, route `paths3d`, splat `upAxis`
+  - [x] Viewer: stereo panoramas (eye layers), GLB scenes (lazy GLTFLoader), world hotspots and 3D route chevrons
+  - [x] Own Gaussian splat renderer (lazy, CSP-clean: no workers, no WebAssembly; `.splat`/`.ply`) (ADR 0017)
+  - [x] WebXR VR (lazy): VR button only where supported, kit-art hotspots and signs, floor chevrons, VR toolbar (home, previous, next, evacuation route, exit), dialogs as panels, controller and gaze-dwell selection
+  - [x] Demo facility: stereo lobby, loading dock (GLB) and mechanical room (splat) with equipment
+  - [x] Studio: hotspots and equipment placed on the model surface in GLB and splat scenes
+  - [x] Acceptance: VR in the WebXR emulator (IWER, test-only) and GLB/splat equipment signs on screen and in VR (`e2e/viewer-vr.spec.ts`); Studio 3D placement (`e2e/studio-3d.spec.ts`)
+  - [x] Phase 8 carry-over: blank desktop Studio fixed (prototype hardening, ADR 0016); Viewer canvas now renders at full resolution
 - [ ] Phase 10 — Offline packaging and delivery
 - [ ] Phase 11 — 3DWORKFLOW Site Server (optional)
 - [ ] Phase 12 — Hardening and handover
@@ -330,6 +338,24 @@ makes network calls at runtime.
 54. **Object.prototype is hardened by our own script, not Tauri's `freezePrototype`**
     (which made pdf-lib throw on load in the apps): same protection, overriding inherited
     names still works; e2e pages get the same script (ADR 0016).
+
+## Assumptions (Phase 9)
+
+55. **VR uses the `local` space; panoramas are 3DoF, 3D scenes 6DoF around the viewpoint**;
+    no free locomotion: moving is by hotspots, as on screen.
+56. **The VR toolbar is home, previous, next, evacuation route, exit**; floor plan, menu,
+    training panel and settings stay on screen. Open dialogs are mirrored as panels (text
+    and buttons) and are modal in VR too.
+57. **Gaze selects after 1.5 s only when no tracked controller is connected**
+    (`vrDwellMs`, 0 = off); a target must be looked away from before it fires again.
+58. **Splats: `.splat` and binary `.ply` (degree-0 colour) only**, sorted on the CPU;
+    `.ksplat`/`.spz` are converted first; very large captures are decimated.
+59. **GLB without Draco/meshopt compression** (their decoders need WebAssembly/workers).
+60. **3D route paths are authored data for now**; a Studio drawing tool for `paths3d`
+    is still to build (the demo's dock path is hand-written).
+61. **VR is verified in an emulator (IWER, Quest 3 profile)**; real-headset checks are
+    for Evactis. The desktop apps (WebView2) offer VR only if the webview reports
+    `immersive-vr` support; the expected VR path is a headset's own browser.
 
 ## Requirements added by Evactis
 
