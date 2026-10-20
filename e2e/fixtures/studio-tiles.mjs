@@ -44,6 +44,8 @@ env.liveLayers = [];
 env.animatedRegions = [];
 env.audio = [];
 env.variables = [];
+// And the training modules (Phase 8).
+env.modules = [];
 env.initialSceneId = 'compass';
 env.scenes = [
   {

@@ -86,6 +86,11 @@ async function clickPlan(page: Page, fx: number, fy: number) {
 async function selectScene(page: Page, name: string) {
   await page.locator(`.evx-scene[data-scene-id="${id(name)}"]`).click();
   await expect(page.getByTestId('scene-inspector').getByRole('heading').first()).toHaveText(name);
+  // The preview names the scene it shows: wait for it, so clicks land in this scene.
+  await expect(page.getByTestId('preview').locator('.evx-viewer')).toHaveAttribute(
+    'aria-label',
+    name,
+  );
 }
 
 /** One floor: import its plan, set the scale, then place its scenes left to right. */
