@@ -237,6 +237,19 @@ export const equipment: Input['equipment'] = [
     lastInspection: '2026-06-20',
   },
   {
+    id: 'aed-2',
+    typeId: 'aed',
+    tag: 'AED-2',
+    description: T(
+      'Automated external defibrillator, second floor. Open the cabinet and follow the voice prompts.',
+      'Défibrillateur externe automatisé, deuxième étage. Ouvrez l’armoire et suivez les instructions vocales.',
+    ),
+    ...onWall('office', 'w', 4.2),
+    placements: placed('office', featureAngles('office', 'aed', 'w')),
+    lastInspection: '2026-09-02',
+    nextInspection: '2026-12-02',
+  },
+  {
     id: 'exit-office',
     typeId: 'exit',
     label: T('Exit to stairwell A', 'Sortie vers l’escalier A'),

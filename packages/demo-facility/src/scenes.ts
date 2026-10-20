@@ -18,7 +18,9 @@ export interface Feature {
     | 'first-aid'
     | 'alarm'
     | 'panel'
-    | 'hazard';
+    | 'hazard'
+    /** Training: cardboard boxes stacked against the wall (drawn over what is behind). */
+    | 'boxes';
   wall: Wall;
   /** Position along the wall (x for n/s walls, z for e/w walls), metres. */
   at: number;
@@ -34,6 +36,8 @@ export interface RoomSpec {
   wall: RGB;
   floor: [RGB, RGB];
   features: Feature[];
+  /** Training: liquid spills on the floor (centre x/z and radius, metres). */
+  spills?: { x: number; z: number; r: number }[];
 }
 
 export interface OutdoorSpec {
@@ -119,11 +123,17 @@ export const SCENES: SceneSpec[] = [
       { kind: 'window', wall: 'e', at: 0 },
       { kind: 'window', wall: 'e', at: 3 },
       { kind: 'door', wall: 's', at: 0, exit: true },
+      // Hazard hunt: boxes stacked in front of the west door.
+      { kind: 'boxes', wall: 'w', at: -2 },
       { kind: 'door', wall: 'w', at: -2 },
+      // Second AED (training: "locate the AED on floor 2").
+      { kind: 'aed', wall: 'w', at: 4.2 },
       { kind: 'first-aid', wall: 'n', at: -2 },
       { kind: 'extinguisher', wall: 'n', at: 2 },
       { kind: 'alarm', wall: 'w', at: 2 },
     ],
+    // Hazard hunt: a spill between the desks.
+    spills: [{ x: -3, z: 2.5, r: 0.55 }],
   },
   {
     id: 'electrical',
@@ -183,6 +193,8 @@ function featureCentreY(kind: Feature['kind']): number {
       return -EYE + 1.3;
     case 'hazard':
       return -EYE + 1.75;
+    case 'boxes':
+      return -EYE + 0.5;
   }
 }
 
@@ -205,6 +217,8 @@ function featureSize(kind: Feature['kind']): [number, number] {
       return [0.6, 0.8];
     case 'hazard':
       return [0.18, 0.16];
+    case 'boxes':
+      return [0.62, 0.5];
   }
 }
 
@@ -265,6 +279,16 @@ function featureColor(f: Feature, du: number, dv: number, wall: RGB): RGB | null
       const line = Math.abs((du + hu) % 0.3) < 0.01 || hv - Math.abs(dv) < 0.03;
       return line ? [90, 92, 96] : mix([150, 154, 158], [126, 130, 134], (dv + hv) / (2 * hv));
     }
+    case 'boxes': {
+      // Two boxes side by side with one on top (left), taped seams.
+      const left = du < 0;
+      const top = dv > 0;
+      if (top && !left) return null;
+      const seam = Math.abs(du) < 0.012 || (left && Math.abs(dv) < 0.012);
+      if (seam) return [96, 70, 40];
+      const tape = Math.abs(dv - (top ? hv / 2 : -hv / 2)) < 0.03;
+      return tape ? [205, 180, 130] : left && top ? [184, 140, 92] : [168, 126, 80];
+    }
     case 'hazard': {
       const tri = dv > -hv && Math.abs(du) < (hv - dv) * 0.6;
       if (!tri) return wall;
@@ -313,6 +337,15 @@ function shadeRoomGlow(room: RoomSpec, d: V3): [RGB, number] {
       Math.abs(p[2] / 0.6 - Math.round(p[2] / 0.6)),
     );
     if (grout < 0.02) c = scale(c, 0.85);
+    for (const sp of room.spills ?? []) {
+      const dx = p[0] - sp.x;
+      const dz = p[2] - sp.z;
+      const a = Math.atan2(dz, dx);
+      // An irregular puddle: darker, with a pale sheen near its edge.
+      const edgeR = sp.r * (1 + 0.18 * Math.sin(a * 3) + 0.1 * Math.sin(a * 7 + 1));
+      const d = Math.hypot(dx, dz);
+      if (d < edgeR) c = d > edgeR * 0.8 ? [150, 156, 150] : mix(c, [62, 54, 38], 0.75);
+    }
     edge = Math.min(p[0] - xMin, xMax - p[0], p[2] - zMin, zMax - p[2]);
   } else if (surface === 'ceil') {
     const lx = ((p[0] % 2.4) + 2.4) % 2.4;

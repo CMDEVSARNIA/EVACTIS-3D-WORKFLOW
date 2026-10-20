@@ -13,6 +13,7 @@ import {
   zones,
 } from './safety.ts';
 import { lobbyAlarm, strobePolygon } from './rich.ts';
+import { modules } from './training.ts';
 import { featureAngles, sceneSpec, anglesOf } from './scenes.ts';
 
 /**
@@ -463,6 +464,7 @@ export function demoEnvironmentInput(): EnvironmentInput {
         source: 'docs/emergency-procedures.pdf',
       },
     ],
+    modules,
     equipmentTypes,
     equipment,
     zones,
