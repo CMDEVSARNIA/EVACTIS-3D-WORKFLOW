@@ -110,6 +110,7 @@ export class Training {
   private instruction: HTMLElement;
   private status: HTMLElement;
   private actions: HTMLElement;
+  private reticle: HTMLElement;
   /** Last result per module this session (shown in the picker). */
   private last = new Map<string, number>();
 
@@ -124,7 +125,10 @@ export class Training {
     this.status.setAttribute('role', 'status');
     this.actions = el('div', 'evx-training__actions');
     this.panel.append(this.eyebrow, this.heading, this.instruction, this.status, this.actions);
-    host.element.append(this.panel);
+    this.reticle = el('div', 'evx-training__reticle');
+    this.reticle.hidden = true;
+    this.reticle.setAttribute('aria-hidden', 'true');
+    host.element.append(this.reticle, this.panel);
     new ResizeObserver(() => this.publishHeight()).observe(this.panel);
   }
 
@@ -169,6 +173,7 @@ export class Training {
     const id = this.run!.module.id;
     this.run = null;
     this.panel.hidden = true;
+    this.reticle.hidden = true;
     this.publishHeight();
     this.host.refreshHotspots();
     this.host.emit('moduleend', { moduleId: id, completed });
@@ -205,6 +210,7 @@ export class Training {
     this.panel.setAttribute('aria-label', t.region(L(r.module.title)));
     this.panel.dataset.step = s.id;
     this.panel.dataset.kind = s.kind;
+    this.reticle.hidden = s.kind !== 'hazard-hunt';
     this.eyebrow.textContent = t.step(r.index + 1, r.module.steps.length);
     this.heading.textContent = L(r.module.title);
     this.instruction.textContent =
@@ -588,13 +594,17 @@ export class Training {
           submit.textContent = t.download;
         });
       });
-      nodes.push(el('h3', 'evx-skin__section-title', t.certificate), form);
+      nodes.push(
+        el('h3', 'evx-skin__section-title evx-training__certificate-title', t.certificate),
+        form,
+      );
     }
     await this.host.showDialog(`${t.results}: ${L(m.title)}`, nodes);
   }
 
   dispose(): void {
     this.panel.remove();
+    this.reticle.remove();
     this.host.element.style.removeProperty('--evx-training-h');
   }
 }

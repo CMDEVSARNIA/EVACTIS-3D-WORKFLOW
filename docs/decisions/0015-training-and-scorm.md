@@ -17,8 +17,10 @@ SCORM test harness. Zero cloud exposure still applies: no hosted LMS, no trackin
   passes at its pass mark *and* with its checklist confirmed. Checklist items can be
   ticked by a step or confirmed by the learner.
 - **Per-audience**: a module lists audiences; the picker shows the current audience's.
-- **The step panel** sits under the top chrome; the route banner moves below it
-  (`--evx-training-h`). Dialogs now queue, so a step's question waits for a sign's popup.
+- **The step panel** sits above the bottom chrome, so the route banner keeps the top and
+  the centre of the view stays visible (a reticle marks it during hazard hunts); video
+  controls and captions stack above the panel (`--evx-training-h`). Dialogs now queue,
+  so a step's question waits for a sign's popup.
 - **Certificates are made on the device** (pdf-lib, static Inter, lockup), bilingual
   like posted plans, with no links or scripts. They live in a lazy chunk with the fonts
   inlined, so the core bundle stays at ~199 KB gz (budget 300).

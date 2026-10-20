@@ -66,10 +66,11 @@ test('find your nearest exit: hint, route, question, checklist; not passed with 
   await expect(panel(page).getByRole('status')).toContainText('Leave by the exit sign');
   await expect(action(page, 'hint')).toBeDisabled();
   await expect(page.locator('.evx-viewer__route')).toBeVisible();
+  // The route banner (top) and the step panel (bottom) never overlap.
   const routeBox = (await page.locator('.evx-viewer__route').boundingBox())!;
   const panelBox = (await panel(page).boundingBox())!;
-  expect(routeBox.y, 'route banner sits below the training panel').toBeGreaterThanOrEqual(
-    panelBox.y + panelBox.height,
+  expect(routeBox.y + routeBox.height, 'route banner above the panel').toBeLessThanOrEqual(
+    panelBox.y,
   );
 
   // Walk the route out.
@@ -170,6 +171,10 @@ test('hazard hunt: found by clicking and by Inspect; misses say so', async ({ pa
   const spill = { yaw: -129.81, pitch: -22.28 };
   const boxes = { yaw: -75.96, pitch: -7.6 };
 
+  // The centre of the view (what "Inspect" checks) is marked and never under the panel.
+  await expect(page.locator('.evx-training__reticle')).toBeVisible();
+  const p = (await panel(page).boundingBox())!;
+  expect(p.y, 'panel stays below the centre').toBeGreaterThan(900 / 2 + 20);
   await clickAt(page, 30, -30);
   await expect(status).toHaveText('Nothing hazardous there. Keep looking.');
   await clickAt(page, spill.yaw, spill.pitch);

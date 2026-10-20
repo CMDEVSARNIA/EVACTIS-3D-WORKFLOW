@@ -253,7 +253,7 @@
 /* Route banner: what to follow, the alternative route, the floor plan. */
 .evx-viewer__route {
   position: absolute;
-  inset: calc(var(--evx-inset-top, 0px) + var(--evx-training-h, 0px) + 12px) 12px auto;
+  inset: calc(var(--evx-inset-top, 0px) + 12px) 12px auto;
   display: grid;
   gap: 6px;
   max-inline-size: 40rem;
@@ -474,7 +474,7 @@
 /* 360° video controls: bottom centre, above the toolbar area. */
 .evx-viewer__video {
   position: absolute;
-  inset: auto 12px calc(var(--evx-inset-bottom, 84px) + 12px);
+  inset: auto 12px calc(var(--evx-inset-bottom, 84px) + var(--evx-training-h, 0px) + 12px);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -517,7 +517,7 @@
 /* Sound captions: what is playing and where it comes from. */
 .evx-viewer__caption {
   position: absolute;
-  inset: auto 12px calc(var(--evx-inset-bottom, 84px) + 76px);
+  inset: auto 12px calc(var(--evx-inset-bottom, 84px) + var(--evx-training-h, 0px) + 76px);
   max-inline-size: 32rem;
   margin-inline: auto;
   border-radius: 8px;
@@ -974,10 +974,14 @@
   font-size: 0.875rem;
 }
 
-/* Training (Phase 8): the step panel sits under the top chrome, above the route banner. */
+/*
+ * Training (Phase 8): the step panel sits above the bottom chrome, so the top stays free
+ * for the route banner and the centre of the view (hazard hunts) stays visible. Video
+ * controls and captions stack above it (--evx-training-h).
+ */
 .evx-training {
   position: absolute;
-  inset: calc(var(--evx-inset-top, 0px) + 12px) 12px auto;
+  inset: auto 12px calc(var(--evx-inset-bottom, 84px) + 12px);
   z-index: 3;
   display: grid;
   gap: 6px;
@@ -1035,7 +1039,29 @@
 }
 .evx-training__actions > .evx-cta {
   min-block-size: 44px;
-  font-size: 0.9375rem;
+  padding-inline: 14px;
+  font-size: 0.875rem;
+}
+/* Hazard hunts: what "Inspect the centre" looks at. */
+.evx-training__reticle {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 28px;
+  block-size: 28px;
+  border: 3px solid var(--evx-white);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px rgb(10 10 10 / 0.8),
+    inset 0 0 0 2px rgb(10 10 10 / 0.8);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.evx-training__reticle[hidden] {
+  display: none;
+}
+.evx-training__certificate-title {
+  margin-block-start: 18px;
 }
 .evx-training__modules,
 .evx-training__checklist,
