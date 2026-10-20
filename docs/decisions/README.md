@@ -22,3 +22,4 @@ accepted record; supersede it with a new one.
 | [0015](0015-training-and-scorm.md) | Training modules in the Viewer, certificates on the device, SCORM through a packaged player | Accepted |
 | [0016](0016-prototype-hardening.md) | Hardening Object.prototype without breaking printing (replaces Tauri freezePrototype) | Accepted |
 | [0017](0017-3d-vr.md) | 3D scenes, stereo and VR: own splat renderer, WebXR without dependencies | Accepted |
+| [0018](0018-delivery-packages.md) | Delivery packages: one format, verified at launch, decrypted in memory | Accepted |

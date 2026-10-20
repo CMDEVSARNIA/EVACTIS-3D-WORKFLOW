@@ -52,11 +52,13 @@ makes network calls at runtime.
 | `packages/schema` | Environment document: Zod schema, `schemaVersion`, migrations, reference checks, i18n helpers. |
 | `packages/brand` | Tokens, logo/lockups, icons, button/marker/sign components, fonts, brand sheet, asset generator. |
 | `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots, skin chrome. Demo page in `demo/` (`?kiosk`, `?no-skin`, `?bg=`); packaged player in `player/` (→ `player-dist/`, used by packages). |
-| `packages/packaging` | Delivery packages: SCORM 1.2/2004 (manifest, packaged player, environment, media), asset listing, ZIP reader. Phase 10 extends it. |
+| `packages/package-format` | Delivery package format: integrity manifest (SHA-256), Argon2id + AES-256-GCM encryption, `PackageReader` (verify, unlock, decrypt in memory). Mirrored in Rust by `crates/evx-package`. |
+| `packages/packaging` | Delivery packages (`buildDelivery`): installer (NSIS script), `.evx`, portable, intranet, browser folder, single HTML file, SCORM 1.2/2004; README, streamed ZIP writer, asset listing. CLI: `tools/package.mjs`. |
 | `packages/print` | Evacuation plan PDFs (letter/tabloid, bilingual, "You are here") and equipment register (CSV/XLSX/PDF); pdf-lib, no network. |
 | `packages/demo-facility` | Seeded demo facility: procedural panoramas + tiles + validated environment (`pnpm build` renders it); Phase 6 media (HDR office, alarm, photos, PDF; WebM videos from `scripts/video.ts`). |
 | `packages/desktop-bridge` | UI side of the desktop shell (app info, smoke-test report, network watch). |
 | `crates/evx-media` | Studio media pipeline: validation, EXIF, cube tiling, previews, HDR, stereo, video via LGPL FFmpeg, GLB/splat checks. No network code. |
+| `crates/evx-package` | Desktop Viewer's `.evx` reader: stored-ZIP reader, manifest checks, full verification, Argon2id + AES-GCM. |
 | `crates/evx-core` | UI-free Rust core (identity, launch args, navigation guard, project location, smoke report). |
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
 | `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, contentOps, trainingOps, skinOps, autolink, Tour/Floors/Safety/Content/Training/Skin/Versions); `src/testing/` is the e2e-only in-memory backend. |
@@ -187,7 +189,16 @@ makes network calls at runtime.
   - [x] Studio: hotspots and equipment placed on the model surface in GLB and splat scenes
   - [x] Acceptance: VR in the WebXR emulator (IWER, test-only) and GLB/splat equipment signs on screen and in VR (`e2e/viewer-vr.spec.ts`); Studio 3D placement (`e2e/studio-3d.spec.ts`)
   - [x] Phase 8 carry-over: blank desktop Studio fixed (prototype hardening, ADR 0016); Viewer canvas now renders at full resolution
-- [ ] Phase 10 — Offline packaging and delivery
+- [x] **Phase 10 — Offline packaging and delivery** (awaiting review)
+  - [x] Package format: SHA-256 manifest, Argon2id + AES-256-GCM per-file blobs, encrypted index, TS + Rust with a shared vector (ADR 0018)
+  - [x] Packager for every kind: installer, `.evx`, portable, intranet (strict CSP), browser folder (file://, classic player), single HTML file (2048 px cap, 50 MB warning), SCORM; stamp, bilingual quick-start PDF, offline notice, README
+  - [x] Players verify every file before use, ask for the passphrase, refuse a wrong one, stop on an altered file; info panel shows the stamp and package check
+  - [x] 3DWORKFLOW Viewer desktop opens `.evx` (double-click, `viewer.json` beside the exe, or "Open an environment…"), verifies all at launch, decrypts in memory; bundled fixed WebView2 used if present
+  - [x] Studio Package dialog: every kind, passphrase twice, kiosk, SCORM version, folder, progress, size warning, unconfirmed-safety count; Studio bundles the Viewer, NSIS and the players
+  - [x] Acceptance (browser): intranet, browser folder, single file plain/encrypted, wrong passphrase, altered files (`e2e/delivery.spec.ts`); dialog (`e2e/studio-package.spec.ts`)
+  - [x] Acceptance (real apps, Linux, no network interfaces): `.evx` plain/encrypted, portable, wrong passphrase, altered byte (`scripts/linux/real-app-smoke.sh`)
+  - [ ] Acceptance (Windows 10/11, firewalled): per-facility installer, portable, `.evx` double-click, passphrase, integrity (`scripts/windows/package-acceptance.ps1` in CI)
+  - [ ] Clean-machine check with networking disabled (Windows Sandbox, `docs/windows-installers.md`), incl. a machine without the WebView2 Runtime
 - [ ] Phase 11 — 3DWORKFLOW Site Server (optional)
 - [ ] Phase 12 — Hardening and handover
 
@@ -203,7 +214,8 @@ makes network calls at runtime.
    JSON) + `media/`. Windows cannot associate a folder by extension, so the manifest is
    what double-clicks open (ADR 0004). *Confirmed by Evactis, 2026-10-14.*
 4. **WebView2**: installers embed the offline WebView2 installer (installed only if
-   missing); the Phase 10 portable Viewer will use a fixed-version runtime (ADR 0003).
+   missing). Phase 10 portable and per-facility packages use a fixed-version runtime
+   when Studio bundles one, else the system runtime (assumption 66, ADR 0018).
 5. **"Networking disabled" in CI** = product processes firewalled + dead system proxy,
    because a hosted runner cannot drop its adapter. True air-gap acceptance runs in
    Windows Sandbox with networking disabled (`docs/windows-installers.md`).
@@ -333,8 +345,8 @@ makes network calls at runtime.
     not verifiable records. A signed/verifiable certificate would need a site server.
 52. **SCORM reports score, completion, success and session time only** (no interactions,
     no suspend/resume). No XSDs bundled. One SCO per module.
-53. **Packages are built in memory as stored ZIPs** (≤ 65,535 files, ≤ 4 GB); Phase 10's
-    Rust packager takes over for large tours.
+53. **Packages are stored ZIPs** (≤ 65,535 files, ≤ 4 GB). Since Phase 10 they are streamed
+    to disk file by file instead of built in memory; ZIP64 is still to write.
 54. **Object.prototype is hardened by our own script, not Tauri's `freezePrototype`**
     (which made pdf-lib throw on load in the apps): same protection, overriding inherited
     names still works; e2e pages get the same script (ADR 0016).
@@ -356,6 +368,32 @@ makes network calls at runtime.
 61. **VR is verified in an emulator (IWER, Quest 3 profile)**; real-headset checks are
     for Evactis. The desktop apps (WebView2) offer VR only if the webview reports
     `immersive-vr` support; the expected VR path is a headset's own browser.
+
+## Assumptions (Phase 10)
+
+62. **Browsers verify each file as it loads; the desktop Viewer verifies every file at
+    launch** (and again on read). Verifying a whole tour before showing anything in a
+    browser would take minutes over a share; nothing unverified is ever shown (ADR 0018).
+63. **Encryption hides content and file names, not the package's existence**: the player,
+    quick-start PDF and README stay readable, so recipients know how to open it. The
+    passphrase cannot be recovered; Studio says so. Minimum 8 characters.
+64. **One Windows installer kind: a per-user NSIS setup** generated from the signed Viewer
+    program (no administrator rights; Start menu "Evactis – <facility>"). No per-facility
+    MSI: IT departments deploy the Viewer MSI plus the `.evx`.
+65. **Setups made in Studio are unsigned** until signed at the offline signing station
+    (ADR 0008); the Viewer program inside is already signed. *Evactis to confirm the
+    delivery procedure.*
+66. **WebView2 on clean PCs**: per-facility setups carry Microsoft's offline WebView2
+    installer (+~180 MB, optional in the dialog) and run it only where the runtime is
+    missing. Portable viewers need a fixed runtime (`build-installers.ps1
+    -WebView2FixedRuntime`, Evactis to supply Microsoft's cab) or the runtime already on
+    the PC. *Clean-machine check pending.*
+67. **Windows CI makes the packages with the command-line packager** (the same library as
+    the dialog); the dialog is covered by Playwright with the in-memory backend.
+68. **From disk, VR is not offered and videos load whole into memory**; the single file
+    keeps panoramas at 2048 px per cube face. Listed in each package's README.
+69. **A package never overwrites an earlier one**; a failed package removes only what it
+    wrote. Packages over 4 GB or 65,535 files are refused (ZIP64 not written yet).
 
 ## Requirements added by Evactis
 
