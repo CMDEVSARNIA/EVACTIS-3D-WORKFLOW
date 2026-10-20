@@ -38,6 +38,33 @@ export function resolveAsset(base: URL, path: string): string {
 /** Maps an environment asset path to a URL the Viewer can load. */
 export type AssetResolver = (path: string) => string;
 
+/**
+ * Gives a URL the Viewer can load for an asset path once the asset may be used: a
+ * package source checks its integrity (and decrypts it) first, then hands out a blob URL.
+ */
+export type AssetUrl = (path: string) => Promise<string>;
+
+/**
+ * Wraps a package's asset source like `checkedResolver`: valid relative paths in, local
+ * URLs (in practice blob: URLs) out.
+ */
+export function checkedSource(
+  source: { url(path: string): Promise<string> },
+  origin: string = location.href,
+): AssetUrl {
+  const page = new URL(origin);
+  return async (path) => {
+    if (!AssetPathSchema.safeParse(path).success)
+      throw new AssetError(`Invalid asset path "${path}"`);
+    const url = new URL(await source.url(path), origin);
+    if (!isLocal(url, page)) throw new AssetError(`Refusing non-local asset URL: ${url.href}`);
+    return url.href;
+  };
+}
+
+/** The Viewer's own lookup: a loadable URL, or null when the path is refused. */
+export type Resolve = (path: string) => Promise<string | null>;
+
 export function baseResolver(base: URL): AssetResolver {
   return (path) => resolveAsset(base, path);
 }

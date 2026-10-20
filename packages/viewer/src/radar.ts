@@ -1,4 +1,5 @@
 import { localize, type Environment, type Scene } from '@evactis-3dworkflow/schema';
+import type { Resolve } from './assets.ts';
 import type { UiStrings } from './i18n.ts';
 
 /**
@@ -9,6 +10,8 @@ import type { UiStrings } from './i18n.ts';
 export class Radar {
   readonly element = document.createElement('nav');
   private img = document.createElement('img');
+  /** Plan images arrive asynchronously; only the latest scene's is shown. */
+  private load = 0;
   private svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   private cone = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   private dots = document.createElement('div');
@@ -46,13 +49,13 @@ export class Radar {
     scene: Scene | null,
     scenes: Scene[],
     lang: string,
-    resolve: (p: string) => string | null,
+    resolve: Resolve,
   ): void {
     this.scene = scene;
     const floor = env.buildings.flatMap((b) => b.floors).find((f) => f.id === scene?.floorId);
     const plan = floor?.plan;
-    const src = plan && resolve(plan.image);
-    if (!scene?.planPosition || !plan || !src) {
+    const load = ++this.load;
+    if (!scene?.planPosition || !plan) {
       this.element.hidden = true;
       this.floorId = null;
       return;
@@ -70,7 +73,9 @@ export class Radar {
     map.style.setProperty('--h', `${(H / size) * 100}%`);
     map.style.setProperty('--x', `${50 - (scene.planPosition.x / size) * 100}%`);
     map.style.setProperty('--y', `${50 - (scene.planPosition.y / size) * 100}%`);
-    if (this.img.getAttribute('src') !== src) this.img.src = src;
+    void resolve(plan.image).then((src) => {
+      if (load === this.load && src && this.img.getAttribute('src') !== src) this.img.src = src;
+    });
     this.dots.replaceChildren();
     for (const s of scenes) {
       if (s.floorId !== floor.id || !s.planPosition || s.id === scene.id) continue;

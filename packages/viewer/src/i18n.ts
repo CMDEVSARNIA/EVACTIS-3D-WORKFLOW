@@ -65,6 +65,18 @@ export const UI = {
       'This environment runs entirely on this device. Nothing is sent anywhere, and no internet connection is needed.',
     client: 'Prepared for',
     madeWith: 'Made with EVACTIS 3DWORKFLOW by Evactis.',
+    packageStamp: (kind: string, date: string, by: string) => `${kind}, made ${date} by ${by}.`,
+    packageId: (id: string) => `Package check: ${id}`,
+    quickStart: 'Quick start guide (PDF)',
+    packageKinds: {
+      installer: 'Windows installer',
+      evx: 'Environment file (.evx)',
+      portable: 'Portable viewer',
+      intranet: 'Intranet bundle',
+      'browser-folder': 'Browser folder',
+      'single-file': 'Single HTML file',
+      scorm: 'SCORM package',
+    } as Record<string, string>,
     helpTitle: 'How to use this environment',
     helpItems: [
       'Look around: drag the view, or use the arrow keys. Zoom with the mouse wheel, pinch, or the + and − keys.',
@@ -195,6 +207,19 @@ export const UI = {
       'Cet environnement fonctionne entièrement sur cet appareil. Rien n’est envoyé nulle part et aucune connexion Internet n’est nécessaire.',
     client: 'Préparé pour',
     madeWith: 'Réalisé avec EVACTIS 3DWORKFLOW par Evactis.',
+    packageStamp: (kind: string, date: string, by: string) =>
+      `${kind}, produit le ${date} par ${by}.`,
+    packageId: (id: string) => `Contrôle du paquet : ${id}`,
+    quickStart: 'Guide de démarrage rapide (PDF)',
+    packageKinds: {
+      installer: 'Programme d’installation Windows',
+      evx: 'Fichier d’environnement (.evx)',
+      portable: 'Visionneuse portable',
+      intranet: 'Ensemble pour intranet',
+      'browser-folder': 'Dossier pour navigateur',
+      'single-file': 'Fichier HTML unique',
+      scorm: 'Paquet SCORM',
+    } as Record<string, string>,
     helpTitle: 'Comment utiliser cet environnement',
     helpItems: [
       'Regarder autour : faites glisser la vue ou utilisez les flèches du clavier. Zoomez avec la molette, en pinçant, ou avec les touches + et −.',

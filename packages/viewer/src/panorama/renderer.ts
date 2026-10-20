@@ -22,7 +22,7 @@ import {
   type XRTargetRaySpace,
 } from 'three';
 import type { SceneMedia, WorldPoint } from '@evactis-3dworkflow/schema';
-import { loadImage, type AssetResolver } from '../assets.ts';
+import { loadImage, type AssetUrl } from '../assets.ts';
 import { DEG, direction } from '../math.ts';
 import { adaptation, type LuminanceMap } from './adaptive.ts';
 import { FACES, facePoint, tilePath, type Face } from './cube.ts';
@@ -148,7 +148,7 @@ export interface Content {
 }
 
 interface Tile {
-  url: string;
+  path: string;
   level: number;
   face: Face;
   u0: number;
@@ -176,7 +176,7 @@ class PanoramaContent implements Content {
 
   constructor(
     private media: Equirect,
-    private resolve: AssetResolver,
+    private resolve: AssetUrl,
     private onChange: () => void,
     private grading: Grading,
   ) {}
@@ -208,7 +208,7 @@ class PanoramaContent implements Content {
               ];
               const box = new Box3().setFromPoints(pts.map((p) => new Vector3(...p)));
               this.tiles.push({
-                url: this.resolve(tilePath(t.basePath, face, li, row, col, t.format)),
+                path: tilePath(t.basePath, face, li, row, col, t.format),
                 level: li,
                 face,
                 u0,
@@ -223,7 +223,7 @@ class PanoramaContent implements Content {
     }
     const preview = m.tiles ? m.preview : (m.preview ?? m.source);
     if (preview) {
-      const img = await loadImage(this.resolve(preview), this.abort.signal);
+      const img = await loadImage(await this.resolve(preview), this.abort.signal);
       this.addSphere(img, 0);
     }
     if (m.tiles) {
@@ -231,7 +231,8 @@ class PanoramaContent implements Content {
       await Promise.all(this.tiles.filter((t) => t.level === 0).map((t) => this.loadTile(t)));
     } else if (m.preview) {
       // Preview shown first, full image replaces it.
-      void loadImage(this.resolve(m.source), this.abort.signal)
+      void this.resolve(m.source)
+        .then((url) => loadImage(url, this.abort.signal))
         .then((img) => {
           this.addSphere(img, 1);
           this.onChange();
@@ -254,7 +255,8 @@ class PanoramaContent implements Content {
     if (tile.state !== 'idle') return Promise.resolve();
     tile.state = 'loading';
     this.active++;
-    return loadImage(tile.url, this.abort.signal)
+    return this.resolve(tile.path)
+      .then((url) => loadImage(url, this.abort.signal))
       .then((img) => {
         const tex = textureFrom(img);
         const geo = quadGeometry(tile.face, tile.u0, tile.u1, tile.v0, tile.v1);
@@ -318,7 +320,7 @@ class VideoContent implements Content {
 
   constructor(
     private media: Video360,
-    resolve: AssetResolver,
+    private resolve: AssetUrl,
     private grading: Grading,
   ) {
     const v = document.createElement('video');
@@ -327,13 +329,14 @@ class VideoContent implements Content {
     v.loop = media.loop;
     v.preload = 'auto';
     v.crossOrigin = 'anonymous';
-    v.src = resolve(media.source);
-    if (media.poster) v.poster = resolve(media.poster);
     this.video = v;
   }
 
-  load(): Promise<void> {
+  async load(): Promise<void> {
     const v = this.video;
+    const m = this.media;
+    v.src = await this.resolve(m.source);
+    if (m.poster) v.poster = await this.resolve(m.poster);
     return new Promise((ok, fail) => {
       const done = () => {
         v.removeEventListener('loadeddata', done);
@@ -391,12 +394,12 @@ class StereoContent implements Content {
 
   constructor(
     private media: Stereo,
-    private resolve: AssetResolver,
+    private resolve: AssetUrl,
     private grading: Grading,
   ) {}
 
   async load(): Promise<void> {
-    const img = await loadImage(this.resolve(this.media.source), this.abort.signal);
+    const img = await loadImage(await this.resolve(this.media.source), this.abort.signal);
     const tex = textureFrom(img);
     const mat = this.grading.material(tex);
     this.disposables.push(tex, mat);
@@ -438,12 +441,13 @@ class ModelContent implements Content {
 
   constructor(
     private media: Model,
-    private resolve: AssetResolver,
+    private resolve: AssetUrl,
   ) {}
 
   async load(): Promise<void> {
     const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-    const gltf = await new GLTFLoader().loadAsync(this.resolve(this.media.source)).catch((e) => {
+    const url = await this.resolve(this.media.source);
+    const gltf = await new GLTFLoader().loadAsync(url).catch((e) => {
       throw new Error(`The 3D model could not be opened (${this.media.source}): ${String(e)}`);
     });
     this.model = gltf.scene;
@@ -531,7 +535,7 @@ export class PanoramaRenderer {
    * Replaces the scene. Resolves once it can be shown. `viewpoint` places the viewer in
    * a GLB or splat scene (default: 1.6 m above the model origin).
    */
-  async show(media: SceneMedia, resolve: AssetResolver, viewpoint?: WorldPoint): Promise<void> {
+  async show(media: SceneMedia, resolve: AssetUrl, viewpoint?: WorldPoint): Promise<void> {
     let next: Content;
     if (media.type === 'equirect')
       next = new PanoramaContent(media, resolve, () => this.invalidate(), this.grading);
@@ -842,7 +846,7 @@ export class PanoramaRenderer {
 /** Gaussian splat scenes load their renderer on demand (a separate chunk). */
 async function splatContent(
   media: Splat,
-  resolve: AssetResolver,
+  resolve: AssetUrl,
   onChange: () => void,
 ): Promise<Content> {
   const { SplatContent } = await import('./splat.ts');

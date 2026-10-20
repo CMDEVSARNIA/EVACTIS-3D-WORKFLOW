@@ -21,8 +21,10 @@ import {
   AssetError,
   baseResolver,
   checkedResolver,
+  checkedSource,
   resolveBase,
   type AssetResolver,
+  type AssetUrl,
 } from './assets.ts';
 import { soundDirection, Sounds, type SoundState } from './audio.ts';
 import { Controls } from './controls.ts';
@@ -38,7 +40,7 @@ import { LuminanceMap } from './panorama/adaptive.ts';
 import { PanoramaRenderer, type View } from './panorama/renderer.ts';
 import { pdfView } from './pdf.ts';
 import { Radar } from './radar.ts';
-import { SkinChrome } from './skin.ts';
+import { SkinChrome, type PackageInfo } from './skin.ts';
 import type { VrCommand, VrHost, VrTarget, VrUi } from './vr.ts';
 import { equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
@@ -70,6 +72,14 @@ export interface ViewerOptions {
    * Every URL it returns must still be local, or loading is refused.
    */
   resolveAsset?: (path: string) => string;
+  /**
+   * A package's own asset source (the packaged player): gives a loadable URL for each
+   * path once the file has passed its integrity check (and been decrypted). Used instead
+   * of `baseUrl` and `resolveAsset`.
+   */
+  assets?: { url(path: string): Promise<string> };
+  /** The package this environment was delivered in: its stamp shows in the info panel. */
+  packageInfo?: PackageInfo;
   /**
    * Authoring mode (Studio): clicking a hotspot selects it (emits `hotspotclick`) instead
    * of running its actions, and hotspots can be dragged (emits `hotspotmove`).
@@ -165,6 +175,7 @@ export class Viewer {
   private overlay: HTMLDivElement;
   private live: HTMLDivElement;
   private resolver: AssetResolver;
+  private assetUrl: AssetUrl;
   private selected: string | null = null;
   private state: ViewerState;
   private lang: string;
@@ -199,6 +210,9 @@ export class Viewer {
     this.resolver = options.resolveAsset
       ? checkedResolver(options.resolveAsset)
       : baseResolver(resolveBase(options.baseUrl ?? './'));
+    this.assetUrl = options.assets
+      ? checkedSource(options.assets)
+      : async (path) => this.resolver(path);
 
     this.element = document.createElement('div');
     this.element.className = 'evx-viewer';
@@ -358,7 +372,7 @@ export class Viewer {
     this.scene = now;
     if (JSON.stringify(now.media) !== JSON.stringify(before.media)) {
       const view = this.getView();
-      await this.renderer.show(this.layers.media(now.id, now.media), this.resolver, now.viewpoint);
+      await this.renderer.show(this.layers.media(now.id, now.media), this.assetUrl, now.viewpoint);
       this.setView(view);
     }
     this.sceneExtras(now);
@@ -479,7 +493,7 @@ export class Viewer {
       scene: this.scene,
       viewYaw: this.renderer.view.yaw,
       route: this.route ?? this.routeChoice()[0] ?? null,
-      resolve: (p) => this.resolve(p),
+      resolve: (p: string) => this.resolve(p),
     });
     this.events.emit('floorplan', { floorId: floor.id });
     await this.dialogs.show(t.floorPlan, [content], 'evx-viewer__dialog--plan');
@@ -634,7 +648,7 @@ export class Viewer {
       const media = this.layers.media(scene.id, scene.media);
       if (JSON.stringify(media) !== JSON.stringify(this.shownMedia)) {
         const view = this.getView();
-        await this.renderer.show(media, this.resolver, scene.viewpoint);
+        await this.renderer.show(media, this.assetUrl, scene.viewpoint);
         this.shownMedia = media;
         this.setView(view);
       }
@@ -848,6 +862,9 @@ export class Viewer {
       get vrAvailable() {
         return v.vrAvailable;
       },
+      get packageInfo() {
+        return v.options.packageInfo ?? null;
+      },
       enterVr: () => v.enterVr(),
     };
   }
@@ -998,13 +1015,17 @@ export class Viewer {
     this.renderer.instantAdaptation = this.reducedMotion;
     this.renderer.setGrade(this.layers.grade(scene.id));
     const media = this.shownMedia;
-    const lum =
-      media?.type === 'equirect' && media.hdr && media.luminance && this.resolve(media.luminance);
+    const lum = media?.type === 'equirect' && media.hdr ? media.luminance : undefined;
     if (lum)
-      void LuminanceMap.load(lum).then(
-        (map) => load === this.sceneLoad && this.renderer.setLuminance(map),
-        () => load === this.sceneLoad && this.renderer.setLuminance(null),
-      );
+      void this.resolve(lum)
+        .then((url) => {
+          if (!url) throw new AssetError(lum);
+          return LuminanceMap.load(url);
+        })
+        .then(
+          (map) => load === this.sceneLoad && this.renderer.setLuminance(map),
+          () => load === this.sceneLoad && this.renderer.setLuminance(null),
+        );
     else this.renderer.setLuminance(null);
     this.regionKey = null;
     this.refreshRegions(scene);
@@ -1026,9 +1047,16 @@ export class Viewer {
     const key = JSON.stringify(regions);
     if (key === this.regionKey) return;
     this.regionKey = key;
+    void Promise.all(regions.map((r) => this.resolve(r.source))).then((urls) => {
+      if (key !== this.regionKey) return;
+      this.applyRegions(regions, urls);
+    });
+  }
+
+  private applyRegions(regions: Environment['animatedRegions'], urls: (string | null)[]) {
     this.renderer.setRegions(
-      regions.flatMap((r) => {
-        const src = this.resolve(r.source);
+      regions.flatMap((r, i) => {
+        const src = urls[i];
         if (!src) return [];
         const isVideo = /\.(webm|mp4|m4v|ogv)$/i.test(r.source);
         const el = isVideo ? document.createElement('video') : new Image();
@@ -1142,7 +1170,7 @@ export class Viewer {
       opts.towards ?? null,
       async () => {
         const media = this.layers.media(scene.id, scene.media);
-        await this.renderer.show(media, this.resolver, scene.viewpoint);
+        await this.renderer.show(media, this.assetUrl, scene.viewpoint);
         this.shownMedia = media;
         this.scene = scene;
         this.state.visited.add(scene.id);
@@ -1173,9 +1201,10 @@ export class Viewer {
     await this.runActions(h.actions, h.id, towards);
   }
 
-  private resolve(path: string): string | null {
+  /** A loadable URL for an asset path (null, and a `blocked` event, when refused). */
+  private async resolve(path: string): Promise<string | null> {
     try {
-      return this.resolver(path);
+      return await this.assetUrl(path);
     } catch (e) {
       if (e instanceof AssetError) {
         this.events.emit('blocked', { url: path, reason: 'invalid' });
@@ -1209,7 +1238,7 @@ export class Viewer {
               .map((p) => this.dialogs.text(p)),
           );
         else if (c.kind === 'image') {
-          const src = this.resolve(c.source);
+          const src = await this.resolve(c.source);
           if (src) {
             const img = document.createElement('img');
             img.src = src;
@@ -1218,7 +1247,7 @@ export class Viewer {
             nodes.push(img);
           }
         } else if (c.kind === 'video') {
-          const src = this.resolve(c.source);
+          const src = await this.resolve(c.source);
           if (src) {
             const v = document.createElement('video');
             v.src = src;
@@ -1228,7 +1257,7 @@ export class Viewer {
           }
         } else if (c.kind === 'pdf') {
           const doc = this.environment.documents.find((d) => d.id === c.documentId);
-          const src = doc && this.resolve(doc.source);
+          const src = doc && (await this.resolve(doc.source));
           if (src) nodes.push(pdfView(src, L(doc!.title), t));
         } else nodes.push(this.dialogs.text(t.unsupported));
         await this.dialogs.show(L(action.title), nodes);
@@ -1236,7 +1265,7 @@ export class Viewer {
       }
       case 'openDocument': {
         const doc = this.environment.documents.find((d) => d.id === action.documentId);
-        const src = doc && this.resolve(doc.source);
+        const src = doc && (await this.resolve(doc.source));
         if (doc && src)
           await this.dialogs.show(
             L(doc.title),
@@ -1255,7 +1284,7 @@ export class Viewer {
           }
           return;
         }
-        const src = this.resolve(url);
+        const src = await this.resolve(url);
         if (src) await this.dialogs.show('', [this.frame(src, url, true)]);
         return;
       }

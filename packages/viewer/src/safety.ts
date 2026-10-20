@@ -20,6 +20,7 @@ import {
   type Scene,
   type WorldPoint,
 } from '@evactis-3dworkflow/schema';
+import type { Resolve } from './assets.ts';
 import { escapeXml, iconSvg, signSvg } from '@evactis-3dworkflow/brand';
 import type { UiStrings } from './i18n.ts';
 import type { PanoramaRenderer } from './panorama/renderer.ts';
@@ -311,7 +312,7 @@ export interface PlanViewOptions {
   /** Current view yaw in the scene (for the "You are here" direction). */
   viewYaw: number;
   route: Route | null;
-  resolve: (path: string) => string | null;
+  resolve: Resolve;
 }
 
 const pct = (v: number, of: number) => `${((v / of) * 100).toFixed(3)}%`;
@@ -366,13 +367,10 @@ function planContent(o: PlanViewOptions, select: (floorId: string) => void): Nod
   fig.dataset.floorId = floor.id;
   fig.style.aspectRatio = `${W} / ${H}`;
   fig.style.setProperty('--evx-plan-ratio', String(W / H));
-  const src = o.resolve(plan.image);
-  if (src) {
-    const img = document.createElement('img');
-    img.src = src;
-    img.alt = '';
-    fig.append(img);
-  }
+  const img = document.createElement('img');
+  img.alt = '';
+  fig.append(img);
+  void o.resolve(plan.image).then((src) => (src ? (img.src = src) : img.remove()));
 
   // Room names, route lines and the assembly point, in plan pixels.
   const svgParts: string[] = [];

@@ -30,7 +30,7 @@ import {
   type PerspectiveCamera,
 } from 'three';
 import type { SceneMedia } from '@evactis-3dworkflow/schema';
-import type { AssetResolver } from '../assets.ts';
+import type { AssetUrl } from '../assets.ts';
 import type { Content } from './renderer.ts';
 
 type Splat = Extract<SceneMedia, { type: 'splat' }>;
@@ -244,7 +244,7 @@ export class SplatContent implements Content {
 
   constructor(
     private media: Splat,
-    private resolve: AssetResolver,
+    private resolve: AssetUrl,
     private onChange: () => void,
   ) {}
 
@@ -258,7 +258,7 @@ export class SplatContent implements Content {
   }
 
   async load(): Promise<void> {
-    const url = this.resolve(this.media.source);
+    const url = await this.resolve(this.media.source);
     const res = await fetch(url, { signal: this.abort.signal });
     if (!res.ok) throw new Error(`The splat scene could not be loaded: ${this.media.source}`);
     const buf = await res.arrayBuffer();

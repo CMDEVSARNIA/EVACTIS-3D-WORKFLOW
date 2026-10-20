@@ -1,4 +1,5 @@
 import { localize, type Environment } from '@evactis-3dworkflow/schema';
+import type { Resolve } from './assets.ts';
 import type { UiStrings } from './i18n.ts';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string) => {
@@ -105,7 +106,7 @@ export function albumView(
   start: number,
   lang: string,
   t: UiStrings,
-  resolve: (path: string) => string | null,
+  resolve: Resolve,
 ): HTMLElement | null {
   const album = env.albums.find((a) => a.id === albumId);
   if (!album) return null;
@@ -123,7 +124,11 @@ export function albumView(
   let i = Math.min(start, album.items.length - 1);
   const show = () => {
     const item = album.items[i]!;
-    img.src = resolve(item.source) ?? '';
+    const at = i;
+    img.removeAttribute('src');
+    void resolve(item.source).then((url) => {
+      if (at === i && url) img.src = url;
+    });
     const text = item.caption ? localize(item.caption, lang) : '';
     img.alt = text || localize(album.name, lang);
     caption.textContent = text;

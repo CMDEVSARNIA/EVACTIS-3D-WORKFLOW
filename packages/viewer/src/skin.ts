@@ -23,6 +23,17 @@ import type { UiStrings } from './i18n.ts';
 import { planFloors } from './safety.ts';
 
 /** What the skin needs from the Viewer (kept narrow so the skin stays a layer on top). */
+/** A delivery package's stamp (Phase 10). */
+export interface PackageInfo {
+  kind: string;
+  createdAt: string;
+  producer: string;
+  /** Hex SHA-256 of the package manifest. */
+  digest: string;
+  /** A URL for the package's quick-start PDF. */
+  quickStart?: () => Promise<string>;
+}
+
 export interface SkinHost {
   readonly element: HTMLElement;
   readonly environment: Environment;
@@ -45,12 +56,14 @@ export interface SkinHost {
   setLiveLayer(layerId: string, stateId: string): Promise<void>;
   showDialog(title: string, content: Node[], modifier?: string): Promise<void>;
   closeDialog(): void;
-  resolve(path: string): string | null;
+  resolve(path: string): Promise<string | null>;
   readonly trainingActive: boolean;
   showModules(): Promise<void>;
   showChecklist(): Promise<void>;
   /** Whether a VR headset session is possible here. */
   readonly vrAvailable: boolean;
+  /** The delivery package this environment came in (stamp for the info panel). */
+  readonly packageInfo: PackageInfo | null;
   enterVr(): Promise<void>;
 }
 
@@ -224,12 +237,11 @@ export class SkinChrome {
     const plate = el('div', 'evx-skin__logo');
     const b = this.host.environment.settings.branding;
     if (b.coBrand) {
-      const src = b.clientLogo && this.host.resolve(b.clientLogo);
-      if (src) {
+      if (b.clientLogo) {
         const img = el('img', 'evx-skin__client');
-        img.src = src;
         img.alt = b.clientName ? localize(b.clientName, this.host.language) : '';
         plate.append(img);
+        void this.host.resolve(b.clientLogo).then((src) => (src ? (img.src = src) : img.remove()));
       } else if (b.clientName) {
         const name = el('span', 'evx-skin__client-name');
         name.textContent = localize(b.clientName, this.host.language);
@@ -584,6 +596,36 @@ export class SkinChrome {
     const made = el('p', 'evx-skin__made');
     made.textContent = t.madeWith;
     nodes.push(offline, made);
+    const pkg = h.packageInfo;
+    if (pkg) {
+      const stamp = el('p', 'evx-skin__made');
+      stamp.dataset.package = pkg.kind;
+      stamp.textContent = t.packageStamp(
+        t.packageKinds[pkg.kind] ?? pkg.kind,
+        pkg.createdAt.slice(0, 10),
+        pkg.producer,
+      );
+      const id = el('p', 'evx-skin__made');
+      // The start of the manifest's SHA-256: matches the delivery note if nothing changed.
+      id.textContent = t.packageId(pkg.digest.slice(0, 16));
+      nodes.push(stamp, id);
+      if (pkg.quickStart) {
+        const a = el('a', 'evx-cta evx-cta--ghost');
+        a.textContent = t.quickStart;
+        a.download = 'Quick start - Démarrage rapide.pdf';
+        a.href = '#';
+        const get = pkg.quickStart;
+        a.addEventListener('click', (e) => {
+          if (a.getAttribute('href') !== '#') return;
+          e.preventDefault();
+          void get().then((url) => {
+            a.href = url;
+            a.click();
+          });
+        });
+        nodes.push(a);
+      }
+    }
     await h.showDialog(L(h.environment.title), nodes);
   }
 

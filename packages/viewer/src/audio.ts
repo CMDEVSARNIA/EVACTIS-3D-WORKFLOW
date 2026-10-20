@@ -1,4 +1,5 @@
 import type { Audio, Environment } from '@evactis-3dworkflow/schema';
+import type { Resolve } from './assets.ts';
 import { DEG, yawDelta } from './math.ts';
 
 /**
@@ -39,7 +40,7 @@ export class Sounds {
 
   constructor(
     private env: () => Environment,
-    private resolve: (path: string) => string | null,
+    private resolve: Resolve,
     private onChange: () => void,
   ) {}
 
@@ -65,12 +66,15 @@ export class Sounds {
     this.apply(v);
   }
 
-  private voice(id: string): Voice | null {
+  private async voice(id: string): Promise<Voice | null> {
     const existing = this.voices.get(id);
     if (existing) return existing;
     const def = this.env().audio.find((a) => a.id === id);
-    const src = def && this.resolve(def.source);
+    const src = def && (await this.resolve(def.source));
     if (!def || !src) return null;
+    // Another call may have made it while the source was being prepared.
+    const made = this.voices.get(id);
+    if (made) return made;
     const el = new Audio(src);
     el.loop = def.loop;
     el.preload = 'auto';
@@ -84,7 +88,7 @@ export class Sounds {
   }
 
   async play(id: string, restart = true): Promise<void> {
-    const v = this.voice(id);
+    const v = await this.voice(id);
     if (!v) return;
     if (restart) v.el.currentTime = 0;
     try {
