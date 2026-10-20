@@ -1,0 +1,25 @@
+{
+  "name": "@evactis-3dworkflow/package-format",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EVACTIS 3DWORKFLOW delivery package format: integrity manifest (SHA-256) and passphrase encryption (Argon2id + AES-256-GCM). Shared by the packager and the packaged player; no network.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/hashes": "2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

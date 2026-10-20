@@ -1,0 +1,15 @@
+{
+  "passphrase": "Riverside – été 2026",
+  "kdf": {
+    "name": "Argon2id",
+    "memoryKiB": 256,
+    "iterations": 2,
+    "parallelism": 1,
+    "salt": "ZXZhY3Rpcy1zYWx0LTAxNg=="
+  },
+  "key": "979ff2912fc06801e1e7a6e87f1091f93bffa0df193592eadca78f3f61b84915",
+  "name": "content/000001.bin",
+  "nonce": "bm9uY2UtMTJieXRl",
+  "plain": "{\"id\":\"riverside\",\"title\":{\"fr\":\"Hôpital\"}}",
+  "blob": "6e6f6e63652d31326279746571f9e0430b73d0163423e9ab874c6d2948aa97f2a5748b80f15d8f9c4d738b538efe78418d034a943e6a189150b7a5afe5c23d51970707a36396d14c"
+}

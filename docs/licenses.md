@@ -30,6 +30,8 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | pdf-lib 1.17.1 (+ pako, @pdf-lib/standard-fonts, @pdf-lib/upng) | Studio: printed evacuation plans and register PDFs (`packages/print`); Viewer and packaged player: training certificates (lazy chunk, Phase 8) | MIT (pako: MIT AND Zlib) | None. No network code (its `fetch` mentions are documentation comments). |
 | @pdf-lib/fontkit 1.1.1 | Embeds subsets of the bundled Inter in those PDFs (plans, registers, certificates) | MIT | None. |
 | three/examples GLTFLoader (part of three 0.186.1) | Viewer: GLB scenes (Phase 9; lazy chunk). Draco and meshopt decoders are not included (they need WebAssembly/workers) | MIT | None: loads only the package file it is given. |
+| @noble/hashes 2.4.0, @noble/ciphers 2.4.0 | Delivery packages (`packages/package-format`): SHA-256 integrity manifest, Argon2id key from the passphrase, AES-256-GCM, where WebCrypto is unavailable (plain-http intranets); audited, no dependencies | MIT | None. Pure JavaScript, no WebAssembly or workers; URLs in the source are citation comments. |
+| aes-gcm 0.10.3, argon2 0.5.3 (RustCrypto) | Desktop Viewer: opening encrypted `.evx` packages in memory (`crates/evx-package`) | Apache-2.0 OR MIT | None (no network code). |
 | pdfjs-dist 4.10.38 | Viewer: local PDF reader (loaded on first use, separate chunks) | Apache-2.0 (LICENSE text to ship with the Viewer; no NOTICE file) | None as used: no worker URL, `isEvalSupported: false`, no font/CMap/wasm downloads, no streaming or range fetches; only the package file it is given. Its optional native `@napi-rs/canvas` is removed by a pnpm override. |
 
 ## Fonts (bundled — never loaded from Google Fonts or a CDN)

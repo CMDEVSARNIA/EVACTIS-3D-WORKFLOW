@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/evx-core", "crates/evx-desktop", "crates/evx-media", "apps/studio/src-tauri", "apps/viewer-desktop/src-tauri"]
+members = ["crates/evx-core", "crates/evx-desktop", "crates/evx-media", "crates/evx-package", "apps/studio/src-tauri", "apps/viewer-desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
