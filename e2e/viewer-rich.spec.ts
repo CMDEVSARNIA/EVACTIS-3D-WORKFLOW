@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './offline';
-import { idle, openDemo, sceneId } from './viewer-helpers';
+import { chooseInMenu, idle, openDemo, sceneId } from './viewer-helpers';
 
 /**
  * Phase 6 rich features in the demo facility, network blocked: live layers (smoke
@@ -10,7 +10,14 @@ import { idle, openDemo, sceneId } from './viewer-helpers';
 
 /** Mean brightness and contrast (std dev) of the panorama canvas, ignoring overlays. */
 async function canvasStats(page: Page) {
+  // The panorama only: the skin's plates and buttons would add their own contrast.
+  await page.evaluate(() =>
+    document.querySelector<HTMLElement>('.evx-skin')?.style.setProperty('visibility', 'hidden'),
+  );
   const shot = await page.locator('.evx-viewer__canvas').screenshot();
+  await page.evaluate(() =>
+    document.querySelector<HTMLElement>('.evx-skin')?.style.removeProperty('visibility'),
+  );
   return page.evaluate(async (b64) => {
     const img = new Image();
     img.src = `data:image/png;base64,${b64}`;
@@ -44,8 +51,7 @@ test('smoke conditions: a live layer hazes every indoor scene and is announced',
 }) => {
   await openDemo(page, '?scene=corridor');
   const clear = await canvasStats(page);
-  const layer = page.getByRole('combobox', { name: 'Conditions' });
-  await layer.selectOption('smoke');
+  await chooseInMenu(page, 'Conditions', 'smoke');
   await expect(page.locator('.evx-viewer__live')).toHaveText('Conditions: Smoke');
   await idle(page);
   const smoke = await canvasStats(page);
@@ -59,7 +65,7 @@ test('smoke conditions: a live layer hazes every indoor scene and is announced',
     { layerId: 'conditions', stateId: 'smoke' },
   ]);
   await page.evaluate(() => window.viewer.goToScene('corridor', { transition: { kind: 'cut' } }));
-  await layer.selectOption('normal');
+  await chooseInMenu(page, 'Conditions', 'normal');
   await idle(page);
   const back = await canvasStats(page);
   expect(Math.abs(back.contrast - clear.contrast)).toBeLessThan(1);

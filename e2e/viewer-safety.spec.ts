@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './offline';
-import { idle, openDemo, sceneId } from './viewer-helpers';
+import { chooseInMenu, idle, openDemo, sceneId } from './viewer-helpers';
 
 /**
  * Phase 5 safety layer in the Viewer, on the demo facility: equipment per audience,
@@ -40,7 +40,7 @@ test.describe('safety layer', () => {
     );
     expect(staff).not.toContain('equipment:facp');
 
-    await page.getByRole('combobox', { name: 'Audience' }).selectOption('first-responders');
+    await chooseInMenu(page, 'Audience', 'first-responders');
     const responders = await equipmentIds(page);
     expect(responders.filter((id) => !staff.includes(id))).toEqual(['equipment:facp']);
     // The annunciator has no sign: a symbol marker, labelled for screen readers.
@@ -64,7 +64,7 @@ test.describe('safety layer', () => {
       return ids;
     };
     const frPlan = await planItems();
-    await page.getByRole('combobox', { name: 'Audience' }).selectOption('staff');
+    await chooseInMenu(page, 'Audience', 'staff');
     const staffPlan = await planItems();
     expect(frPlan.filter((id) => !staffPlan.includes(id)).sort()).toEqual(
       ['facp', 'fdc', 'key-box', 'riser-a'].sort(),
