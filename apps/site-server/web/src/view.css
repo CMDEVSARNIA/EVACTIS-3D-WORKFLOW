@@ -1,0 +1,209 @@
+/* The viewer page: the environment fills the window; the site panel sits on the right. */
+.site-viewer-page {
+  display: block;
+  overflow: hidden;
+}
+.site-stage {
+  inset-inline-end: min(24rem, 40vw);
+}
+.site-panel[data-open='false'] ~ .site-stage,
+.site-viewer-page:has(.site-panel[data-open='false']) .site-stage {
+  inset-inline-end: 0;
+}
+.site-panel {
+  box-sizing: border-box;
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: min(24rem, 40vw);
+  overflow-y: auto;
+  padding: 4.25rem 1rem 1.5rem;
+  border-inline-start: 1px solid var(--evx-rule);
+  background: var(--evx-bg);
+  color: var(--evx-fg-body);
+}
+.site-panel[data-open='false'] {
+  display: none;
+}
+@media (max-width: 760px) {
+  .site-stage {
+    inset-inline-end: 0;
+  }
+  .site-panel {
+    inline-size: 100%;
+    inset-block-start: 40%;
+    padding-block-start: 1rem;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--evx-rule);
+  }
+  .site-panel-toggle {
+    inset-block-start: auto;
+    inset-block-end: 1rem;
+  }
+}
+.site-panel-toggle {
+  position: fixed;
+  z-index: 20;
+  inset-block-start: 0.75rem;
+  inset-inline-end: 1rem;
+}
+.site-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-block-end: 0.75rem;
+  border-block-end: 1px solid var(--evx-rule);
+}
+.site-tabs [role='tab'] {
+  min-block-size: 44px;
+  padding: 0 1rem;
+  border: 0;
+  border-block-end: 3px solid transparent;
+  background: none;
+  color: var(--evx-fg);
+  font: 600 1rem var(--evx-font-body);
+  cursor: pointer;
+}
+.site-tabs [role='tab'][aria-selected='true'] {
+  border-block-end-color: var(--evx-green);
+}
+.site-tabpanel {
+  display: grid;
+  gap: 0.9rem;
+}
+.site-tabpanel[hidden] {
+  display: none;
+}
+.site-notes,
+.site-replies,
+.site-members {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-note-item {
+  display: grid;
+  gap: 0.15rem;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 8px;
+  background: var(--evx-panel);
+  color: var(--evx-fg);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.site-note-item:focus-visible,
+.site-pin:focus-visible,
+.site-tabs [role='tab']:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+.site-session-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 8px;
+}
+.site-note-title {
+  margin: 0;
+  color: var(--evx-fg);
+  font-size: 1.25rem;
+}
+.site-note-body {
+  white-space: pre-wrap;
+}
+.site-replies li {
+  padding-inline-start: 0.75rem;
+  border-inline-start: 2px solid var(--evx-green-strong);
+}
+.site-replies p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.site-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  gap: 0.5rem;
+}
+.site-photos img {
+  display: block;
+  inline-size: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.site-member video {
+  display: block;
+  inline-size: 100%;
+  margin-block-start: 0.35rem;
+  border-radius: 6px;
+  background: #000;
+}
+.site-member video[hidden] {
+  display: none;
+}
+/* Note pins over the scene (positioned by the notes layer). */
+.site-pins {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.site-pin {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  margin: -22px 0 0 -22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+.site-pin span {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 3px solid var(--evx-white);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--evx-navy);
+  color: var(--evx-white);
+  font: 800 1rem var(--evx-font-body);
+  box-shadow: var(--evx-shadow-soft);
+}
+.site-pin[data-status='open'] span {
+  background: var(--evx-green-strong);
+}
+.site-pin[data-status='resolved'] span {
+  background: var(--evx-frame-grey);
+}
+.site-placing {
+  cursor: crosshair;
+}
+.site-live:empty {
+  display: none;
+}
+/* Links and text inside the dark panel (the header bar's navy links do not apply). */
+.site-panel .site-link {
+  justify-self: start;
+  color: var(--evx-fg);
+}
+.site-tabpanel :is(p, h3, h4) {
+  margin: 0;
+}
+.site-tabpanel h4 {
+  color: var(--evx-fg);
+}
+.site-pin span b {
+  transform: rotate(45deg);
+}

@@ -9,7 +9,7 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build && node scripts/bundle.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start": "node --disable-warning=ExperimentalWarning dist/server.cjs",

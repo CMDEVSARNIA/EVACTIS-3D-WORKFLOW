@@ -4,5 +4,5 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["src", "test", "web", "vite.config.ts"]
+  "include": ["src", "test", "web", "vite.config.ts", "../../packages/viewer/src/pdfjs-worker.d.ts"]
 }

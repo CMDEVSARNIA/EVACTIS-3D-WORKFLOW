@@ -1,0 +1,185 @@
+/* Site Server pages, in the evactis.ca look (packages/brand chrome). */
+html,
+body {
+  min-block-size: 100%;
+  margin: 0;
+}
+body {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.site-top {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 5;
+}
+.site-lockup {
+  display: block;
+  block-size: 40px;
+}
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  font-size: 0.9375rem;
+}
+.site-user {
+  font-weight: 600;
+}
+.site-link {
+  min-block-size: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--evx-navy);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.site-link:focus-visible,
+.site-field :is(input, select, textarea):focus-visible,
+.site-card a:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: 2px;
+}
+.site-main {
+  box-sizing: border-box;
+  inline-size: min(100%, 72rem);
+  margin-inline: auto;
+  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2rem);
+}
+.site-main > .evx-heading {
+  margin-block: 0.75rem 1.25rem;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+}
+.site-main h2 {
+  margin: 2.5rem 0 0.75rem;
+  color: var(--evx-fg);
+  font-size: 1.375rem;
+}
+.site-lead {
+  max-inline-size: 44rem;
+  font-size: 1.125rem;
+}
+.site-foot {
+  padding: 1rem clamp(1rem, 4vw, 2rem);
+  border-block-start: 1px solid var(--evx-rule);
+  color: var(--evx-fg-subtle);
+  font-size: 0.875rem;
+}
+.site-foot p {
+  margin: 0;
+}
+.site-form {
+  display: grid;
+  gap: 1rem;
+  max-inline-size: 28rem;
+}
+.site-field {
+  display: grid;
+  gap: 0.35rem;
+}
+.site-field label {
+  color: var(--evx-fg);
+  font-weight: 600;
+}
+.site-field :is(input, select, textarea) {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 8px;
+  background: var(--evx-panel);
+  color: var(--evx-fg);
+  font: inherit;
+}
+.site-field textarea {
+  min-block-size: 6rem;
+  resize: vertical;
+}
+.site-hint {
+  margin: 0;
+  color: var(--evx-fg-subtle);
+  font-size: 0.875rem;
+}
+.site-error {
+  color: #ff9b9b;
+}
+[data-theme='light'] .site-error {
+  color: var(--evx-fire-red);
+}
+.site-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+.site-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 12px;
+  background: var(--evx-panel);
+}
+.site-card h3 {
+  margin: 0;
+  color: var(--evx-fg);
+  font-size: 1.25rem;
+}
+.site-card p {
+  margin: 0;
+}
+.site-card .evx-cta {
+  justify-self: start;
+  text-decoration: none;
+}
+.site-meta {
+  color: var(--evx-fg-subtle);
+  font-size: 0.875rem;
+}
+.site-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+}
+.site-table :is(th, td) {
+  padding: 0.6rem 0.5rem;
+  border-block-end: 1px solid var(--evx-rule);
+  text-align: start;
+  vertical-align: middle;
+}
+.site-table th {
+  color: var(--evx-fg);
+}
+.site-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.75rem;
+}
+/* Less padding only: the text stays 19 px bold, because white on green-strong
+   (3.6:1) meets WCAG AA only as large text (assumption 18). */
+.site-small {
+  min-block-size: 44px;
+  padding: 0.4rem 0.9rem;
+}
+progress {
+  inline-size: min(100%, 28rem);
+  accent-color: var(--evx-green);
+}
+.site-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-block-size: 44px;
+  color: var(--evx-fg);
+}
+.site-check input {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  accent-color: var(--evx-green-strong);
+}

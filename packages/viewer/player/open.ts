@@ -131,3 +131,4 @@ export async function openPackage(o: OpenOptions): Promise<Viewer> {
 }
 
 export { playerStrings, showProblem } from './ui.ts';
+export type { Viewer };

@@ -25,6 +25,9 @@ const DEFAULT_DIRS = [
   'packages/viewer/demo-dist',
   'packages/viewer/player-dist',
   'packages/viewer/player-classic-dist',
+  // The Site Server's pages (what browsers run). Its server bundle is checked at runtime
+  // instead: the acceptance runs it with no route out and watches its traffic.
+  'apps/site-server/dist/web',
 ];
 const SCANNED = new Set([
   '.js',

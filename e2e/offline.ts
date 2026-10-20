@@ -6,12 +6,13 @@ import { test as base, expect } from '@playwright/test';
  *  1. Chromium is launched (playwright.config.ts) with every hostname resolving to
  *     nothing and a dead proxy except loopback, so a request that slips past (2) still
  *     cannot leave the machine.
- *  2. Every request is intercepted; anything not on the loopback test server is aborted
+ *  2. Every request is intercepted; anything not on a loopback test server (HTTP(S) or
+ *     WebSocket on 127.0.0.1) is aborted
  *     and recorded, and the test fails at teardown if the list is not empty.
  *  Content-Security-Policy violations are recorded and fail the test the same way.
  */
 const HARDEN = fileURLToPath(new URL('../crates/evx-desktop/src/harden.js', import.meta.url));
-const LOCAL = /^(http:\/\/127\.0\.0\.1(:\d+)?\/|file:|data:|blob:|about:)/;
+const LOCAL = /^((https?|wss?):\/\/127\.0\.0\.1(:\d+)?\/|file:|data:|blob:|about:)/;
 
 export const test = base.extend<{ networkGuard: { attempts: string[]; csp: string[] } }>({
   networkGuard: [
@@ -23,7 +24,9 @@ export const test = base.extend<{ networkGuard: { attempts: string[]; csp: strin
         attempts.push(url);
         return route.abort('blockedbyclient');
       });
-      context.on('page', (page) => page.on('websocket', (ws) => attempts.push(ws.url())));
+      context.on('page', (page) =>
+        page.on('websocket', (ws) => !LOCAL.test(ws.url()) && attempts.push(ws.url())),
+      );
       // CSP violations (blocked loads, eval probes) are failures too: shipped pages must
       // never even attempt what their policy forbids.
       const csp: string[] = [];

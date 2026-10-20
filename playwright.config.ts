@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { BLOCKED_NETWORK_ARGS } from './e2e/network-args';
 
 /**
  * End-to-end and visual tests. Every test runs in "network is blocked" mode (see
@@ -19,15 +20,7 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${PORT}`,
     serviceWorkers: 'block',
     launchOptions: {
-      args: [
-        '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1',
-        '--proxy-server=http://127.0.0.1:9',
-        '--proxy-bypass-list=127.0.0.1',
-        '--disable-background-networking',
-        '--disable-component-update',
-        '--disable-domain-reliability',
-        '--no-pings',
-      ],
+      args: BLOCKED_NETWORK_ARGS,
     },
     trace: 'retain-on-failure',
   },
@@ -88,6 +81,15 @@ export default defineConfig({
       // the intranet bundles are served, the others opened from disk.
       command: `node e2e/fixtures/packages.mjs && node tools/static-server.mjs target/e2e-packages ${PORT + 8}`,
       url: `http://127.0.0.1:${PORT + 8}/index.html`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 600_000,
+    })
+    .concat({
+      // The Site Server (Phase 11), HTTPS with its own certificate authority, seeded with
+      // two people and the demo facility; it prints its URL when ready.
+      command: `node e2e/fixtures/site-server.mjs ${PORT + 17}`,
+      url: `https://127.0.0.1:${PORT + 17}/health`,
+      ignoreHTTPSErrors: true,
       reuseExistingServer: !process.env.CI,
       timeout: 600_000,
     }),
