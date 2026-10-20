@@ -1,0 +1,38 @@
+{
+  "name": "@evactis-3dworkflow/site-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EVACTIS 3DWORKFLOW Site Server — optional, client-hosted, LAN-only: shared notes, guided sessions, local usage reports.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node --disable-warning=ExperimentalWarning dist/server.cjs",
+    "sea": "node scripts/sea.mjs"
+  },
+  "dependencies": {
+    "fastify": "5.12.5",
+    "ldapts": "9.2.0",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@evactis-3dworkflow/brand": "workspace:*",
+    "@evactis-3dworkflow/demo-facility": "workspace:*",
+    "@evactis-3dworkflow/package-format": "workspace:*",
+    "@evactis-3dworkflow/packaging": "workspace:*",
+    "@evactis-3dworkflow/schema": "workspace:*",
+    "@evactis-3dworkflow/viewer": "workspace:*",
+    "@types/node": "22.20.5",
+    "@types/ws": "8.18.2",
+    "esbuild": "0.28.2",
+    "postject": "1.0.0-alpha.6",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "3.2.7"
+  }
+}

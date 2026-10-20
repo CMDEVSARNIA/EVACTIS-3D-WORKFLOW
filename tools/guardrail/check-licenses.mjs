@@ -123,7 +123,7 @@ const outputs = {
   'docs/licenses/npm-production.md': table(
     'npm production dependencies',
     npm,
-    `${npm.length} packages shipped in the Studio and Viewer front ends.`,
+    `${npm.length} packages shipped in the Studio and Viewer front ends and the Site Server.`,
   ),
   'docs/licenses/rust-crates.md': table(
     'Rust crates (Windows x64 build)',
