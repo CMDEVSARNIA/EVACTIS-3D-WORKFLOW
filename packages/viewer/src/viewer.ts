@@ -235,25 +235,17 @@ export class Viewer {
       () => uiStrings(this.lang),
       () => this.refreshTimed(),
     );
-    const skin = options.skin ? SkinSchema.parse(options.skin) : null;
-    if (options.radar || skin?.elements.some((e) => e.type === 'radar'))
-      this.radar = new Radar(
-        this.element,
-        () => uiStrings(this.lang),
-        (id) => void this.goToScene(id),
-      );
-    if (skin) {
-      this.chrome = new SkinChrome(this.skinHost(), skin, !!options.kiosk);
-      const refresh = () => this.chrome?.refresh();
-      for (const e of [
-        'scenechange',
-        'routechange',
-        'languagechange',
-        'audiencechange',
-        'livelayerchange',
-      ] as const)
-        this.events.on(e, refresh);
-    }
+    if (options.radar) this.ensureRadar();
+    const refresh = () => this.chrome?.refresh();
+    for (const e of [
+      'scenechange',
+      'routechange',
+      'languagechange',
+      'audiencechange',
+      'livelayerchange',
+    ] as const)
+      this.events.on(e, refresh);
+    if (options.skin) this.setSkin(options.skin, options.kiosk);
     // Sound may only start after a gesture inside the page.
     const unlock = () => this.sounds.unlock();
     this.element.addEventListener('pointerdown', unlock);
@@ -525,6 +517,32 @@ export class Viewer {
 
   get muted(): boolean {
     return this.isMuted;
+  }
+
+  /**
+   * Replaces the skin (or removes it with null). Studio's skin designer uses this to
+   * show edits live; `kiosk` picks the kiosk layout.
+   */
+  setSkin(skin: SkinInput | null, kiosk = !!this.options.kiosk): void {
+    const parsed = skin ? SkinSchema.parse(skin) : null;
+    this.chrome?.dispose();
+    this.chrome = null;
+    if (!parsed) return;
+    if (parsed.elements.some((e) => e.type === 'radar')) this.ensureRadar();
+    this.chrome = new SkinChrome(this.skinHost(), parsed, kiosk);
+  }
+
+  private ensureRadar() {
+    if (this.radar) return;
+    this.radar = new Radar(
+      this.element,
+      () => uiStrings(this.lang),
+      (id) => void this.goToScene(id),
+    );
+    if (this.scene) {
+      this.radar.set(this.environment, this.scene, this.scenes, this.lang, (p) => this.resolve(p));
+      this.radar.setView(this.renderer.view.yaw, this.renderer.hfov);
+    }
   }
 
   /** The skin laid out around the panorama, if any (breakpoint, commands). */

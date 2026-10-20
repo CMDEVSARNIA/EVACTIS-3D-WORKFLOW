@@ -103,7 +103,9 @@ export class SkinChrome {
       }
       this.root.append(row);
     }
-    for (const [k, v] of Object.entries(skin.tokens)) this.host.element.style.setProperty(k, v);
+    // Safety colours (ISO 7010 families) and the published insets are not themeable.
+    for (const [k, v] of Object.entries(skin.tokens))
+      if (!/^--evx-(safe|fire|warning|inset)-/.test(k)) this.host.element.style.setProperty(k, v);
     host.element.append(this.root);
     host.element.dataset.kiosk = String(kiosk);
     this.resize = new ResizeObserver(() => this.layout());
@@ -368,6 +370,8 @@ export class SkinChrome {
   private measure(): void {
     const box = this.host.element.getBoundingClientRect();
     if (!box.width) return;
+    // CSS px of the viewer itself, also when it is shown scaled (Studio's device frames).
+    const k = box.width / (this.host.element.offsetWidth || box.width);
     const edge = (anchors: Anchor[], side: 'top' | 'bottom' | 'left' | 'right') => {
       let v = 0;
       for (const a of anchors)
@@ -384,7 +388,7 @@ export class SkinChrome {
                   : box.right - r.left;
           v = Math.max(v, d);
         }
-      return Math.round(v);
+      return Math.round(v / k);
     };
     const s = this.host.element.style;
     s.setProperty('--evx-inset-top', `${edge(['top-left', 'top', 'top-right'], 'top')}px`);
@@ -578,6 +582,14 @@ export class SkinChrome {
   dispose(): void {
     this.resize.disconnect();
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
+    // The radar belongs to the Viewer: hand it back before the chrome goes.
+    const radar = this.host.radarElement;
+    if (radar && this.root.contains(radar)) this.host.element.append(radar);
+    const style = this.host.element.style;
+    for (const k of Object.keys(this.skin.tokens)) style.removeProperty(k);
+    for (const k of ['top', 'bottom', 'left', 'right']) style.removeProperty(`--evx-inset-${k}`);
+    delete this.host.element.dataset.breakpoint;
+    delete this.host.element.dataset.kiosk;
     this.root.remove();
   }
 }
