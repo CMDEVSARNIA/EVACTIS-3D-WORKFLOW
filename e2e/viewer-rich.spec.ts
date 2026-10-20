@@ -119,23 +119,35 @@ test('spatial audio: the alarm comes from its panel, pans as the reader turns, a
 test('animated region: the strobe changes over time, and holds still with reduced motion', async ({
   page,
 }) => {
+  // Software WebGL in CI draws a full-size view at a few frames per second: sample the
+  // strobe over a few seconds.
+  test.setTimeout(120_000);
   const frames = async () => {
     await page.evaluate(() => window.viewer.setVariable('alarmOn', true));
-    // Look straight at the strobe and sample its pixels over a second.
-    const at = await page.evaluate(() => {
+    // Look straight at the strobe and sample its pixels over time (the alarm sign over
+    // its centre is hidden meanwhile: the glow is brightest there).
+    await page.evaluate(() => {
       const r = window.viewer.environment.animatedRegions[0]!.polygon;
       const yaw = (r[0]!.yaw + r[1]!.yaw) / 2;
       const pitch = (r[0]!.pitch + r[2]!.pitch) / 2;
       window.viewer.setView({ yaw, pitch, fov: 40 });
+    });
+    await idle(page);
+    const at = await page.evaluate(() => {
+      const r = window.viewer.environment.animatedRegions[0]!.polygon;
+      const yaw = (r[0]!.yaw + r[1]!.yaw) / 2;
+      const pitch = (r[0]!.pitch + r[2]!.pitch) / 2;
       return window.viewer.viewToScreen(yaw, pitch)!;
     });
+    await page.addStyleTag({ content: '.evx-viewer__hotspots { visibility: hidden }' });
     const seen = new Set<string>();
-    for (let i = 0; i < 12; i++) {
-      const shot = await page
-        .locator('.evx-viewer__canvas')
-        .screenshot({ clip: { x: at.x - 20, y: at.y - 20, width: 40, height: 40 } });
+    // A page clip: an element screenshot would wait for the animating canvas to settle.
+    const box = (await page.locator('.evx-viewer__canvas').boundingBox())!;
+    const clip = { x: box.x + at.x - 8, y: box.y + at.y - 8, width: 16, height: 16 };
+    for (let i = 0; i < 20; i++) {
+      const shot = await page.screenshot({ clip, animations: 'allow' });
       seen.add(shot.toString('base64'));
-      await page.waitForTimeout(90);
+      await page.waitForTimeout(150);
     }
     return seen.size;
   };

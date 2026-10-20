@@ -36,6 +36,7 @@
     "@types/pngjs": "6.0.5",
     "eslint": "9.39.5",
     "globals": "16.5.0",
+    "iwer": "2.5.0",
     "pngjs": "7.0.0",
     "prettier": "3.6.2",
     "turbo": "2.11.8",
