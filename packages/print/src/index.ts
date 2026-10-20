@@ -16,3 +16,4 @@ export {
   type RegisterRow,
 } from './register.ts';
 export { crc32, zip } from './zip.ts';
+export { CERTIFICATE, certificatePdf, type CertificateData } from './certificate.ts';

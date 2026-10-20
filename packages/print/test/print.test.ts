@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { demoEnvironment } from '../../demo-facility/src/environment.ts';
 import {
   PrintError,
+  certificatePdf,
   crc32,
   evacuationPlanPdf,
   registerCsv,
@@ -214,5 +215,40 @@ describe('equipment register', () => {
     ])
       expect(t, s).toContain(s);
     expect(minFontPt).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe('training certificates', () => {
+  it('prints a bilingual landscape certificate with the learner, module, facility and result', async () => {
+    const bytes = await certificatePdf(
+      {
+        learner: 'Marie-Ève Tremblay',
+        module: { en: 'Find your nearest exit', fr: 'Trouvez la sortie la plus proche' },
+        facility: { en: 'Evactis Demo Centre', fr: 'Centre de démonstration Evactis' },
+        score: 3.5,
+        max: 4,
+        percent: 88,
+        date: '2026-10-20',
+      },
+      { fonts: assets.fonts, logo: assets.logo },
+    );
+    const pdf = save('certificate.pdf', bytes);
+    expect(run('pdfinfo', pdf)).toMatch(/792 x 612 pts/);
+    const t = text(pdf).replace(/\s+/g, ' ');
+    for (const s of [
+      'CERTIFICATE OF COMPLETION · ATTESTATION DE RÉUSSITE',
+      'Marie-Ève Tremblay',
+      'Find your nearest exit',
+      'Trouvez la sortie la plus proche',
+      'at Evactis Demo Centre',
+      'Result: 3.5 / 4 (88 %), 2026-10-20',
+      'Résultat : 3.5 / 4 (88 %), 2026-10-20',
+      'no data was sent anywhere',
+      'ne remplace pas une visite sur place',
+    ])
+      expect(t, s).toContain(s);
+    // Nothing that could phone home: no links or JavaScript in the file.
+    const raw = Buffer.from(bytes).toString('latin1');
+    expect(raw).not.toMatch(/\/URI|\/JavaScript|\/JS\b|\/Launch/);
   });
 });
