@@ -154,7 +154,10 @@ if (a.kind === 'installer') {
   if (a['webview2-installer'])
     copyFileSync(resolve(a['webview2-installer']), join(out, name, WEBVIEW2_INSTALLER));
   // A UTF-8 locale: the Linux makensis crashes on accented file names under POSIX.
-  execFileSync(a.makensis, ['-V2', 'installer.nsi'], {
+  // A path is resolved here (makensis runs inside the package folder); a bare name is
+  // looked up on PATH.
+  const makensis = /[\\/]/.test(a.makensis) ? resolve(a.makensis) : a.makensis;
+  execFileSync(makensis, ['-V2', 'installer.nsi'], {
     cwd: join(out, name),
     stdio: 'inherit',
     env: { ...process.env, LC_ALL: 'C.UTF-8' },
