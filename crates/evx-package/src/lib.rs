@@ -194,6 +194,7 @@ pub struct Package {
     pub manifest: Manifest,
     /// SHA-256 of the manifest itself (shown so it can be compared with the delivery note).
     pub digest: String,
+    manifest_bytes: Vec<u8>,
     files: HashMap<String, ManifestFile>,
     key: Option<Zeroizing<[u8; 32]>>,
     index: Option<HashMap<String, String>>,
@@ -205,7 +206,12 @@ impl Package {
         let bytes = zip.read(MANIFEST_PATH).map_err(|_| Error::NotAPackage)?;
         let manifest = parse_manifest(&bytes)?;
         let files = manifest.files.iter().map(|f| (f.path.clone(), f.clone())).collect();
-        Ok(Self { zip, digest: sha256_hex(&bytes), manifest, files, key: None, index: None })
+        Ok(Self { zip, digest: sha256_hex(&bytes), manifest_bytes: bytes, manifest, files, key: None, index: None })
+    }
+
+    /// The manifest exactly as stored (readers hash it themselves).
+    pub fn manifest_bytes(&self) -> Result<Vec<u8>, Error> {
+        Ok(self.manifest_bytes.clone())
     }
 
     pub fn encrypted(&self) -> bool {

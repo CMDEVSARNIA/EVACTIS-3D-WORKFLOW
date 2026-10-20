@@ -27,6 +27,7 @@ describe('Studio start screen', () => {
           openPath: null,
           smokeTest: false,
           smokeImport: null,
+          smokePassphrase: null,
         }}
       />,
     );

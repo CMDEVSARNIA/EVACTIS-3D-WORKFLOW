@@ -19,6 +19,8 @@
     },
     "./viewer.css": "./dist/evactis-viewer.css",
     "./cube": "./src/panorama/cube.ts",
+    "./open-package": "./player/open.ts",
+    "./player.css": "./player/player.css",
     "./player/*": "./player-dist/*"
   },
   "scripts": {

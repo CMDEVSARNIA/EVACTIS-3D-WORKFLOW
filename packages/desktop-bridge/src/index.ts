@@ -34,6 +34,8 @@ export interface AppInfo {
   smokeTest: boolean;
   /** Studio smoke runs: a media file to import into a scratch project. */
   smokeImport: string | null;
+  /** Smoke runs only (Viewer): the passphrase to try on an encrypted package. */
+  smokePassphrase: string | null;
 }
 
 export async function appInfo(): Promise<AppInfo | null> {

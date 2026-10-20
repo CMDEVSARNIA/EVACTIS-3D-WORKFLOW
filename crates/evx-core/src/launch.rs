@@ -12,6 +12,8 @@ pub struct LaunchArgs {
     pub smoke_test: Option<PathBuf>,
     /// Studio only: with --smoke-test, import this file into a scratch project.
     pub smoke_import: Option<PathBuf>,
+    /// Viewer only: with --smoke-test, try this passphrase on an encrypted package.
+    pub smoke_passphrase: Option<String>,
 }
 
 /// Parses arguments, excluding the program name. Unknown flags are ignored so that
@@ -28,6 +30,10 @@ where
             out.smoke_test = it.next().map(PathBuf::from);
         } else if let Some(v) = arg.strip_prefix("--smoke-test=") {
             out.smoke_test = Some(PathBuf::from(v));
+        } else if arg == "--smoke-passphrase" {
+            out.smoke_passphrase = it.next();
+        } else if let Some(v) = arg.strip_prefix("--smoke-passphrase=") {
+            out.smoke_passphrase = Some(v.to_owned());
         } else if arg == "--smoke-import" {
             out.smoke_import = it.next().map(PathBuf::from);
         } else if let Some(v) = arg.strip_prefix("--smoke-import=") {
@@ -52,6 +58,9 @@ mod tests {
         let i = parse(["--smoke-test", "r.json", "--smoke-import", "D:\\12k.jpg"]);
         assert_eq!(i.smoke_import, Some(PathBuf::from("D:\\12k.jpg")));
         assert_eq!(i.open, None);
+        let v = parse(["Riverside.evx", "--smoke-test", "r.json", "--smoke-passphrase", "a b"]);
+        assert_eq!(v.smoke_passphrase.as_deref(), Some("a b"));
+        assert_eq!(v.open, Some(PathBuf::from("Riverside.evx")));
     }
 
     #[test]

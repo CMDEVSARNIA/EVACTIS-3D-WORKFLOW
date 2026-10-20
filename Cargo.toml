@@ -13,6 +13,7 @@ publish = false
 evx-core = { path = "crates/evx-core" }
 evx-desktop = { path = "crates/evx-desktop" }
 evx-media = { path = "crates/evx-media" }
+evx-package = { path = "crates/evx-package" }
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.145"
 tauri = { version = "=2.12.3", features = [] }

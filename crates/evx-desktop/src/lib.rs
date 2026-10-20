@@ -38,6 +38,8 @@ struct AppInfo {
     open_path: Option<String>,
     smoke_test: bool,
     smoke_import: Option<String>,
+    /// Smoke runs only: the passphrase to try on an encrypted package.
+    smoke_passphrase: Option<String>,
 }
 
 #[tauri::command]
@@ -50,6 +52,7 @@ fn app_info(app: AppHandle, launch: State<'_, Launch>) -> AppInfo {
         open_path: launch.args.open.as_ref().map(|p| p.display().to_string()),
         smoke_test: launch.args.smoke_test.is_some(),
         smoke_import: launch.args.smoke_import.as_ref().map(|p| p.display().to_string()),
+        smoke_passphrase: launch.args.smoke_test.as_ref().and(launch.args.smoke_passphrase.clone()),
     }
 }
 

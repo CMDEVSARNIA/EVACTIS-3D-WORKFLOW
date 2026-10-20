@@ -3,11 +3,14 @@
 # browser test build) inside a network namespace with no interfaces, on a virtual
 # display, and fails on anything the reports flag: UI not ready, any blocked or
 # attempted network request (this is how a CSP that blocks local images shows up),
-# or a failed import. Screenshots of each run are kept for human review.
+# or a failed import. The Viewer also opens delivery packages of the demo facility
+# (.evx plain and encrypted, a portable folder) and must refuse a wrong passphrase and a
+# package with one altered byte. Screenshots of each run are kept for human review.
 #
 #   scripts/linux/real-app-smoke.sh [out-dir]     (default target/real-app-smoke)
 #
-# Needs: release builds from `pnpm tauri build --no-bundle` for both apps, the
+# Needs: release builds from `pnpm tauri build --no-bundle` for both apps (and the built
+# demo facility, `pnpm turbo run build`), python3, the
 # evx-media `import` example (release), Xvfb, ImageMagick (`import`, `convert`), ffmpeg (for the
 # 360 video sample; the system one is fine for a local test), and unprivileged user
 # namespaces (`unshare -rn`).
@@ -30,6 +33,33 @@ echo "== test media"
 "$example" --write-compass 12288 "$out/plant-room-12k.jpg"
 ffmpeg -hide_banner -loglevel error -y -f lavfi -i 'testsrc2=size=1024x512:rate=15:duration=2' \
   -c:v mpeg4 "$out/walkthrough-360.mkv"
+
+echo "== delivery packages"
+pass='correct horse battery staple'
+node "$repo/tools/package.mjs" --kind evx --out "$out/packages" --name demo >/dev/null
+node "$repo/tools/package.mjs" --kind evx --out "$out/packages" --name demo-encrypted \
+  --passphrase "$pass" >/dev/null
+node "$repo/tools/package.mjs" --kind portable --out "$out/packages" --name portable \
+  --viewer "$viewer" >/dev/null
+chmod +x "$out/packages/portable/EVACTIS-3DWORKFLOW-Viewer.exe"
+# One byte of one panorama tile flipped inside the .evx (a stored ZIP: the bytes are
+# the file's own).
+python3 - "$out/packages/demo.evx" "$out/packages/demo-altered.evx" <<'PY'
+import shutil, sys, zipfile
+src, dst = sys.argv[1:]
+shutil.copy(src, dst)
+entry = next(i for i in zipfile.ZipFile(src).infolist() if '/tiles/' in i.filename)
+with open(dst, 'r+b') as f:
+    f.seek(entry.header_offset)
+    header = f.read(30)
+    at = entry.header_offset + 30 + int.from_bytes(header[26:28], 'little') \
+        + int.from_bytes(header[28:30], 'little') + entry.file_size // 2
+    f.seek(at)
+    byte = f.read(1)[0]
+    f.seek(at)
+    f.write(bytes([byte ^ 0xFF]))
+print('   altered', entry.filename)
+PY
 
 Xvfb "$display" -screen 0 1440x900x24 -nolisten tcp >/dev/null 2>&1 &
 xvfb=$!
@@ -68,8 +98,21 @@ run studio-import-12k "$studio" --smoke-test "$out/studio-import-12k.json" \
   --smoke-import "$out/plant-room-12k.jpg"
 run studio-import-video "$studio" --smoke-test "$out/studio-import-video.json" \
   --smoke-import "$out/walkthrough-360.mkv"
+run viewer-evx "$viewer" --smoke-test "$out/viewer-evx.json" "$out/packages/demo.evx"
+run viewer-evx-encrypted "$viewer" --smoke-test "$out/viewer-evx-encrypted.json" \
+  --smoke-passphrase "$pass" "$out/packages/demo-encrypted.evx"
+run viewer-evx-wrong-passphrase "$viewer" --smoke-test "$out/viewer-evx-wrong-passphrase.json" \
+  --smoke-passphrase "wrong $pass" "$out/packages/demo-encrypted.evx"
+run viewer-evx-altered "$viewer" --smoke-test "$out/viewer-evx-altered.json" \
+  "$out/packages/demo-altered.evx"
+run viewer-portable "$out/packages/portable/EVACTIS-3DWORKFLOW-Viewer.exe" \
+  --smoke-test "$out/viewer-portable.json"
 rmdir "$out/shots" 2>/dev/null || true
 
 node "$repo/tools/smoke/check-reports.mjs" \
   "$out/studio-start.json" "$out/viewer-start.json" \
-  "$out/studio-import-12k.json=import" "$out/studio-import-video.json=import"
+  "$out/studio-import-12k.json=import" "$out/studio-import-video.json=import" \
+  "$out/viewer-evx.json=environment" "$out/viewer-evx-encrypted.json=environment" \
+  "$out/viewer-portable.json=environment" \
+  "$out/viewer-evx-wrong-passphrase.json=refused:passphrase was refused" \
+  "$out/viewer-evx-altered.json=refused:failed its integrity check"

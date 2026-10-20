@@ -967,9 +967,15 @@ dependencies = [
 name = "evactis-3dworkflow-viewer"
 version = "0.1.0"
 dependencies = [
+ "evx-core",
  "evx-desktop",
+ "evx-package",
+ "rfd",
+ "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
+ "tempfile",
 ]
 
 [[package]]
