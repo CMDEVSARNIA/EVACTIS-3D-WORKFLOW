@@ -51,14 +51,14 @@ makes network calls at runtime.
 | `brand/` | Reference images (logo, button kit, website captures). Do not edit. |
 | `packages/schema` | Environment document: Zod schema, `schemaVersion`, migrations, reference checks, i18n helpers. |
 | `packages/brand` | Tokens, logo/lockups, icons, button/marker/sign components, fonts, brand sheet, asset generator. |
-| `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots. Demo page in `demo/`. |
+| `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots, skin chrome. Demo page in `demo/` (`?kiosk`, `?no-skin`, `?bg=`). |
 | `packages/print` | Evacuation plan PDFs (letter/tabloid, bilingual, "You are here") and equipment register (CSV/XLSX/PDF); pdf-lib, no network. |
 | `packages/demo-facility` | Seeded demo facility: procedural panoramas + tiles + validated environment (`pnpm build` renders it); Phase 6 media (HDR office, alarm, photos, PDF; WebM videos from `scripts/video.ts`). |
 | `packages/desktop-bridge` | UI side of the desktop shell (app info, smoke-test report, network watch). |
 | `crates/evx-media` | Studio media pipeline: validation, EXIF, cube tiling, previews, HDR, stereo, video via LGPL FFmpeg, GLB/splat checks. No network code. |
 | `crates/evx-core` | UI-free Rust core (identity, launch args, navigation guard, project location, smoke report). |
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
-| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, contentOps, autolink, Tour/Floors/Safety/Content/Versions); `src/testing/` is the e2e-only in-memory backend. |
+| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, contentOps, skinOps, autolink, Tour/Floors/Safety/Content/Skin/Versions); `src/testing/` is the e2e-only in-memory backend. |
 | `apps/viewer-desktop` | 3DWORKFLOW Viewer desktop: Tauri v2 + vanilla TS. |
 | `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
@@ -163,7 +163,12 @@ makes network calls at runtime.
   - [x] Floor-plan radar widget, photo albums, local PDF reader (pdf.js, no worker, no eval)
   - [x] Studio: import sounds/PDFs/photos (Rust), Content tab, media action editor, timed hotspots
   - [x] Acceptance: each feature demonstrated in the demo facility (`e2e/viewer-rich.spec.ts`), authored in Studio (`e2e/studio-content.spec.ts`)
-- [ ] Phase 7 — Skin designer and Evactis default skin
+- [x] **Phase 7 — Skin designer and Evactis default skin** (awaiting review)
+  - [x] Schema: skins as elements (toolbar, logo, title, radar, language) at 9 anchors per breakpoint (phone/tablet/desktop/kiosk, cascading), safe tokens
+  - [x] Viewer: skin chrome (`skin`, `kiosk` options, `setSkin()`), anchors in flex rows, overflow commands in the menu, published insets, info/help/menu panels, co-branding
+  - [x] Evactis default skin: button-kit toolbar (bottom; fewer buttons on smaller screens), plate lockup top-left, eyebrow scene titles, radar + language top-right, larger kiosk targets
+  - [x] Studio Skin tab: real Viewer at 375/768/1440/1080p (landscape + portrait), select/drag/nudge, anchor picker, offsets, size, visibility, inherit, toolbar buttons + direction (side toolbar), theme colours with contrast refusal, client logo/name, screen widths
+  - [x] Acceptance: layout at 375, 768, 1440 and 1080p kiosk (both orientations) and legibility over the gradient + 3 panoramas (`e2e/viewer-skin.spec.ts`); designer (`e2e/studio-skin.spec.ts`)
 - [ ] Phase 8 — Training modules
 - [ ] Phase 9 — 3D, stereo and VR
 - [ ] Phase 10 — Offline packaging and delivery
@@ -277,6 +282,24 @@ makes network calls at runtime.
 38. **Animated regions take an optional condition** (additive to unreleased schema v1),
     e.g. a strobe only while the alarm sounds.
 39. **Studio previews never autoplay sounds**; authors press "Play in the preview".
+
+## Assumptions (Phase 7)
+
+40. **Kiosk is a deployment option, not a width**: the kiosk layout applies when the
+    environment is delivered as a kiosk (Phase 10 sets it), at any size or orientation.
+41. **Breakpoints follow the Viewer's own width** (phone ≤ 600 px, tablet ≤ 1100 px,
+    editable per skin), so an embedded Viewer lays out like a full-screen one.
+42. **Skins are structured, not free HTML/CSS**: five element types at nine anchors.
+    New widgets (e.g. Phase 8 training progress) are added to the schema and renderer.
+43. **Theme tokens are limited to five brand tokens** in Studio (button face, accent,
+    pressed button, icons/text, corner radius); safety colours are never themeable, and
+    colours that fail the contrast rules are refused (ADR 0014).
+44. **Menu and evacuation route stay on every toolbar**; other buttons without room move
+    into the menu. Audience and live-layer switches live in the menu's settings.
+45. **The VR button stays hidden until Phase 9**; full screen is never offered on a kiosk.
+46. **Client logos are PNG/JPG/WebP** shown from the original file (transparency kept);
+    SVG logos are exported to PNG first. The 3DWORKFLOW Viewer desktop shell gets the
+    skin with environment loading in Phase 10.
 
 ## Requirements added by Evactis
 

@@ -18,3 +18,4 @@ accepted record; supersede it with a new one.
 | [0011](0011-studio-editing.md) | Studio editing: whole-document undo, validated autosave, manifest versions, raster floor plans, suggested links | Accepted |
 | [0012](0012-safety-layer.md) | Safety layer: confirmed content only, plan-drawn routes, local printing and exports | Accepted |
 | [0013](0013-rich-features.md) | Rich features: one panorama shader, adaptive HDR map, local media, pdf.js without a worker | Accepted |
+| [0014](0014-skins.md) | Skins: structured elements at anchors per breakpoint, kiosk as a deployment option, safe tokens only | Accepted |
