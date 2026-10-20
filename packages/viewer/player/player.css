@@ -11,8 +11,63 @@ body {
   position: fixed;
   inset: 0;
 }
-.player-error {
-  margin: 2rem;
-  color: #fff;
-  font-family: system-ui, sans-serif;
+
+/* The player's own screens (passphrase, problems), in the brand's dark chrome. */
+.player-card {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0.75rem;
+  padding: max(1.5rem, 8vh) max(1rem, calc(50vw - 18rem));
+  color: var(--evx-paper, #fafafa);
+  font-family: var(--evx-font-body);
+}
+.player-card__title {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+}
+.player-card__lead {
+  margin: 0;
+  max-inline-size: 34rem;
+  line-height: 1.5;
+}
+.player-card__note {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  color: #c9ced6;
+}
+.player-unlock {
+  display: grid;
+  gap: 0.6rem;
+  inline-size: min(100%, 26rem);
+}
+.player-unlock__label {
+  margin-block-start: 0.75rem;
+  font-weight: 600;
+}
+.player-unlock__input {
+  min-block-size: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid #c9ced6;
+  border-radius: 6px;
+  background: #0a0a0a;
+  color: inherit;
+  font: inherit;
+}
+.player-unlock__input:focus-visible {
+  outline: 3px solid var(--evx-green, #71b043);
+  outline-offset: 2px;
+}
+.player-unlock .evx-cta {
+  justify-self: start;
+}
+.player-unlock__status {
+  margin: 0;
+  min-block-size: 1.5em;
+}
+.player-unlock__status[data-state='wrong'] {
+  color: #ffb4b4;
 }

@@ -24,4 +24,5 @@ packages/brand/src/generated/
 packages/brand/src/tokens.css
 demo-dist
 player-dist
+player-classic-dist
 e2e/__screenshots__/

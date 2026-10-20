@@ -15,6 +15,7 @@ export default tseslint.config(
       '**/sheet-dist/**',
       '**/demo-dist/**',
       '**/player-dist/**',
+      '**/player-classic-dist/**',
       '**/target/**',
       '**/gen/**',
       'test-results/**',

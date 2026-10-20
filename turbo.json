@@ -4,7 +4,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "sheet-dist/**", "demo-dist/**", "player-dist/**"]
+      "outputs": [
+        "dist/**",
+        "sheet-dist/**",
+        "demo-dist/**",
+        "player-dist/**",
+        "player-classic-dist/**"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^build"]

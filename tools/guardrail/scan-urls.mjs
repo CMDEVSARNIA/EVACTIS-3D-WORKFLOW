@@ -24,6 +24,7 @@ const DEFAULT_DIRS = [
   'packages/viewer/dist',
   'packages/viewer/demo-dist',
   'packages/viewer/player-dist',
+  'packages/viewer/player-classic-dist',
 ];
 const SCANNED = new Set([
   '.js',

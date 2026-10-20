@@ -19,3 +19,4 @@ apps/*/src-tauri/gen/
 packages/brand/sheet-dist/
 packages/viewer/demo-dist/
 packages/viewer/player-dist/
+packages/viewer/player-classic-dist/

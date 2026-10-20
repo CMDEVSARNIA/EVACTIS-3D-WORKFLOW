@@ -7,20 +7,10 @@
  *   node e2e/fixtures/scorm.mjs [out-dir]   (default target/e2e-scorm)
  */
 import { execFileSync } from 'node:child_process';
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseEnvironment } from '../../packages/schema/dist/index.js';
-import { scormPackage, unzip } from '../../packages/packaging/src/index.ts';
+import { unzip } from '../../packages/packaging/src/index.ts';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const out = resolve(repo, process.argv[2] ?? 'target/e2e-scorm');
@@ -41,31 +31,29 @@ if (!existsSync(join(playerDir, 'files.json')))
     shell,
   });
 
-const parsed = parseEnvironment(JSON.parse(readFileSync(join(demo, 'environment.json'), 'utf8')));
-if (!parsed.success) throw parsed.error;
-const files = (dir) =>
-  readdirSync(dir).flatMap((n) =>
-    statSync(join(dir, n)).isDirectory() ? files(join(dir, n)) : [join(dir, n)],
-  );
-const player = JSON.parse(readFileSync(join(playerDir, 'files.json'), 'utf8')).map((p) => ({
-  path: p,
-  data: readFileSync(join(playerDir, p)),
-}));
-const assets = ['media', 'plans', 'docs'].flatMap((d) =>
-  files(join(demo, d)).map((f) => ({
-    path: relative(demo, f).split('\\').join('/'),
-    data: readFileSync(f),
-  })),
-);
-
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 for (const [name, version] of [
   ['scorm12', '1.2'],
   ['scorm2004', '2004'],
 ]) {
-  const zip = scormPackage(parsed.environment, { version, player, assets });
-  writeFileSync(join(out, `${name}.zip`), zip);
+  // The real delivery packager (as Studio and IT staff use it), then unpacked as an LMS does.
+  execFileSync(
+    process.execPath,
+    [
+      join(repo, 'tools/package.mjs'),
+      '--kind',
+      'scorm',
+      '--scorm',
+      version,
+      '--out',
+      out,
+      '--name',
+      name,
+    ],
+    { cwd: repo, stdio: ['ignore', 'ignore', 'inherit'] },
+  );
+  const zip = readFileSync(join(out, `${name}.zip`));
   for (const e of unzip(zip)) {
     mkdirSync(dirname(join(out, name, e.name)), { recursive: true });
     writeFileSync(join(out, name, e.name), e.data);
