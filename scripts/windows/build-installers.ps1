@@ -82,8 +82,13 @@ function New-Overlay($app) {
     }
     $viewerExe = Join-Path $repo 'target\release\EVACTIS-3DWORKFLOW-Viewer.exe'
     if (-not (Test-Path $viewerExe)) { throw 'The Viewer must be built before Studio' }
-    if ($signing -and -not (Get-AuthenticodeSignature $viewerExe).SignerCertificate) {
-      throw 'The Viewer program bundled with Studio is not signed'
+    # The bundler signs the Viewer only inside its own installers; the copy Studio
+    # bundles (and copies into every package) is signed here with the same key.
+    if ($signing) {
+      & $sign $viewerExe
+      if ($LASTEXITCODE -ne 0 -or -not (Get-AuthenticodeSignature $viewerExe).SignerCertificate) {
+        throw 'Signing the Viewer program bundled with Studio failed'
+      }
     }
     $resources['../../../target/release/EVACTIS-3DWORKFLOW-Viewer.exe'] = 'viewer/EVACTIS-3DWORKFLOW-Viewer.exe'
     $resources['../../viewer-desktop/src-tauri/icons/icon.ico'] = 'viewer/icon.ico'

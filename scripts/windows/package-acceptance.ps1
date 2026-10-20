@@ -56,6 +56,9 @@ function Refused($r, [string]$tag, [string]$text) {
   Check ($null -ne $r -and "$($r.error)" -like "*$text*") "$tag refused: $($r.error)"
 }
 
+# "Evactis <en dash> <facility>", the name the setup gives its shortcut and entry
+# (written as a code point: scripts stay ASCII).
+$shortName = "Evactis $([char]0x2013) $Name"
 $setup = Join-Path $Packages "$Name Setup.exe"
 $installDir = Join-Path $env:LOCALAPPDATA "Programs\Evactis\$Name"
 $installed = Join-Path $installDir 'EVACTIS-3DWORKFLOW-Viewer.exe'
@@ -70,19 +73,19 @@ Copy-Item (Join-Path $Packages 'portable') $portableDir -Recurse
 try {
   # ---- per-facility installer --------------------------------------------------
   Write-Host "== per-facility installer: $setup"
-  $shortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Evactis – $Name.lnk"
+  $shortcut = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\$shortName.lnk"
   Check ((Get-Item $setup).Length -gt 100MB) 'setup carries the WebView2 offline installer for PCs without the runtime'
   $p = Start-Process $setup -ArgumentList '/S' -Wait -PassThru
   Check ($p.ExitCode -eq 0) "silent per-user install exit code 0 (got $($p.ExitCode))"
   Check (Test-Path $installed) "installed to $installDir"
   Check ((Get-AuthenticodeSignature $installed).SignerCertificate -ne $null) 'installed Viewer program is signed'
-  Check (Test-Path $shortcut) "Start menu shortcut 'Evactis – $Name'"
+  Check (Test-Path $shortcut) "Start menu shortcut '$shortName'"
   if (Test-Path $shortcut) {
     $target = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut).TargetPath
     Check ($target -eq $installed) "shortcut opens the installed Viewer ($target)"
   }
   $entry = Get-ChildItem 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' |
-    Get-ItemProperty | Where-Object { $_.DisplayName -eq "Evactis – $Name" }
+    Get-ItemProperty | Where-Object { $_.DisplayName -eq "$shortName" }
   Check ($null -ne $entry) 'Apps & features entry'
   # Started like the shortcut: no file argument, the environment comes from viewer.json.
   Opened (Invoke-Smoke $installed 'installer-launch') 'installed environment'
