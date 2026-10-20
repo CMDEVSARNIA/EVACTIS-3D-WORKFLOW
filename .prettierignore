@@ -23,4 +23,5 @@ Cargo.lock
 packages/brand/src/generated/
 packages/brand/src/tokens.css
 demo-dist
+player-dist
 e2e/__screenshots__/

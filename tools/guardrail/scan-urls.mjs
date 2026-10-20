@@ -23,6 +23,7 @@ const DEFAULT_DIRS = [
   'packages/desktop-bridge/dist',
   'packages/viewer/dist',
   'packages/viewer/demo-dist',
+  'packages/viewer/player-dist',
 ];
 const SCANNED = new Set([
   '.js',

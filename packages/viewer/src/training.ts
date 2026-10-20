@@ -56,6 +56,8 @@ export interface TrainingHost {
   readonly language: string;
   readonly audience: string | null;
   readonly sceneId: string | null;
+  /** Pre-fills the certificate's name field (e.g. from the LMS). */
+  readonly learnerName: string;
   t(): UiStrings;
   inAudience(ids: string[]): boolean;
   goToScene(id: string): Promise<void>;
@@ -570,6 +572,7 @@ export class Training {
       input.required = true;
       input.maxLength = 80;
       input.autocomplete = 'name';
+      input.value = this.host.learnerName;
       label.append(el('span', '', t.yourName), input);
       const submit = el('button', 'evx-cta', t.download);
       submit.type = 'submit';

@@ -18,3 +18,4 @@ apps/*/src-tauri/gen/
 .env.*
 packages/brand/sheet-dist/
 packages/viewer/demo-dist/
+packages/viewer/player-dist/

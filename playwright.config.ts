@@ -75,5 +75,12 @@ export default defineConfig({
       url: `http://127.0.0.1:${PORT + 6}/index.html`,
       reuseExistingServer: !process.env.CI,
       timeout: 300_000,
+    })
+    .concat({
+      // SCORM 1.2 and 2004 packages of the demo facility, unpacked beside a local LMS harness.
+      command: `node e2e/fixtures/scorm.mjs && node tools/static-server.mjs target/e2e-scorm ${PORT + 7}`,
+      url: `http://127.0.0.1:${PORT + 7}/index.html`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 300_000,
     }),
 });

@@ -18,10 +18,11 @@
       "import": "./dist/evactis-viewer.js"
     },
     "./viewer.css": "./dist/evactis-viewer.css",
-    "./cube": "./src/panorama/cube.ts"
+    "./cube": "./src/panorama/cube.ts",
+    "./player/*": "./player-dist/*"
   },
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json && vite build --config demo/vite.config.ts",
+    "build": "vite build && tsc -p tsconfig.build.json && vite build --config demo/vite.config.ts && vite build --config player/vite.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "dev": "vite --config demo/vite.config.ts"

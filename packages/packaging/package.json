@@ -1,0 +1,25 @@
+{
+  "name": "@evactis-3dworkflow/packaging",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Delivery packages for EVACTIS 3DWORKFLOW environments (SCORM 1.2/2004 now; installers, portable and intranet bundles in Phase 10). Built locally, no network.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@evactis-3dworkflow/print": "workspace:*",
+    "@evactis-3dworkflow/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@evactis-3dworkflow/demo-facility": "workspace:*",
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

@@ -83,6 +83,8 @@ export interface ViewerOptions {
   skin?: SkinInput | null;
   /** Kiosk deployment: the skin's kiosk layout (large touch targets, no full screen). */
   kiosk?: boolean;
+  /** The learner's name (e.g. from an LMS), offered on training certificates. */
+  learnerName?: string;
 }
 
 export interface ViewerEvents extends Record<string, unknown>, TrainingEvents {
@@ -732,6 +734,7 @@ export class Viewer {
       get sceneId() {
         return v.sceneId;
       },
+      learnerName: v.options.learnerName ?? '',
       t: () => uiStrings(v.lang),
       inAudience: (ids: string[]) => v.state.inAudience(ids),
       goToScene: (id: string) => v.goToScene(id),
