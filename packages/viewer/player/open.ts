@@ -49,7 +49,12 @@ export class OpenError extends Error {
 
 export async function openPackage(o: OpenOptions): Promise<Viewer> {
   const t = playerStrings(o.language ?? navigator.language);
+  // Set by the first failure; an integrity failure during start-up (a tile of the first
+  // view) must not be overwritten by the start-up finishing.
+  let failure: unknown = null;
   const fail = (e: unknown) => {
+    if (failure) return;
+    failure = e;
     window.viewer?.destroy();
     delete window.viewer;
     showProblem(o.stage, e instanceof IntegrityError ? t.altered(e.path) : t.cannotOpen(String(e)));
@@ -108,10 +113,15 @@ export async function openPackage(o: OpenOptions): Promise<Viewer> {
       },
     };
     const viewer = await createViewer(o.stage, env, options);
+    if (failure) {
+      viewer.destroy();
+      throw failure;
+    }
     window.viewer = viewer;
     document.documentElement.lang = viewer.language;
     viewer.on('languagechange', ({ language }) => (document.documentElement.lang = language));
     if (o.moduleId) await viewer.startModule(o.moduleId);
+    if (failure) throw failure;
     mark('true');
     return viewer;
   } catch (e) {
