@@ -53,6 +53,9 @@ importers:
       '@evactis-3dworkflow/desktop-bridge':
         specifier: workspace:*
         version: link:../../packages/desktop-bridge
+      '@evactis-3dworkflow/packaging':
+        specifier: workspace:*
+        version: link:../../packages/packaging
       '@evactis-3dworkflow/print':
         specifier: workspace:*
         version: link:../../packages/print
@@ -228,6 +231,9 @@ importers:
       '@evactis-3dworkflow/schema':
         specifier: workspace:*
         version: link:../schema
+      '@evactis-3dworkflow/viewer':
+        specifier: workspace:*
+        version: link:../viewer
     devDependencies:
       '@evactis-3dworkflow/demo-facility':
         specifier: workspace:*

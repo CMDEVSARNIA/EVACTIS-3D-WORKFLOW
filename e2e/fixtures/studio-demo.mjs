@@ -27,7 +27,7 @@ if (!existsSync(join(demo, 'environment.json')))
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(project, { recursive: true });
-for (const dir of ['media', 'plans'])
+for (const dir of ['media', 'plans', 'docs'])
   cpSync(join(demo, dir), join(project, dir), { recursive: true });
 const file = 'Evactis Demo Centre.evxproj';
 writeFileSync(join(project, file), readFileSync(join(demo, 'environment.json')));

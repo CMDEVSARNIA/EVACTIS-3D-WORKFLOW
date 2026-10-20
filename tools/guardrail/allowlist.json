@@ -68,6 +68,18 @@
     {
       "pattern": "^https://jcgt\\.org/published/0007/04/01/$",
       "reason": "Citation inside a Three.js GLSL shader comment (string literal); never fetched"
+    },
+    {
+      "pattern": "^http://www\\.imsproject\\.org/xsd/imscp_rootv1p1p2$",
+      "reason": "SCORM 1.2 content-packaging XML namespace identifier written into imsmanifest.xml; never fetched"
+    },
+    {
+      "pattern": "^http://www\\.imsglobal\\.org/xsd/(imscp_v1p1|imsss)$",
+      "reason": "SCORM 2004 content-packaging and sequencing XML namespace identifiers in imsmanifest.xml; never fetched"
+    },
+    {
+      "pattern": "^http://www\\.adlnet\\.org/xsd/(adlcp_rootv1p2|adlcp_v1p3|adlseq_v1p3|adlnav_v1p3)$",
+      "reason": "ADL SCORM XML namespace identifiers in imsmanifest.xml; never fetched"
     }
   ]
 }

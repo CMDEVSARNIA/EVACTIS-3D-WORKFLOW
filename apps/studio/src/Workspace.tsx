@@ -1,6 +1,6 @@
 /**
  * An open project: the document store (undo/redo, autosave), the project header and
- * its sections — Tour, Floors, Safety, Content, Skin, Media and Versions.
+ * its sections — Tour, Floors, Safety, Content, Training, Skin, Media and Versions.
  */
 import type { Environment } from '@evactis-3dworkflow/schema';
 import { useEffect, useState } from 'react';
@@ -9,6 +9,7 @@ import { FloorsEditor } from './editor/FloorsEditor.tsx';
 import { ContentEditor } from './editor/ContentEditor.tsx';
 import { SafetyEditor } from './editor/SafetyEditor.tsx';
 import { SkinEditor } from './editor/SkinEditor.tsx';
+import { TrainingEditor } from './editor/TrainingEditor.tsx';
 import { DocumentStore } from './editor/store.ts';
 import { TourEditor } from './editor/TourEditor.tsx';
 import { useDocument } from './editor/useDocument.ts';
@@ -16,8 +17,17 @@ import { Versions } from './editor/Versions.tsx';
 import type { Lang, Strings } from './i18n.ts';
 import { Library, type SmokeResult } from './Library.tsx';
 
-type Tab = 'tour' | 'floors' | 'safety' | 'content' | 'skin' | 'media' | 'versions';
-const TABS: Tab[] = ['tour', 'floors', 'safety', 'content', 'skin', 'media', 'versions'];
+type Tab = 'tour' | 'floors' | 'safety' | 'content' | 'training' | 'skin' | 'media' | 'versions';
+const TABS: Tab[] = [
+  'tour',
+  'floors',
+  'safety',
+  'content',
+  'training',
+  'skin',
+  'media',
+  'versions',
+];
 
 /** Text fields keep their own undo (Ctrl+Z while typing undoes typing). */
 function isTextField(target: EventTarget | null): boolean {
@@ -204,6 +214,9 @@ export function Workspace({
             assets={assets}
             onAssetsChanged={() => void api.listLibrary().then((l) => setAssets(l.assets))}
           />
+        )}
+        {tab === 'training' && (
+          <TrainingEditor t={t} lang={lang} store={store} doc={doc} project={project} />
         )}
         {tab === 'skin' && (
           <SkinEditor

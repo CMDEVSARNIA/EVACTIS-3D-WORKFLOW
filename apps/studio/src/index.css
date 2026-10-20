@@ -804,3 +804,17 @@ textarea.evx-field {
   padding: 0.4rem;
   object-fit: contain;
 }
+
+/* Training tab: step list and grouped items (hazards, answers, checklist). */
+.evx-training-steps {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evx-training-item {
+  border: 1px solid var(--evx-rule);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
