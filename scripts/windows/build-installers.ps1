@@ -92,9 +92,14 @@ function New-Overlay($app) {
     }
     $resources['../../../target/release/EVACTIS-3DWORKFLOW-Viewer.exe'] = 'viewer/EVACTIS-3DWORKFLOW-Viewer.exe'
     $resources['../../viewer-desktop/src-tauri/icons/icon.ico'] = 'viewer/icon.ico'
+    # A copy of the Tauri tools folder's NSIS: bundling (and signing) resources must never
+    # touch the bundler's own copy, whose files it checks by hash on every build.
     $nsis = Join-Path $repo 'target\.tauri\NSIS'
     if (-not (Test-Path (Join-Path $nsis 'makensis.exe'))) { throw "NSIS not found in $nsis" }
-    $resources['../../../target/.tauri/NSIS/'] = 'nsis/'
+    $nsisCopy = Join-Path $repo 'target\studio-nsis'
+    Remove-Item -Recurse -Force $nsisCopy -ErrorAction SilentlyContinue
+    Copy-Item -Recurse $nsis $nsisCopy
+    $resources['../../../target/studio-nsis/'] = 'nsis/'
     # Microsoft's offline WebView2 installer (staged above): per-facility setups carry it
     # for PCs without the runtime and run it only there.
     $resources[($env:TAURI_EVX_WEBVIEW2_INSTALLER -replace '\\', '/')] = 'webview2-installer/MicrosoftEdgeWebView2RuntimeInstallerX64.exe'

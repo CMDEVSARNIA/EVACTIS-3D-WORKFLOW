@@ -71,7 +71,7 @@ jobs:
           $viewer = 'target/release/EVACTIS-3DWORKFLOW-Viewer.exe'
           $out = 'out/packages'
           node tools/package.mjs --kind installer --out $out --name 'Evactis Demo Centre' --viewer $viewer `
-            --makensis target/.tauri/NSIS/makensis.exe --webview2-installer target/webview2/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
+            --makensis target/studio-nsis/makensis.exe --webview2-installer target/webview2/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
           node tools/package.mjs --kind portable --out $out --name portable --viewer $viewer
           node tools/package.mjs --kind evx --out $out --name demo
           node tools/package.mjs --kind evx --out $out --name demo-encrypted --passphrase 'correct horse battery staple'
