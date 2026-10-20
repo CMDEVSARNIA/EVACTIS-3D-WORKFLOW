@@ -166,7 +166,13 @@ export async function buildDelivery(i: DeliveryInput, sink: DeliverySink): Promi
       const keep = (f: PackageFile) =>
         i.kind === 'intranet' ? out(`${i.name}/${f.path}`, f.data) : void files.push(f);
       for (const f of i.player.filter((f) => f.path !== 'files.json'))
-        await keep(await packer.add(f.path, f.data, false));
+        await keep(
+          await packer.add(
+            f.path,
+            f.path === 'index.html' ? withPackageCsp(f.data) : f.data,
+            false,
+          ),
+        );
       for await (const f of content()) await keep(f);
       const { files: last, manifest } = await packer.finish();
       if (i.kind === 'intranet') {
@@ -283,6 +289,16 @@ const title = (env: Environment) => localize(env.title, env.settings.defaultLang
 /** CSP for packages opened from disk or served by an intranet: nothing leaves the page. */
 export const PACKAGE_CSP =
   "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self' data:; connect-src 'self' blob: data:; worker-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+
+/** The player page with the package CSP (the app build's own policy also allows its IPC). */
+function withPackageCsp(html: Uint8Array): Uint8Array {
+  const text = new TextDecoder().decode(html);
+  const meta = /<meta http-equiv="Content-Security-Policy" content="[^"]*"\s*\/?>/;
+  if (!meta.test(text)) throw new DeliveryError('The player page has no Content-Security-Policy');
+  return enc(
+    text.replace(meta, `<meta http-equiv="Content-Security-Policy" content="${PACKAGE_CSP}" />`),
+  );
+}
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
