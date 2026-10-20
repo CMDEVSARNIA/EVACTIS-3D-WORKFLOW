@@ -32,6 +32,8 @@ if (-not ((Test-Path $ffmpeg) -and (Test-Path $ffprobe))) {
   $assetName = $null
   if (-not $Url) {
     $headers = @{ 'User-Agent' = 'evactis-3dworkflow-build' }
+    # In CI, the job's own token avoids the shared runners' anonymous API rate limit.
+    if ($env:GITHUB_TOKEN) { $headers.Authorization = "Bearer $env:GITHUB_TOKEN" }
     $release = Invoke-RestMethod 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/tags/latest' -Headers $headers
     $best = $null
     foreach ($a in $release.assets) {
