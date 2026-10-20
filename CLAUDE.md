@@ -51,20 +51,21 @@ makes network calls at runtime.
 | `brand/` | Reference images (logo, button kit, website captures). Do not edit. |
 | `packages/schema` | Environment document: Zod schema, `schemaVersion`, migrations, reference checks, i18n helpers. |
 | `packages/brand` | Tokens, logo/lockups, icons, button/marker/sign components, fonts, brand sheet, asset generator. |
-| `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots, skin chrome. Demo page in `demo/` (`?kiosk`, `?no-skin`, `?bg=`). |
+| `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots, skin chrome. Demo page in `demo/` (`?kiosk`, `?no-skin`, `?bg=`); packaged player in `player/` (→ `player-dist/`, used by packages). |
+| `packages/packaging` | Delivery packages: SCORM 1.2/2004 (manifest, packaged player, environment, media), asset listing, ZIP reader. Phase 10 extends it. |
 | `packages/print` | Evacuation plan PDFs (letter/tabloid, bilingual, "You are here") and equipment register (CSV/XLSX/PDF); pdf-lib, no network. |
 | `packages/demo-facility` | Seeded demo facility: procedural panoramas + tiles + validated environment (`pnpm build` renders it); Phase 6 media (HDR office, alarm, photos, PDF; WebM videos from `scripts/video.ts`). |
 | `packages/desktop-bridge` | UI side of the desktop shell (app info, smoke-test report, network watch). |
 | `crates/evx-media` | Studio media pipeline: validation, EXIF, cube tiling, previews, HDR, stereo, video via LGPL FFmpeg, GLB/splat checks. No network code. |
 | `crates/evx-core` | UI-free Rust core (identity, launch args, navigation guard, project location, smoke report). |
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
-| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, contentOps, skinOps, autolink, Tour/Floors/Safety/Content/Skin/Versions); `src/testing/` is the e2e-only in-memory backend. |
+| `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, contentOps, trainingOps, skinOps, autolink, Tour/Floors/Safety/Content/Training/Skin/Versions); `src/testing/` is the e2e-only in-memory backend. |
 | `apps/viewer-desktop` | 3DWORKFLOW Viewer desktop: Tauri v2 + vanilla TS. |
 | `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
 | `scripts/linux` | Real-app smoke test: built Studio/Viewer in a network namespace with no interfaces, screenshots. |
 | `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator, smoke-report checker. |
-| `e2e/` | Playwright tests; all run in network-blocked mode (`e2e/offline.ts`). Fixtures in `e2e/fixtures/` import real media with the Rust pipeline. |
+| `e2e/` | Playwright tests; all run in network-blocked mode (`e2e/offline.ts`). Fixtures in `e2e/fixtures/` import real media with the Rust pipeline; `e2e/scorm-harness/` is a strict local LMS. |
 | `docs/` | Decisions (`docs/decisions/`), licences, IT deployment, brand usage, signage note. |
 
 ## Commands
@@ -169,7 +170,14 @@ makes network calls at runtime.
   - [x] Evactis default skin: button-kit toolbar (bottom; fewer buttons on smaller screens), plate lockup top-left, eyebrow scene titles, radar + language top-right, larger kiosk targets
   - [x] Studio Skin tab: real Viewer at 375/768/1440/1080p (landscape + portrait), select/drag/nudge, anchor picker, offsets, size, visibility, inherit, toolbar buttons + direction (side toolbar), theme colours with contrast refusal, client logo/name, screen widths
   - [x] Acceptance: layout at 375, 768, 1440 and 1080p kiosk (both orientations) and legibility over the gradient + 3 panoramas (`e2e/viewer-skin.spec.ts`); designer (`e2e/studio-skin.spec.ts`)
-- [ ] Phase 8 — Training modules
+- [x] **Phase 8 — Training modules** (awaiting review)
+  - [x] Schema: navigate, find-item, reach-exit (nearest confirmed route), hazard-hunt, question steps; points, hints, checklist links, start scene
+  - [x] Viewer: step panel, scoring (hint halves, skip zero), checklist, results vs pass mark, per-audience picker, start-module/checklist buttons, module events
+  - [x] Completion certificate PDF made on the device (lazy chunk; core bundle ~199 KB gz)
+  - [x] Demo facility: nearest exit, AED on floor 2 (new AED-2), office hazard hunt (boxes, spill), contractors-only orientation
+  - [x] Packaged player (`packages/viewer/player`) and SCORM 1.2/2004 export (`packages/packaging`), from Studio too
+  - [x] Studio Training tab: modules, steps, hazards clicked/dragged in the preview, answers, checklist, audiences, test in the Viewer, export SCORM
+  - [x] Acceptance: modules end to end in the Viewer (`e2e/viewer-training.spec.ts`) and in a strict local SCORM harness, both versions (`e2e/scorm.spec.ts`); authored and exported in Studio (`e2e/studio-training.spec.ts`)
 - [ ] Phase 9 — 3D, stereo and VR
 - [ ] Phase 10 — Offline packaging and delivery
 - [ ] Phase 11 — 3DWORKFLOW Site Server (optional)
@@ -300,6 +308,25 @@ makes network calls at runtime.
 46. **Client logos are PNG/JPG/WebP** shown from the original file (transparency kept);
     SVG logos are exported to PNG first. The 3DWORKFLOW Viewer desktop shell gets the
     skin with environment loading in Phase 10.
+
+## Assumptions (Phase 8)
+
+47. **"Find your nearest exit" ends at the end of the nearest confirmed primary route**
+    from where the step starts (the assembly point in the demo); with no confirmed
+    route the step is skipped with a message, never improvised.
+48. **Find steps complete when the learner selects the item** (its sign or hotspot), not
+    when it merely comes into view: deliberate, and the same with a keyboard.
+49. **Hazard hunts are clicks within an authored radius** (default 10°), plus "Inspect
+    the centre of the view" for keyboard users. Hazards are drawn into real photos, not
+    overlaid; the demo's are procedural (boxes, spill).
+50. **Scoring**: hint halves a step's points, skip gives none; passing needs the pass mark
+    and a confirmed checklist. Scores are not stored between sessions outside an LMS.
+51. **Certificates carry the name the learner types** (pre-filled from the LMS); they are
+    not verifiable records. A signed/verifiable certificate would need a site server.
+52. **SCORM reports score, completion, success and session time only** (no interactions,
+    no suspend/resume). No XSDs bundled. One SCO per module.
+53. **Packages are built in memory as stored ZIPs** (≤ 65,535 files, ≤ 4 GB); Phase 10's
+    Rust packager takes over for large tours.
 
 ## Requirements added by Evactis
 

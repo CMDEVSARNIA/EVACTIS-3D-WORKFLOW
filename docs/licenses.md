@@ -27,8 +27,8 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | kamadak-exif 0.6.1 | Studio: capture date, GPS, camera from EXIF | BSD-2-Clause | None. |
 | rayon 1.11.0 | Studio: parallel tile rendering | MIT OR Apache-2.0 | None. |
 | rfd 0.16.0 | Studio: native open / folder dialogs (Windows COM dialogs; GTK on Linux) | MIT | None. Used directly instead of tauri-plugin-dialog, which also bundles tauri-plugin-fs. |
-| pdf-lib 1.17.1 (+ pako, @pdf-lib/standard-fonts, @pdf-lib/upng) | Studio: printed evacuation plans and register PDFs (`packages/print`) | MIT (pako: MIT AND Zlib) | None. No network code (its `fetch` mentions are documentation comments). |
-| @pdf-lib/fontkit 1.1.1 | Embeds subsets of the bundled Inter in those PDFs | MIT | None. |
+| pdf-lib 1.17.1 (+ pako, @pdf-lib/standard-fonts, @pdf-lib/upng) | Studio: printed evacuation plans and register PDFs (`packages/print`); Viewer and packaged player: training certificates (lazy chunk, Phase 8) | MIT (pako: MIT AND Zlib) | None. No network code (its `fetch` mentions are documentation comments). |
+| @pdf-lib/fontkit 1.1.1 | Embeds subsets of the bundled Inter in those PDFs (plans, registers, certificates) | MIT | None. |
 | pdfjs-dist 4.10.38 | Viewer: local PDF reader (loaded on first use, separate chunks) | Apache-2.0 (LICENSE text to ship with the Viewer; no NOTICE file) | None as used: no worker URL, `isEvalSupported: false`, no font/CMap/wasm downloads, no streaming or range fetches; only the package file it is given. Its optional native `@napi-rs/canvas` is removed by a pnpm override. |
 
 ## Fonts (bundled — never loaded from Google Fonts or a CDN)

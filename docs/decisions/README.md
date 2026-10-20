@@ -19,3 +19,4 @@ accepted record; supersede it with a new one.
 | [0012](0012-safety-layer.md) | Safety layer: confirmed content only, plan-drawn routes, local printing and exports | Accepted |
 | [0013](0013-rich-features.md) | Rich features: one panorama shader, adaptive HDR map, local media, pdf.js without a worker | Accepted |
 | [0014](0014-skins.md) | Skins: structured elements at anchors per breakpoint, kiosk as a deployment option, safe tokens only | Accepted |
+| [0015](0015-training-and-scorm.md) | Training modules in the Viewer, certificates on the device, SCORM through a packaged player | Accepted |
