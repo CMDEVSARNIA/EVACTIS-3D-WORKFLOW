@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SkinSchema } from './skin.ts';
 import { ActionSchema, ConditionSchema, QuizQuestionSchema, VariableSchema } from './actions.ts';
 import {
   ButtonIconNameSchema,
@@ -236,37 +237,6 @@ export const AutopilotSchema = z.object({
   rotateDegPerSec: z.number().min(0).max(60).default(4),
   idleStartMs: z.number().int().min(0).optional(),
 });
-
-export type SkinNode = {
-  id: string;
-  type: string;
-  props?: Record<string, unknown> | undefined;
-  children?: SkinNode[] | undefined;
-};
-export const SkinNodeSchema: z.ZodType<SkinNode> = z.lazy(() =>
-  z.object({
-    id: IdSchema,
-    type: z.string().min(1),
-    props: z.record(z.string(), z.unknown()).optional(),
-    children: z.array(SkinNodeSchema).optional(),
-  }),
-);
-
-export const SkinSchema = z.object({
-  id: IdSchema,
-  name: z.string().min(1),
-  /** Overrides for brand tokens, e.g. `{ "--evx-navy": "#0A2F5B" }`. */
-  tokens: z.record(z.string(), z.string()).default({}),
-  breakpoints: z
-    .object({
-      phone: z.number().int().positive().default(480),
-      tablet: z.number().int().positive().default(1024),
-      desktop: z.number().int().positive().default(1920),
-    })
-    .default({ phone: 480, tablet: 1024, desktop: 1920 }),
-  root: SkinNodeSchema,
-});
-export type Skin = z.infer<typeof SkinSchema>;
 
 // ---------------------------------------------------------------------------
 // Safety layer

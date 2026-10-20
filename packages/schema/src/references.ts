@@ -42,6 +42,14 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
   const audienceIds = ids(env.audiences, 'audiences');
   const moduleIds = ids(env.modules, 'modules');
   const documentIds = ids(env.documents, 'documents');
+  if (env.skin) {
+    const seen = new Set<string>();
+    env.skin.elements.forEach((el, i) => {
+      if (seen.has(el.id))
+        add(['skin', 'elements', i, 'id'], `Duplicate skin element id "${el.id}"`);
+      seen.add(el.id);
+    });
+  }
 
   const typeIds = new Set<string>([...BUILT_IN_EQUIPMENT_TYPES, ...customTypeIds]);
 
