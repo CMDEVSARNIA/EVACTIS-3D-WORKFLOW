@@ -327,6 +327,9 @@ makes network calls at runtime.
     no suspend/resume). No XSDs bundled. One SCO per module.
 53. **Packages are built in memory as stored ZIPs** (≤ 65,535 files, ≤ 4 GB); Phase 10's
     Rust packager takes over for large tours.
+54. **Object.prototype is hardened by our own script, not Tauri's `freezePrototype`**
+    (which made pdf-lib throw on load in the apps): same protection, overriding inherited
+    names still works; e2e pages get the same script (ADR 0016).
 
 ## Requirements added by Evactis
 

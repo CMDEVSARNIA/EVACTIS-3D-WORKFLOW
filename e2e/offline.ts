@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { test as base, expect } from '@playwright/test';
 
 /**
@@ -9,6 +10,7 @@ import { test as base, expect } from '@playwright/test';
  *     and recorded, and the test fails at teardown if the list is not empty.
  *  Content-Security-Policy violations are recorded and fail the test the same way.
  */
+const HARDEN = fileURLToPath(new URL('../crates/evx-desktop/src/harden.js', import.meta.url));
 const LOCAL = /^(http:\/\/127\.0\.0\.1(:\d+)?\/|data:|blob:|about:)/;
 
 export const test = base.extend<{ networkGuard: { attempts: string[]; csp: string[] } }>({
@@ -33,6 +35,9 @@ export const test = base.extend<{ networkGuard: { attempts: string[]; csp: strin
           ),
         ),
       );
+      // The desktop apps harden Object.prototype before any script; pages under test get
+      // the same treatment, so code that would break in the apps breaks here first.
+      await context.addInitScript({ path: HARDEN });
       await use({ attempts, csp });
       expect(attempts, 'external network requests attempted').toEqual([]);
       expect(csp, 'Content-Security-Policy violations').toEqual([]);

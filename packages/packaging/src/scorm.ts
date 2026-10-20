@@ -7,7 +7,7 @@
  * The XML namespace names below identify the SCORM/IMS vocabularies; nothing is ever
  * fetched from them. No XSD files are bundled (schemaLocation is omitted).
  */
-import { zip } from '@evactis-3dworkflow/print';
+import { zip } from '@evactis-3dworkflow/print/zip';
 import { localize, type Environment, type TrainingModule } from '@evactis-3dworkflow/schema';
 
 export type ScormVersion = '1.2' | '2004';

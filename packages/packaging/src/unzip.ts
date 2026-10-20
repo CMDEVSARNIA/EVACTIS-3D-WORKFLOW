@@ -2,7 +2,7 @@
  * Reads ZIP archives written with stored (uncompressed) entries, as this package and
  * `@evactis-3dworkflow/print` write them. Used to verify packages before delivery.
  */
-import { crc32 } from '@evactis-3dworkflow/print';
+import { crc32 } from '@evactis-3dworkflow/print/zip';
 
 export interface ZipEntry {
   name: string;

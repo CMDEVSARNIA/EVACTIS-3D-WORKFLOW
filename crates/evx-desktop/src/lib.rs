@@ -11,6 +11,10 @@ use evx_core::{identity::PUBLISHER, launch, net, smoke::SmokeReport};
 use serde::Serialize;
 use tauri::{ipc::Invoke, AppHandle, State, WebviewUrl, WebviewWindowBuilder, Wry};
 
+/// Makes `Object.prototype` immutable before any page script runs; replaces Tauri's
+/// `freezePrototype`, which breaks pdf-lib (see the script and ADR 0016).
+const HARDEN: &str = include_str!("harden.js");
+
 /// Per-app window settings.
 pub struct AppSpec {
     /// Full product name, e.g. "EVACTIS 3DWORKFLOW Studio" (window title, reports).
@@ -128,6 +132,7 @@ where
                 .inner_size(width, height)
                 .min_inner_size(960.0, 600.0)
                 .on_navigation(move |url| net::is_app_url(url.as_str(), allow_dev))
+                .initialization_script(HARDEN)
                 .build()?;
 
             if let Some(path) = smoke {
