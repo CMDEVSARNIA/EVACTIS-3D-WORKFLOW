@@ -71,6 +71,8 @@ export const TileSetSchema = z.object({
   format: z.enum(['jpg', 'webp', 'png']).default('jpg'),
 });
 
+export type TileSet = z.infer<typeof TileSetSchema>;
+
 export const SceneMediaSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('equirect'),

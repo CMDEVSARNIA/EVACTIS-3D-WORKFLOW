@@ -81,3 +81,27 @@ describe('SCORM packages', () => {
     expect(execFileSync('unzip', ['-t', p], { encoding: 'utf8' })).toContain('No errors');
   });
 });
+
+describe('package contents', () => {
+  it('lists every file the demo facility uses, and each exists in its build', async () => {
+    const { existsSync } = await import('node:fs');
+    const { packageAssetPaths } = await import('../src/index.ts');
+    const root = join(import.meta.dirname, '../../demo-facility/dist');
+    const paths = packageAssetPaths(env);
+    const missing = paths.filter((p) => !existsSync(join(root, p)));
+    expect(missing).toEqual([]);
+    // Tiles of every scene, the plans, the sound, the PDF, album photos, region clips.
+    for (const re of [
+      /^media\/lobby\/tiles\/f\/0\/0_0\.jpg$/,
+      /^plans\/f1\.png$/,
+      /^media\/audio\//,
+      /^docs\/emergency-procedures\.pdf$/,
+      /^media\/album\//,
+      /^media\/drill\/drill\.webm$/,
+    ])
+      expect(
+        paths.some((p) => re.test(p)),
+        String(re),
+      ).toBe(true);
+  });
+});

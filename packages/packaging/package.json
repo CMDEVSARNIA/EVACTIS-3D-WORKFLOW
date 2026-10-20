@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@evactis-3dworkflow/print": "workspace:*",
-    "@evactis-3dworkflow/schema": "workspace:*"
+    "@evactis-3dworkflow/schema": "workspace:*",
+    "@evactis-3dworkflow/viewer": "workspace:*"
   },
   "devDependencies": {
     "@evactis-3dworkflow/demo-facility": "workspace:*",
