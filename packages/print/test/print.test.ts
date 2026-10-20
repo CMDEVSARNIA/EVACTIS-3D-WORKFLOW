@@ -7,6 +7,7 @@ import { demoEnvironment } from '../../demo-facility/src/environment.ts';
 import {
   PrintError,
   certificatePdf,
+  quickStartPdf,
   crc32,
   evacuationPlanPdf,
   registerCsv,
@@ -248,6 +249,46 @@ describe('training certificates', () => {
     ])
       expect(t, s).toContain(s);
     // Nothing that could phone home: no links or JavaScript in the file.
+    const raw = Buffer.from(bytes).toString('latin1');
+    expect(raw).not.toMatch(/\/URI|\/JavaScript|\/JS\b|\/Launch/);
+  });
+});
+
+describe('quick-start guide', () => {
+  it('prints English then French: how to open this kind, the stamp, the offline notice', async () => {
+    const bytes = await quickStartPdf(
+      {
+        kind: 'portable',
+        facility: { en: 'Riverside Hospital', fr: 'Hôpital Riverside' },
+        createdAt: '2026-10-20T15:00:00Z',
+        producer: 'EVACTIS 3DWORKFLOW Studio 0.1.0',
+        encrypted: true,
+      },
+      { fonts: assets.fonts, logo: assets.logo },
+    );
+    const pdf = save('quick-start.pdf', bytes);
+    expect(run('pdfinfo', pdf)).toMatch(/Pages:\s+2/);
+    const [en, fr] = text(pdf)
+      .split('\f')
+      .map((p) => p.replace(/\s+/g, ' '));
+    for (const s of [
+      'QUICK START',
+      'RIVERSIDE HOSPITAL',
+      'Portable viewer (no installation) · made 2026-10-20 by EVACTIS 3DWORKFLOW Studio 0.1.0',
+      'This environment runs fully offline',
+      'double-click EVACTIS-3DWORKFLOW-Viewer.exe',
+      'Enter the passphrase you were given',
+      'evacuation route button',
+    ])
+      expect(en, s).toContain(s);
+    for (const s of [
+      'DÉMARRAGE RAPIDE',
+      'HÔPITAL RIVERSIDE',
+      'produit le 2026-10-20',
+      'fonctionne entièrement hors ligne',
+      'Entrez la phrase de passe',
+    ])
+      expect(fr, s).toContain(s);
     const raw = Buffer.from(bytes).toString('latin1');
     expect(raw).not.toMatch(/\/URI|\/JavaScript|\/JS\b|\/Launch/);
   });
