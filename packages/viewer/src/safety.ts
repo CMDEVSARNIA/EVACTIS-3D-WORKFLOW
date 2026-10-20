@@ -18,6 +18,7 @@ import {
   type Hotspot,
   type Route,
   type Scene,
+  type WorldPoint,
 } from '@evactis-3dworkflow/schema';
 import { escapeXml, iconSvg, signSvg } from '@evactis-3dworkflow/brand';
 import type { UiStrings } from './i18n.ts';
@@ -70,7 +71,7 @@ export function equipmentHotspots(
     const info = equipmentTypeInfo(env, e.typeId);
     const title = equipmentTitle(env, e, lang);
     for (const p of e.placements) {
-      if (p.sceneId !== sceneId || p.position.kind !== 'spherical') continue;
+      if (p.sceneId !== sceneId) continue;
       const appearance = info.sign
         ? { kind: 'safety-sign' as const, sign: info.sign, style: p.style }
         : ({
@@ -126,11 +127,35 @@ export interface RouteView {
  * Chevrons on the floor leading the way out of the current scene, and the route banner
  * (route name, where it ends, the alternative route, the floor plan, close).
  */
+/** Metres between chevrons along a 3D route path. */
+const PATH_STEP = 0.9;
+
+/** Points every `step` metres along a polyline (from its start), at most `max`. */
+export function samplePath(points: WorldPoint[], step: number, max: number): WorldPoint[] {
+  const out: WorldPoint[] = [];
+  let next = 0; // distance of the next sample from the start
+  let walked = 0;
+  for (let i = 0; i < points.length - 1 && out.length < max; i++) {
+    const a = points[i]!;
+    const b = points[i + 1]!;
+    const len = Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z);
+    while (next <= walked + len && out.length < max) {
+      const t = len ? (next - walked) / len : 0;
+      out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t });
+      next += step;
+    }
+    walked += len;
+  }
+  return out;
+}
+
 export class RouteLayer {
   readonly el: HTMLDivElement;
   readonly banner: HTMLDivElement;
   private chevrons: HTMLElement[] = [];
   private heading: { yaw: number; pitch: number } | null = null;
+  /** GLB and splat scenes: points along the route drawn on the model's floor. */
+  private path: WorldPoint[] | null = null;
 
   constructor(
     host: HTMLElement,
@@ -163,6 +188,9 @@ export class RouteLayer {
     this.el.replaceChildren();
     this.chevrons = [];
     this.heading = view && scene ? routeHeading(view.route, scene.id) : null;
+    const drawn = view && scene ? view.route.paths3d.find((x) => x.sceneId === scene.id) : null;
+    this.path = drawn ? samplePath(drawn.points, PATH_STEP, 14) : null;
+    if (this.path) this.heading = null;
     this.banner.hidden = !view;
     if (!view) {
       this.banner.replaceChildren();
@@ -171,8 +199,8 @@ export class RouteLayer {
     const r = view.route;
     this.el.dataset.routeId = r.id;
     this.el.dataset.priority = r.priority;
-    if (this.heading)
-      for (let i = 0; i < CHEVRONS; i++) {
+    if (this.heading || this.path)
+      for (let i = 0; i < (this.path?.length ?? CHEVRONS); i++) {
         const c = document.createElement('span');
         c.className = 'evx-viewer__chevron';
         c.style.setProperty('--i', String(i));
@@ -196,7 +224,11 @@ export class RouteLayer {
     const hint = document.createElement('p');
     hint.className = 'evx-viewer__route-hint';
     hint.setAttribute('aria-live', 'polite');
-    hint.textContent = atEnd ? t.reached(endName) : this.heading ? t.follow(endName) : t.offRoute;
+    hint.textContent = atEnd
+      ? t.reached(endName)
+      : this.heading || this.path
+        ? t.follow(endName)
+        : t.offRoute;
     const buttons = document.createElement('div');
     buttons.className = 'evx-viewer__route-actions';
     const button = (text: string, fn: () => void, cls = '') => {
@@ -220,14 +252,35 @@ export class RouteLayer {
   }
 
   /** Repositions the chevrons for the current camera (after each rendered frame). */
+  /**
+   * Where the chevrons are, for VR: directions from the reader and distances in metres
+   * (panoramas: on a floor 1.6 m below the eye). Empty when no route is shown.
+   */
+  get points(): { yaw: number; pitch: number; distance: number }[] {
+    const h = this.heading;
+    if ((!h && !this.path) || !this.chevrons.length) return [];
+    if (this.path) return this.path.map((q) => this.renderer.toView(q));
+    return this.chevrons.map((_, i) => {
+      const pitch = -40 + ((h!.pitch + 4 + 40) * i) / (CHEVRONS - 1);
+      const distance = pitch < -10 ? Math.min(6, 1.6 / Math.sin(-pitch * (Math.PI / 180))) : 6;
+      return { yaw: h!.yaw, pitch, distance };
+    });
+  }
+
   update(): void {
     const h = this.heading;
-    if (!h || !this.chevrons.length) return;
-    // From near the reader's feet towards the heading, receding along the floor.
-    const pts = this.chevrons.map((_, i) => {
-      const pitch = -40 + ((h.pitch + 4 + 40) * i) / (CHEVRONS - 1);
-      return this.renderer.project(h.yaw, pitch);
-    });
+    if ((!h && !this.path) || !this.chevrons.length) return;
+    // Panoramas: from near the reader's feet towards the heading, receding along the
+    // floor. 3D scenes: along the drawn path, seen from the viewpoint.
+    const pts = this.path
+      ? this.path.map((q) => {
+          const d = this.renderer.toView(q);
+          return this.renderer.project(d.yaw, d.pitch);
+        })
+      : this.chevrons.map((_, i) => {
+          const pitch = -40 + ((h!.pitch + 4 + 40) * i) / (CHEVRONS - 1);
+          return this.renderer.project(h!.yaw, pitch);
+        });
     pts.forEach((p, i) => {
       const el = this.chevrons[i]!;
       if (!p) {

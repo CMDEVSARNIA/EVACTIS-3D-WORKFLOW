@@ -49,6 +49,9 @@ export interface SkinHost {
   readonly trainingActive: boolean;
   showModules(): Promise<void>;
   showChecklist(): Promise<void>;
+  /** Whether a VR headset session is possible here. */
+  readonly vrAvailable: boolean;
+  enterVr(): Promise<void>;
 }
 
 const ICON: Record<SkinCommand, IconName> = {
@@ -245,9 +248,9 @@ export class SkinChrome {
     switch (c) {
       case 'fullscreen':
         return !this.kiosk && !!document.fullscreenEnabled;
-      // VR arrives with Phase 9; until then the button is not offered.
+      // Shown only where the browser can start a headset session.
       case 'vr':
-        return false;
+        return this.host.vrAvailable;
       case 'floor-plan':
         return planFloors(this.host.environment).length > 0;
       case 'evac-route':
@@ -334,6 +337,7 @@ export class SkinChrome {
         await h.showChecklist();
         return;
       case 'vr':
+        await h.enterVr();
         return;
     }
   }

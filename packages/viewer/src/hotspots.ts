@@ -1,4 +1,4 @@
-import type { Hotspot } from '@evactis-3dworkflow/schema';
+import type { Hotspot, WorldPoint } from '@evactis-3dworkflow/schema';
 import { localize } from '@evactis-3dworkflow/schema';
 import { createButton, createMarker, createSign } from '@evactis-3dworkflow/brand';
 import type { PanoramaRenderer } from './panorama/renderer.ts';
@@ -23,8 +23,13 @@ export class HotspotLayer {
     private activate: (h: Hotspot) => void,
     /** Keyboard focus on a hotspot outside the view turns the view towards it. */
     private reveal: (h: Hotspot) => void,
-    /** Editing mode only: a point hotspot was dragged to a new direction. */
-    private move: ((h: Hotspot, yaw: number, pitch: number) => void) | null = null,
+    /**
+     * Editing mode only: a point hotspot was dragged to a new direction (and, in GLB and
+     * splat scenes, onto the surface found there).
+     */
+    private move:
+      | ((h: Hotspot, yaw: number, pitch: number, point: WorldPoint | null) => void)
+      | null = null,
   ) {
     this.el = document.createElement('div');
     this.el.className = 'evx-viewer__hotspots';
@@ -39,6 +44,11 @@ export class HotspotLayer {
     for (const i of this.items) i.el.remove();
     this.items = hotspots.map((h) => ({ hotspot: h, el: this.build(h, lang) }));
     this.update();
+  }
+
+  /** The hotspots shown and their elements (VR draws the same kit artwork). */
+  get shown(): readonly { hotspot: Hotspot; el: HTMLElement | SVGElement }[] {
+    return this.items;
   }
 
   /** Editing: marks one hotspot as selected (or none). */
@@ -75,7 +85,7 @@ export class HotspotLayer {
       this.drag = null;
       if (moved && d && commit) {
         const dir = this.renderer.unproject(d.x, d.y);
-        this.move!(h, dir.yaw, dir.pitch);
+        this.move!(h, dir.yaw, dir.pitch, this.renderer.pick(d.x, d.y));
       }
       if (moved) {
         // The browser still fires a click after the drag; swallow it.
@@ -129,7 +139,7 @@ export class HotspotLayer {
       el = b;
     }
     el.dataset.hotspotId = h.id;
-    if (this.move && h.position.kind === 'spherical') this.draggable(h, el as HTMLElement);
+    if (this.move && h.position.kind !== 'polygon') this.draggable(h, el as HTMLElement);
     el.addEventListener('click', () => this.activate(h));
     el.addEventListener('focus', () => {
       if (el.classList.contains('evx-viewer__hotspot--offscreen')) this.reveal(h);
@@ -141,8 +151,10 @@ export class HotspotLayer {
   update(): void {
     for (const { hotspot: h, el } of this.items) {
       const p = h.position;
-      if (p.kind === 'spherical') {
-        const s = this.drag?.id === h.id ? this.drag : this.renderer.project(p.yaw, p.pitch);
+      if (p.kind === 'spherical' || p.kind === 'world') {
+        // World points (GLB and splat scenes) are seen from the viewpoint, like directions.
+        const dir = p.kind === 'world' ? this.renderer.toView(p) : p;
+        const s = this.drag?.id === h.id ? this.drag : this.renderer.project(dir.yaw, dir.pitch);
         const html = el as HTMLElement;
         const w = this.el.clientWidth;
         const hgt = this.el.clientHeight;
@@ -163,9 +175,6 @@ export class HotspotLayer {
           'points',
           pts.map((q) => `${q!.x.toFixed(1)},${q!.y.toFixed(1)}`).join(' '),
         );
-      } else {
-        // World-space (GLB/splat) hotspots arrive with Phase 9.
-        (el as HTMLElement).style.visibility = 'hidden';
       }
     }
   }

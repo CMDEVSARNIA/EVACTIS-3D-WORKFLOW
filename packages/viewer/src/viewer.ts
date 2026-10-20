@@ -7,6 +7,7 @@ import type {
   Scene,
   TrainingModule,
   Transition,
+  WorldPoint,
 } from '@evactis-3dworkflow/schema';
 import {
   localize,
@@ -38,6 +39,7 @@ import { PanoramaRenderer, type View } from './panorama/renderer.ts';
 import { pdfView } from './pdf.ts';
 import { Radar } from './radar.ts';
 import { SkinChrome } from './skin.ts';
+import type { VrCommand, VrHost, VrTarget, VrUi } from './vr.ts';
 import { equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
 import { runTransition } from './transitions.ts';
@@ -85,6 +87,11 @@ export interface ViewerOptions {
   kiosk?: boolean;
   /** The learner's name (e.g. from an LMS), offered on training certificates. */
   learnerName?: string;
+  /**
+   * VR without controllers: how long (ms) the reader looks at something to select it.
+   * Default 1500; 0 turns gaze selection off.
+   */
+  vrDwellMs?: number;
 }
 
 export interface ViewerEvents extends Record<string, unknown>, TrainingEvents {
@@ -92,10 +99,13 @@ export interface ViewerEvents extends Record<string, unknown>, TrainingEvents {
   scenechange: { sceneId: string; previousSceneId: string | null };
   viewchange: View;
   hotspotclick: { hotspotId: string };
-  /** A click (not a drag) on the panorama itself, with the direction under it. */
-  panoramaclick: { x: number; y: number; yaw: number; pitch: number };
-  /** Editing mode: a hotspot was dragged to a new direction. */
-  hotspotmove: { hotspotId: string; yaw: number; pitch: number };
+  /**
+   * A click (not a drag) on the panorama itself, with the direction under it; in GLB and
+   * splat scenes also the surface point there (model metres), when one is hit.
+   */
+  panoramaclick: { x: number; y: number; yaw: number; pitch: number; point?: WorldPoint | null };
+  /** Editing mode: a hotspot was dragged to a new direction (and surface point, in 3D). */
+  hotspotmove: { hotspotId: string; yaw: number; pitch: number; point?: WorldPoint | null };
   /** Every action executed, including the ones the core delegates (floor plan, routes, modules…). */
   action: { action: Action; hotspotId: string | null };
   answer: { correct: boolean; choiceId: string | null; points: number };
@@ -110,6 +120,10 @@ export interface ViewerEvents extends Record<string, unknown>, TrainingEvents {
   floorplan: { floorId: string };
   /** A live layer changed state (e.g. normal → smoke). */
   livelayerchange: { layerId: string; stateId: string };
+  /** The reader entered VR (a WebXR headset session started). */
+  vrstart: Record<string, never>;
+  /** The VR session ended. */
+  vrend: Record<string, never>;
 }
 
 export interface GoToOptions {
@@ -121,10 +135,11 @@ export interface GoToOptions {
 
 const EXTERNAL = /^[a-z][a-z0-9+.-]*:/i;
 
-/** Direction of a hotspot's centre (polygons: the vertex average). */
-function hotspotCentre(h: Hotspot): { yaw: number; pitch: number } | null {
+/** Direction of a hotspot's centre (polygons: the vertex average; world points: from the viewpoint). */
+function hotspotCentre(h: Hotspot, r: PanoramaRenderer): { yaw: number; pitch: number } | null {
   const p = h.position;
   if (p.kind === 'spherical') return p;
+  if (p.kind === 'world') return r.toView(p);
   if (p.kind === 'polygon') {
     const n = p.points.length;
     const yaw0 = p.points[0]!.yaw;
@@ -161,6 +176,8 @@ export class Viewer {
   private videoBar: VideoBar;
   private radar: Radar | null = null;
   private chrome: SkinChrome | null = null;
+  private vrSupported = false;
+  private vr: { session: XRSession; ui: VrUi } | null = null;
   private trainer: Training;
   private isMuted = false;
   private timedKey = '';
@@ -212,11 +229,12 @@ export class Viewer {
       this.renderer,
       (h) => void this.activate(h),
       (h) => {
-        const c = hotspotCentre(h);
+        const c = hotspotCentre(h, this.renderer);
         if (c) void this.lookAt({ yaw: c.yaw, pitch: c.pitch }, 400);
       },
       options.editing
-        ? (h, yaw, pitch) => this.events.emit('hotspotmove', { hotspotId: h.id, yaw, pitch })
+        ? (h, yaw, pitch, point) =>
+            this.events.emit('hotspotmove', { hotspotId: h.id, yaw, pitch, point })
         : null,
     );
     this.routes = new RouteLayer(this.element, this.renderer, {
@@ -255,6 +273,9 @@ export class Viewer {
     ] as const)
       this.events.on(e, refresh);
     this.events.on('languagechange', () => this.trainer.render());
+    for (const e of ['routechange', 'languagechange'] as const)
+      this.events.on(e, () => this.vr?.ui.refresh());
+    void this.checkVr();
     if (options.skin) this.setSkin(options.skin, options.kiosk);
     // Sound may only start after a gesture inside the page.
     const unlock = () => this.sounds.unlock();
@@ -337,7 +358,7 @@ export class Viewer {
     this.scene = now;
     if (JSON.stringify(now.media) !== JSON.stringify(before.media)) {
       const view = this.getView();
-      await this.renderer.show(this.layers.media(now.id, now.media), this.resolver);
+      await this.renderer.show(this.layers.media(now.id, now.media), this.resolver, now.viewpoint);
       this.setView(view);
     }
     this.sceneExtras(now);
@@ -613,7 +634,7 @@ export class Viewer {
       const media = this.layers.media(scene.id, scene.media);
       if (JSON.stringify(media) !== JSON.stringify(this.shownMedia)) {
         const view = this.getView();
-        await this.renderer.show(media, this.resolver);
+        await this.renderer.show(media, this.resolver, scene.viewpoint);
         this.shownMedia = media;
         this.setView(view);
       }
@@ -656,6 +677,7 @@ export class Viewer {
 
   destroy(): void {
     this.destroyed = true;
+    void this.vr?.session.end().catch(() => undefined);
     cancelAnimationFrame(this.animation);
     this.sounds.dispose();
     this.chrome?.dispose();
@@ -823,6 +845,126 @@ export class Viewer {
       },
       showModules: () => v.showModules(),
       showChecklist: () => v.showChecklist(),
+      get vrAvailable() {
+        return v.vrAvailable;
+      },
+      enterVr: () => v.enterVr(),
+    };
+  }
+
+  // ---------------------------------------------------------------- VR
+
+  /** Asks the browser once whether a VR headset session is possible here. */
+  private async checkVr() {
+    const xr = typeof navigator !== 'undefined' ? navigator.xr : undefined;
+    this.vrSupported = !!xr && (await xr.isSessionSupported('immersive-vr').catch(() => false));
+    // The VR button joins the toolbar only now that support is known.
+    if (this.vrSupported) this.chrome?.layout(true);
+  }
+
+  /** Whether this device can show the environment in a VR headset. */
+  get vrAvailable(): boolean {
+    return this.vrSupported && !this.options.editing;
+  }
+
+  /** Whether a VR session is running. */
+  get inVr(): boolean {
+    return !!this.vr;
+  }
+
+  /**
+   * Shows the environment in a VR headset (WebXR). Call from a user gesture (the VR
+   * button does). Resolves once the headset shows the scene.
+   */
+  async enterVr(): Promise<void> {
+    if (this.vr) return;
+    const xr = navigator.xr;
+    if (!xr) throw new Error('VR is not available in this browser');
+    // The session is requested first, while the gesture still counts.
+    const session = await xr.requestSession('immersive-vr');
+    const { VrUi } = await import('./vr.ts');
+    const ui = new VrUi(this.vrHost(), session, this.options.vrDwellMs ?? 1500);
+    this.vr = { session, ui };
+    session.addEventListener('end', () => {
+      ui.dispose();
+      this.vr = null;
+      this.chrome?.refresh();
+      this.events.emit('vrend', {});
+    });
+    await this.renderer.present(session, (camera, time) => ui.frame(camera, time));
+    this.chrome?.refresh();
+    this.events.emit('vrstart', {});
+  }
+
+  /** Ends the VR session, back to the screen. */
+  async exitVr(): Promise<void> {
+    await this.vr?.session.end();
+  }
+
+  /**
+   * What the reader can select in the headset and where (reference-space metres; the
+   * reader starts at the origin looking down -Z). For automation and assistive tools.
+   */
+  get vrItems(): { id: string; kind: string; label: string; x: number; y: number; z: number }[] {
+    return (this.vr?.ui.items ?? []).map((i) => ({
+      id: i.id,
+      kind: i.kind,
+      label: i.label,
+      x: i.position.x,
+      y: i.position.y,
+      z: i.position.z,
+    }));
+  }
+
+  private vrHost(): VrHost {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const v = this;
+    const lang = () => (v.lang.startsWith('fr') ? 'fr' : 'en');
+    const PANORAMA_DISTANCE = 3;
+    return {
+      renderer: v.renderer,
+      dialog: v.dialogs.el,
+      font: getComputedStyle(v.element).getPropertyValue('--evx-font-body') || 'sans-serif',
+      lang,
+      label: (c: VrCommand) => {
+        const t = uiStrings(v.lang);
+        if (c === 'exit') return t.exitVr;
+        if (c === 'evac-route') return t.evacuationRoute;
+        return t[c];
+      },
+      targets: (): VrTarget[] =>
+        v.hotspots.shown.flatMap(({ hotspot: h, el }) => {
+          const c = hotspotCentre(h, v.renderer);
+          if (!c) return [];
+          const p = h.position;
+          const distance = p.kind === 'world' ? v.renderer.toView(p).distance : PANORAMA_DISTANCE;
+          return [
+            {
+              id: h.id,
+              label: el.getAttribute('aria-label') ?? '',
+              yaw: c.yaw,
+              pitch: c.pitch,
+              distance,
+              element: el,
+              activate: () => void v.activate(h),
+            },
+          ];
+        }),
+      route: () => v.routes.points,
+      routeActive: () => !!v.route,
+      is3d: () => v.renderer.is3d,
+      command: (c: VrCommand) => {
+        if (c === 'evac-route') {
+          if (v.route) v.hideRoute();
+          else void v.showRoute();
+        } else if (c !== 'exit') {
+          if (v.chrome) void v.chrome.run(c);
+          else if (c === 'home') {
+            const first = v.environment.initialSceneId ?? v.scenes[0]?.id;
+            if (first) void v.goToScene(first);
+          }
+        }
+      },
     };
   }
 
@@ -951,6 +1093,7 @@ export class Viewer {
 
   private refreshHotspots() {
     this.hotspots.set(this.visibleHotspots(), this.lang);
+    this.vr?.ui.refresh();
     this.hotspots.select(this.selected);
   }
 
@@ -971,7 +1114,8 @@ export class Viewer {
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;
       const at = this.screenToView(x, y);
-      this.events.emit('panoramaclick', { x, y, ...at });
+      const point = this.renderer.is3d ? this.renderer.pick(x, y) : undefined;
+      this.events.emit('panoramaclick', { x, y, ...at, point });
       if (!this.options.editing) this.trainer.onPanoramaClick(at);
     });
   }
@@ -983,7 +1127,10 @@ export class Viewer {
       throw new Error(`Scene "${sceneId}" is not available to this audience`);
     const previous = this.scene?.id ?? null;
     const transition: Transition = {
-      kind: opts.transition?.kind ?? (previous ? 'fade' : 'cut'),
+      // In the headset the screen overlay is not seen: scenes change at once.
+      kind: this.renderer.presenting
+        ? 'cut'
+        : (opts.transition?.kind ?? (previous ? 'fade' : 'cut')),
       durationMs: opts.transition?.durationMs ?? 800,
     };
     const snapshot = previous && transition.kind !== 'cut' ? this.renderer.snapshot() : null;
@@ -995,7 +1142,7 @@ export class Viewer {
       opts.towards ?? null,
       async () => {
         const media = this.layers.media(scene.id, scene.media);
-        await this.renderer.show(media, this.resolver);
+        await this.renderer.show(media, this.resolver, scene.viewpoint);
         this.shownMedia = media;
         this.scene = scene;
         this.state.visited.add(scene.id);

@@ -2,19 +2,26 @@ import {
   Box3,
   BufferAttribute,
   BufferGeometry,
+  DirectionalLight,
   Frustum,
+  Group,
+  HemisphereLight,
   LinearFilter,
   Matrix4,
   Mesh,
   PerspectiveCamera,
+  Raycaster,
   SRGBColorSpace,
   Scene,
   Texture,
+  Vector2,
   Vector3,
   VideoTexture,
   WebGLRenderer,
+  type Object3D,
+  type XRTargetRaySpace,
 } from 'three';
-import type { SceneMedia } from '@evactis-3dworkflow/schema';
+import type { SceneMedia, WorldPoint } from '@evactis-3dworkflow/schema';
 import { loadImage, type AssetResolver } from '../assets.ts';
 import { DEG, direction } from '../math.ts';
 import { adaptation, type LuminanceMap } from './adaptive.ts';
@@ -23,7 +30,32 @@ import { Grading, NEUTRAL, type Grade } from './grading.ts';
 import { RegionLayer, type RegionSource } from './regions.ts';
 
 type Equirect = Extract<SceneMedia, { type: 'equirect' }>;
+type Stereo = Extract<SceneMedia, { type: 'equirect-stereo' }>;
 type Video360 = Extract<SceneMedia, { type: 'video360' }>;
+type Model = Extract<SceneMedia, { type: 'glb' }>;
+type Splat = Extract<SceneMedia, { type: 'splat' }>;
+
+/** Which half of a stereo frame each eye sees. */
+type StereoLayout = 'top-bottom' | 'side-by-side';
+
+/**
+ * Restricts a sphere's UVs to one eye's half of a stereo frame (top = left eye for
+ * top-bottom, left half = left eye for side-by-side, as most cameras write them).
+ */
+function eyeUVs(geo: BufferGeometry, layout: StereoLayout, eye: 'left' | 'right') {
+  const uv = geo.getAttribute('uv') as BufferAttribute;
+  for (let i = 0; i < uv.count; i++)
+    if (layout === 'top-bottom') uv.setY(i, (eye === 'left' ? 0.5 : 0) + uv.getY(i) / 2);
+    else uv.setX(i, (eye === 'left' ? 0 : 0.5) + uv.getX(i) / 2);
+  uv.needsUpdate = true;
+}
+
+/**
+ * Layers for stereo: the left eye on layer 1, the right on layer 2. In WebXR, three.js
+ * gives each eye camera its layer; the flat-screen camera also sees layer 1 (left eye).
+ */
+export const LEFT_EYE = 1;
+export const RIGHT_EYE = 2;
 
 export interface View {
   yaw: number;
@@ -102,12 +134,16 @@ function textureFrom(img: HTMLImageElement | HTMLVideoElement): Texture {
   return t;
 }
 
-interface Content {
+export interface Content {
   readonly group: Scene;
   readonly pending: number;
   readonly video: HTMLVideoElement | null;
+  /** 3D scenes: near and far clip distances (metres). Panoramas use the defaults. */
+  readonly depth?: { near: number; far: number };
   load(): Promise<void>;
   update(camera: PerspectiveCamera, viewportHeightPx: number): void;
+  /** 3D scenes: the nearest surface along a ray (in the renderer's space), if any. */
+  pick?(ray: Raycaster): Vector3 | null;
   dispose(): void;
 }
 
@@ -303,17 +339,25 @@ class VideoContent implements Content {
         v.removeEventListener('loadeddata', done);
         v.removeEventListener('error', bad);
         const tex = textureFrom(v);
-        const geo = sphereGeometry(5);
-        // Stereo: keep the left eye (top half, or left half).
-        if (this.media.stereo !== 'mono') {
-          const uv = geo.getAttribute('uv') as BufferAttribute;
-          for (let i = 0; i < uv.count; i++)
-            if (this.media.stereo === 'top-bottom') uv.setY(i, 0.5 + uv.getY(i) / 2);
-            else uv.setX(i, uv.getX(i) / 2);
-        }
         const mat = this.grading.material(tex);
-        this.group.add(new Mesh(geo, mat));
-        this.disposables.push(tex, geo, mat);
+        this.disposables.push(tex, mat);
+        const stereo = this.media.stereo;
+        if (stereo === 'mono') {
+          const geo = sphereGeometry(5);
+          this.group.add(new Mesh(geo, mat));
+          this.disposables.push(geo);
+        } else
+          for (const [eye, layer] of [
+            ['left', LEFT_EYE],
+            ['right', RIGHT_EYE],
+          ] as const) {
+            const geo = sphereGeometry(5);
+            eyeUVs(geo, stereo, eye);
+            const mesh = new Mesh(geo, mat);
+            mesh.layers.set(layer);
+            this.group.add(mesh);
+            this.disposables.push(geo);
+          }
         ok();
       };
       const bad = () => fail(new Error(`The video could not be played: ${this.media.source}`));
@@ -334,13 +378,110 @@ class VideoContent implements Content {
   }
 }
 
-/** WebGL panorama renderer. Renders on demand only (nothing runs while the view is still). */
+/**
+ * A stereo panorama: each eye's half on its own sphere and layer. On a flat screen the
+ * left eye shows; in VR each eye sees its own, so depth reads as in the original.
+ */
+class StereoContent implements Content {
+  readonly group = new Scene();
+  readonly video = null;
+  readonly pending = 0;
+  private disposables: { dispose(): void }[] = [];
+  private abort = new AbortController();
+
+  constructor(
+    private media: Stereo,
+    private resolve: AssetResolver,
+    private grading: Grading,
+  ) {}
+
+  async load(): Promise<void> {
+    const img = await loadImage(this.resolve(this.media.source), this.abort.signal);
+    const tex = textureFrom(img);
+    const mat = this.grading.material(tex);
+    this.disposables.push(tex, mat);
+    for (const [eye, layer] of [
+      ['left', LEFT_EYE],
+      ['right', RIGHT_EYE],
+    ] as const) {
+      const geo = sphereGeometry(5);
+      eyeUVs(geo, this.media.layout, eye);
+      const mesh = new Mesh(geo, mat);
+      mesh.layers.set(layer);
+      mesh.name = `eye-${eye}`;
+      this.group.add(mesh);
+      this.disposables.push(geo);
+    }
+  }
+
+  update(): void {}
+
+  dispose(): void {
+    this.abort.abort();
+    for (const d of this.disposables) d.dispose();
+    this.group.clear();
+  }
+}
+
+/**
+ * A GLB model (glTF 2.0 binary): loaded on demand with three.js's GLTFLoader, lit by a
+ * sky/ground light and a sun. The model sits so that the scene's viewpoint is at the
+ * camera; the view turns around it like a panorama. Draco and meshopt compression need
+ * decoders (WebAssembly, workers) the strict CSP forbids, so such files are refused.
+ */
+class ModelContent implements Content {
+  readonly group = new Scene();
+  readonly video = null;
+  readonly pending = 0;
+  readonly depth = { near: 0.05, far: 500 };
+  private model: Object3D | null = null;
+
+  constructor(
+    private media: Model,
+    private resolve: AssetResolver,
+  ) {}
+
+  async load(): Promise<void> {
+    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+    const gltf = await new GLTFLoader().loadAsync(this.resolve(this.media.source)).catch((e) => {
+      throw new Error(`The 3D model could not be opened (${this.media.source}): ${String(e)}`);
+    });
+    this.model = gltf.scene;
+    const sun = new DirectionalLight(0xffffff, 1.6);
+    sun.position.set(4, 10, 6);
+    this.group.add(new HemisphereLight(0xf4f6f8, 0x5a5650, 1.4), sun, gltf.scene);
+  }
+
+  update(): void {}
+
+  pick(ray: Raycaster): Vector3 | null {
+    if (!this.model) return null;
+    return ray.intersectObject(this.model, true)[0]?.point.clone() ?? null;
+  }
+
+  dispose(): void {
+    this.group.traverse((o) => {
+      const m = o as Mesh;
+      m.geometry?.dispose();
+      const mats = Array.isArray(m.material) ? m.material : m.material ? [m.material] : [];
+      for (const mat of mats) {
+        for (const v of Object.values(mat)) if (v instanceof Texture) v.dispose();
+        mat.dispose();
+      }
+    });
+    this.group.clear();
+  }
+}
+
+/** WebGL scene renderer. Renders on demand only (nothing runs while the view is still). */
 export class PanoramaRenderer {
   readonly canvas: HTMLCanvasElement;
   private renderer: WebGLRenderer;
   private camera = new PerspectiveCamera(90, 1, 0.01, 20);
   private content: Content | null = null;
   private root = new Scene();
+  /** 3D scenes: where the viewer stands in model space (the camera stays at the origin). */
+  readonly viewpoint = new Vector3();
   private grading = new Grading();
   private grade: Grade = NEUTRAL;
   private regions: RegionLayer;
@@ -352,6 +493,10 @@ export class PanoramaRenderer {
   instantAdaptation = false;
   private dirty = true;
   private raf = 0;
+  /** While an immersive (WebXR) session runs, the headset drives frames. */
+  private xrFrame: ((camera: PerspectiveCamera, time: number) => void) | null = null;
+  /** Objects drawn only in VR (hotspots, toolbar, panels), in reference-space metres. */
+  readonly vrRoot = new Group();
   private resize: ResizeObserver;
   private idleWaiters: (() => void)[] = [];
   view: View = { yaw: 0, pitch: 0, fov: 90 };
@@ -368,6 +513,8 @@ export class PanoramaRenderer {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setClearColor(0x0a0a0a, 1);
     this.camera.rotation.order = 'YXZ';
+    // The flat-screen camera shows the left eye of stereo media.
+    this.camera.layers.enable(LEFT_EYE);
     this.canvas = this.renderer.domElement;
     this.canvas.className = 'evx-viewer__canvas';
     this.canvas.setAttribute('aria-hidden', 'true');
@@ -376,15 +523,23 @@ export class PanoramaRenderer {
     this.resize.observe(host);
     this.regions = new RegionLayer(this.overlay, this.grading);
     this.root.add(this.overlay);
+    this.vrRoot.visible = false;
+    this.root.add(this.vrRoot);
   }
 
-  /** Replaces the panorama. Resolves once it can be shown. */
-  async show(media: SceneMedia, resolve: AssetResolver): Promise<void> {
+  /**
+   * Replaces the scene. Resolves once it can be shown. `viewpoint` places the viewer in
+   * a GLB or splat scene (default: 1.6 m above the model origin).
+   */
+  async show(media: SceneMedia, resolve: AssetResolver, viewpoint?: WorldPoint): Promise<void> {
     let next: Content;
     if (media.type === 'equirect')
       next = new PanoramaContent(media, resolve, () => this.invalidate(), this.grading);
     else if (media.type === 'video360') next = new VideoContent(media, resolve, this.grading);
-    else throw new Error(`Scene media "${media.type}" is not supported by the Viewer core yet`);
+    else if (media.type === 'equirect-stereo')
+      next = new StereoContent(media, resolve, this.grading);
+    else if (media.type === 'glb') next = new ModelContent(media, resolve);
+    else next = await splatContent(media, resolve, () => this.invalidate());
     await next.load();
     if (this.content) {
       this.root.remove(this.content.group);
@@ -392,6 +547,13 @@ export class PanoramaRenderer {
     }
     this.regions.clear();
     this.content = next;
+    const three = media.type === 'glb' || media.type === 'splat';
+    this.viewpoint.set(0, 0, 0);
+    if (three) this.viewpoint.set(viewpoint?.x ?? 0, viewpoint?.y ?? 1.6, viewpoint?.z ?? 0);
+    next.group.position.copy(this.viewpoint).negate();
+    const depth = next.depth ?? { near: 0.01, far: 20 };
+    this.camera.near = depth.near;
+    this.camera.far = depth.far;
     this.root.add(next.group);
     // Video frames arrive on their own clock: draw each one while playing.
     const v = next.video;
@@ -473,12 +635,81 @@ export class PanoramaRenderer {
 
   invalidate(): void {
     this.dirty = true;
-    if (!this.raf) this.raf = requestAnimationFrame(() => this.frame());
+    if (!this.raf && !this.xrFrame) this.raf = requestAnimationFrame(() => this.frame());
+  }
+
+  /** Whether an immersive VR session is showing the scene. */
+  get presenting(): boolean {
+    return !!this.xrFrame;
+  }
+
+  /**
+   * Shows the scene in an immersive session until it ends. `frame` runs before each
+   * headset frame with the headset's camera (for gaze, controllers and VR overlays).
+   * Panoramas stay centred on the head (3 degrees of freedom); GLB and splat scenes let
+   * the reader lean and step around the viewpoint.
+   */
+  async present(
+    session: XRSession,
+    frame: (camera: PerspectiveCamera, time: number) => void,
+  ): Promise<void> {
+    const xr = this.renderer.xr;
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
+    this.xrFrame = frame;
+    xr.enabled = true;
+    xr.cameraAutoUpdate = false;
+    xr.setReferenceSpaceType('local');
+    session.addEventListener('end', () => this.endPresent(), { once: true });
+    try {
+      await xr.setSession(session);
+    } catch (e) {
+      this.endPresent();
+      throw e;
+    }
+    this.vrRoot.visible = true;
+    this.renderer.setAnimationLoop((time) => this.xrDraw(time));
+  }
+
+  /** The headset's controllers (target-ray spaces), for selection rays. */
+  controller(i: number): XRTargetRaySpace {
+    return this.renderer.xr.getController(i);
+  }
+
+  private endPresent() {
+    if (!this.xrFrame) return;
+    this.renderer.setAnimationLoop(null);
+    this.renderer.xr.enabled = false;
+    this.xrFrame = null;
+    this.vrRoot.visible = false;
+    this.camera.position.set(0, 0, 0);
+    if (this.content) this.content.group.position.copy(this.viewpoint).negate();
+    this.invalidate();
+  }
+
+  private xrDraw(time: number) {
+    const xr = this.renderer.xr;
+    xr.updateCamera(this.camera);
+    const cam = xr.getCamera();
+    // The combined frustum of both eyes chooses tiles (the eye's height in pixels).
+    cam.fov = (2 * Math.atan(1 / cam.projectionMatrix.elements[5]!)) / DEG;
+    const eye = cam.cameras[0]?.viewport.w ?? 1600;
+    if (this.content) {
+      const offset = this.content.pick ? new Vector3() : cam.position;
+      this.content.group.position.copy(this.viewpoint).negate().add(offset);
+    }
+    this.xrFrame!(cam, time);
+    this.content?.update(cam, eye);
+    this.adapting = false;
+    this.dirty = false;
+    this.renderer.render(this.root, this.camera);
+    this.onFrame();
+    if (this.isIdle()) for (const w of this.idleWaiters.splice(0)) w();
   }
 
   /** Renders now and returns a copy of the frame (for transitions). */
   snapshot(): HTMLCanvasElement {
-    this.draw();
+    if (!this.xrFrame) this.draw();
     const c = document.createElement('canvas');
     c.width = this.canvas.width;
     c.height = this.canvas.height;
@@ -493,6 +724,7 @@ export class PanoramaRenderer {
   }
 
   private isIdle() {
+    if (this.xrFrame) return (this.content?.pending ?? 0) === 0;
     // Playing video never settles; it counts as idle once everything else has.
     return (
       ((!this.dirty && !this.raf) || this.animating()) &&
@@ -522,6 +754,44 @@ export class PanoramaRenderer {
     return { yaw, pitch };
   }
 
+  /** Direction (yaw/pitch) of a model-space point as seen from the viewpoint. */
+  toView(p: WorldPoint): { yaw: number; pitch: number; distance: number } {
+    const x = p.x - this.viewpoint.x;
+    const y = p.y - this.viewpoint.y;
+    const z = p.z - this.viewpoint.z;
+    return {
+      yaw: Math.atan2(x, -z) / DEG,
+      pitch: Math.atan2(y, Math.hypot(x, z)) / DEG,
+      distance: Math.hypot(x, y, z),
+    };
+  }
+
+  /**
+   * The model-space point under a point of the host (CSS pixels): the nearest surface of
+   * a GLB or splat scene. Null for panoramas or when nothing is hit.
+   */
+  pick(x: number, y: number): WorldPoint | null {
+    if (!this.content?.pick) return null;
+    if (!this.xrFrame) this.draw();
+    const w = this.host.clientWidth || 1;
+    const h = this.host.clientHeight || 1;
+    const ray = new Raycaster();
+    ray.setFromCamera(new Vector2((x / w) * 2 - 1, 1 - (y / h) * 2), this.camera);
+    const hit = this.content.pick(ray);
+    if (!hit) return null;
+    const r = (n: number) => Math.round(n * 1000) / 1000;
+    return {
+      x: r(hit.x + this.viewpoint.x),
+      y: r(hit.y + this.viewpoint.y),
+      z: r(hit.z + this.viewpoint.z),
+    };
+  }
+
+  /** Whether the current scene is a 3D model or splat (world positions apply). */
+  get is3d(): boolean {
+    return !!this.content?.pick;
+  }
+
   /** Horizontal field of view in degrees for the current aspect. */
   get hfov(): number {
     return (2 * Math.atan(Math.tan((this.view.fov * DEG) / 2) * this.camera.aspect)) / DEG;
@@ -530,8 +800,12 @@ export class PanoramaRenderer {
   private draw() {
     const w = this.host.clientWidth || 1;
     const h = this.host.clientHeight || 1;
-    if (this.canvas.clientWidth !== w || this.canvas.clientHeight !== h)
-      this.renderer.setSize(w, h);
+    // Compare the drawing buffer, not the CSS size (the stylesheet already stretches the
+    // canvas to the host, so its CSS size always matches and the buffer would stay at the
+    // browser's 300 × 150 default).
+    const pr = this.renderer.getPixelRatio();
+    if (this.canvas.width !== Math.floor(w * pr) || this.canvas.height !== Math.floor(h * pr))
+      this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.fov = this.view.fov;
     this.camera.rotation.set(this.view.pitch * DEG, -this.view.yaw * DEG, 0);
@@ -545,7 +819,7 @@ export class PanoramaRenderer {
 
   private frame() {
     this.raf = 0;
-    if (!this.dirty) return;
+    if (!this.dirty || this.xrFrame) return;
     this.dirty = false;
     this.draw();
     this.onFrame();
@@ -555,10 +829,22 @@ export class PanoramaRenderer {
 
   dispose(): void {
     cancelAnimationFrame(this.raf);
+    void this.renderer.xr.getSession()?.end();
+    this.endPresent();
     this.resize.disconnect();
     this.regions.clear();
     this.content?.dispose();
     this.renderer.dispose();
     this.canvas.remove();
   }
+}
+
+/** Gaussian splat scenes load their renderer on demand (a separate chunk). */
+async function splatContent(
+  media: Splat,
+  resolve: AssetResolver,
+  onChange: () => void,
+): Promise<Content> {
+  const { SplatContent } = await import('./splat.ts');
+  return new SplatContent(media, resolve, onChange);
 }
