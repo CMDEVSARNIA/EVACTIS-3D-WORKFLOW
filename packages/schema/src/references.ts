@@ -63,6 +63,15 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
   };
   const refAudiences = (list: string[], path: (string | number)[]) =>
     list.forEach((a, i) => ref(audienceIds, a, [...path, i], 'audience'));
+  /** GLB and splat scenes: the only ones with world-space (x, y, z) positions. */
+  const is3d = (sceneId: string) => {
+    const t = env.scenes.find((x) => x.id === sceneId)?.media.type;
+    return t === 'glb' || t === 'splat';
+  };
+  const refWorld = (sceneId: string, kind: string, path: (string | number)[]) => {
+    if (kind === 'world' && sceneIds.has(sceneId) && !is3d(sceneId))
+      add(path, `World positions need a 3D (GLB or splat) scene; "${sceneId}" is a panorama`);
+  };
 
   const checkCondition = (c: Condition | undefined, path: (string | number)[]): void => {
     if (!c) return;
@@ -136,6 +145,7 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
   env.hotspots.forEach((h, i) => {
     const p = ['hotspots', i];
     ref(sceneIds, h.sceneId, [...p, 'sceneId'], 'scene');
+    refWorld(h.sceneId, h.position.kind, [...p, 'position']);
     refAudiences(h.audienceIds, [...p, 'audienceIds']);
     checkCondition(h.condition, [...p, 'condition']);
     h.actions.forEach((a, j) => checkAction(a, [...p, 'actions', j]));
@@ -176,9 +186,10 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
     const p = ['equipment', i];
     ref(typeIds, e.typeId, [...p, 'typeId'], 'equipment type');
     ref(floorIds, e.floorId, [...p, 'floorId'], 'floor');
-    e.placements.forEach((pl, j) =>
-      ref(sceneIds, pl.sceneId, [...p, 'placements', j, 'sceneId'], 'scene'),
-    );
+    e.placements.forEach((pl, j) => {
+      ref(sceneIds, pl.sceneId, [...p, 'placements', j, 'sceneId'], 'scene');
+      refWorld(pl.sceneId, pl.position.kind, [...p, 'placements', j, 'position']);
+    });
     refAudiences(e.audienceIds, [...p, 'audienceIds']);
   });
 
@@ -192,6 +203,14 @@ export function checkReferences(env: Environment): ReferenceIssue[] {
     r.sceneSequence.forEach((s, j) => ref(sceneIds, s, [...p, 'sceneSequence', j], 'scene'));
     r.zoneIds.forEach((z, j) => ref(zoneIds, z, [...p, 'zoneIds', j], 'zone'));
     r.starts.forEach((s, j) => ref(sceneIds, s.sceneId, [...p, 'starts', j, 'sceneId'], 'scene'));
+    r.paths3d.forEach((x, j) => {
+      ref(sceneIds, x.sceneId, [...p, 'paths3d', j, 'sceneId'], 'scene');
+      if (sceneIds.has(x.sceneId) && !is3d(x.sceneId))
+        add(
+          [...p, 'paths3d', j, 'sceneId'],
+          `Scene "${x.sceneId}" is not a 3D (GLB or splat) scene`,
+        );
+    });
     refAudiences(r.audienceIds, [...p, 'audienceIds']);
     const end = env.equipment.find((e) => e.id === r.assemblyPointId);
     if (!end) add([...p, 'assemblyPointId'], `Unknown equipment "${r.assemblyPointId}"`);

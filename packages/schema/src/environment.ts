@@ -104,6 +104,8 @@ export const SceneMediaSchema = z.discriminatedUnion('type', [
     type: z.literal('splat'),
     source: AssetPathSchema,
     format: z.enum(['ply', 'splat', 'ksplat', 'spz']),
+    /** Captures trained with Y pointing down (common for 3DGS) are flipped: '-y'. */
+    upAxis: z.enum(['y', '-y']).default('y'),
   }),
 ]);
 export type SceneMedia = z.infer<typeof SceneMediaSchema>;
@@ -115,6 +117,11 @@ export const SceneSchema = z.object({
   media: SceneMediaSchema,
   thumbnail: AssetPathSchema.optional(),
   initialView: ViewSchema.default({ yaw: 0, pitch: 0, fov: 90 }),
+  /**
+   * GLB and splat scenes: where the viewer stands (model metres, Y up). The view turns
+   * around this point like a panorama; world-space hotspots are seen from it.
+   */
+  viewpoint: WorldPointSchema.optional(),
   /** Yaw (degrees) at which true north lies in this panorama. */
   northOffsetDeg: z.number().min(-180).max(180).default(0),
   floorId: IdSchema.optional(),
@@ -322,6 +329,13 @@ export const RouteSchema = z.object({
   assemblyPointId: IdSchema,
   /** "You are here" starts: the direction to face in each scene on the route. */
   starts: z.array(z.object({ sceneId: IdSchema, heading: SphericalSchema })).default([]),
+  /**
+   * In GLB and splat scenes: the route drawn on the model's floor, in walking order
+   * (model metres). Drawn by an author, never generated.
+   */
+  paths3d: z
+    .array(z.object({ sceneId: IdSchema, points: z.array(WorldPointSchema).min(2) }))
+    .default([]),
   audienceIds: AudienceFilterSchema,
   confirmed: HumanConfirmationSchema.optional(),
 });
