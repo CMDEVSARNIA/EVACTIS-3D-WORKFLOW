@@ -246,7 +246,7 @@ export function TourEditor({
 
   const view = () => viewer.current?.getView() ?? null;
 
-  function place(at: { yaw: number; pitch: number }) {
+  function place(at: ops.Placement) {
     if (!sceneId || mode === 'select') return;
     const kind = mode;
     const id = edit(e.labels.addHotspot, (d) =>

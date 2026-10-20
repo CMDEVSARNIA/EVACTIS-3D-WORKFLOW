@@ -3,14 +3,18 @@
  * hotspots drag) or as the client will see it ("Test the tour"). Assets are loaded
  * through the desktop asset protocol, scoped by Rust to the project's media folder.
  */
-import type { Environment } from '@evactis-3dworkflow/schema';
+import type { Environment, WorldPoint } from '@evactis-3dworkflow/schema';
 import { createViewer, type Viewer } from '@evactis-3dworkflow/viewer';
 import { useEffect, useRef, useState } from 'react';
 
 export interface PreviewHandlers {
-  onPanoramaClick?: (at: { yaw: number; pitch: number }) => void;
+  /** `point`: the model surface under the click, in GLB and splat scenes. */
+  onPanoramaClick?: (at: { yaw: number; pitch: number; point?: WorldPoint | null }) => void;
   onHotspotClick?: (id: string) => void;
-  onHotspotMove?: (id: string, at: { yaw: number; pitch: number }) => void;
+  onHotspotMove?: (
+    id: string,
+    at: { yaw: number; pitch: number; point?: WorldPoint | null },
+  ) => void;
   /** The viewer navigated (test mode) or finished loading a scene. */
   onSceneChange?: (sceneId: string) => void;
 }
@@ -90,14 +94,14 @@ export function Preview({
         made = v;
         viewer.current = v;
         latest.current.viewerRef?.(v);
-        v.on('panoramaclick', ({ yaw, pitch }) =>
-          latest.current.handlers.onPanoramaClick?.({ yaw, pitch }),
+        v.on('panoramaclick', ({ yaw, pitch, point }) =>
+          latest.current.handlers.onPanoramaClick?.({ yaw, pitch, point }),
         );
         v.on('hotspotclick', ({ hotspotId }) =>
           latest.current.handlers.onHotspotClick?.(hotspotId),
         );
-        v.on('hotspotmove', ({ hotspotId, yaw, pitch }) =>
-          latest.current.handlers.onHotspotMove?.(hotspotId, { yaw, pitch }),
+        v.on('hotspotmove', ({ hotspotId, yaw, pitch, point }) =>
+          latest.current.handlers.onHotspotMove?.(hotspotId, { yaw, pitch, point }),
         );
         v.on('scenechange', ({ sceneId: id }) => latest.current.handlers.onSceneChange?.(id));
         v.on('error', ({ error: e }) => setError(e.message));

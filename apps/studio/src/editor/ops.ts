@@ -19,6 +19,7 @@ import {
   type SceneMedia,
   type Spherical,
   type View,
+  type WorldPoint,
 } from '@evactis-3dworkflow/schema';
 import type { AssetRecord } from '../api.ts';
 
@@ -111,6 +112,7 @@ export function sceneMedia(asset: AssetRecord): SceneMedia {
         type: 'splat',
         source: asset.source,
         format: (asset.splatFormat ?? 'ply') as 'ply' | 'splat' | 'ksplat' | 'spz',
+        upAxis: 'y',
       };
     case 'floor-plan':
     case 'audio':
@@ -215,10 +217,29 @@ export function goTo(sceneId: string): Action {
  * Adds a hotspot at `at` in a scene. A link goes to `target` (if given); an info
  * hotspot opens a text popup the author fills in.
  */
+/**
+ * Where the author clicked: a direction, plus the surface point under it in GLB and splat
+ * scenes (hotspots there sit on the model, so they stay put as the reader moves).
+ */
+export type Placement = Spherical & { point?: WorldPoint | null };
+
+const mm = (n: number) => Math.round(n * 1000) / 1000;
+
+/** A hotspot position for a click: on the model's surface in 3D scenes, else a direction. */
+export function positionAt(at: Placement, digits: (n: number) => number = round) {
+  if (at.point)
+    return { kind: 'world' as const, x: mm(at.point.x), y: mm(at.point.y), z: mm(at.point.z) };
+  return {
+    kind: 'spherical' as const,
+    yaw: digits(wrapDeg(at.yaw)),
+    pitch: digits(Math.max(-90, Math.min(90, at.pitch))),
+  };
+}
+
 export function addHotspot(
   env: Environment,
   sceneId: string,
-  at: Spherical,
+  at: Placement,
   kind: HotspotKind,
   options: { target?: string; title?: LocalizedText } = {},
 ): string {
@@ -236,11 +257,7 @@ export function addHotspot(
     id,
     sceneId,
     title,
-    position: {
-      kind: 'spherical',
-      yaw: round(wrapDeg(at.yaw)),
-      pitch: round(Math.max(-90, Math.min(90, at.pitch))),
-    },
+    position: positionAt(at),
     appearance:
       kind === 'link' ? { kind: 'button', icon: 'next' } : { kind: 'marker', marker: 'info' },
     actions:
@@ -261,15 +278,10 @@ export function addHotspot(
   return id;
 }
 
-export function moveHotspot(env: Environment, id: string, at: Spherical) {
+export function moveHotspot(env: Environment, id: string, at: Placement) {
   const h = hotspot(env, id);
-  if (h.position.kind !== 'spherical')
-    throw new EditError('only spherical hotspots can be dragged');
-  h.position = {
-    kind: 'spherical',
-    yaw: round(wrapDeg(at.yaw)),
-    pitch: round(Math.max(-90, Math.min(90, at.pitch))),
-  };
+  if (h.position.kind === 'polygon') throw new EditError('areas are not dragged');
+  h.position = positionAt(at);
 }
 
 export function setHotspotTitle(env: Environment, id: string, lang: string, title: string) {

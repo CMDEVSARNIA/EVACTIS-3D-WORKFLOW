@@ -1,6 +1,7 @@
 import { EnvironmentSchema, routesForScene, type Environment } from '@evactis-3dworkflow/schema';
 import { demoEnvironment } from '@evactis-3dworkflow/demo-facility/environment';
 import { describe, expect, it } from 'vitest';
+import * as ops from './ops.ts';
 import { EditError, InUseError } from './ops.ts';
 import * as s from './safetyOps.ts';
 
@@ -12,6 +13,22 @@ const valid = (env: Environment) => {
 const who = { by: 'J. Tremblay', at: '2026-10-19T10:00:00-04:00' };
 
 describe('safety editing operations', () => {
+  it('places signs and hotspots on the model surface in GLB and splat scenes', () => {
+    const env = demoEnvironment();
+    const id = s.addEquipment(env, 'fire-extinguisher', 'f1');
+    const point = { x: 1.23456, y: 0.98765, z: -2.5 };
+    s.placeEquipmentInScene(env, id, 'dock', { yaw: 10, pitch: -5, point });
+    expect(s.equipment(env, id).placements).toEqual([
+      { sceneId: 'dock', position: { kind: 'world', x: 1.235, y: 0.988, z: -2.5 }, style: 'A' },
+    ]);
+    const h = ops.addHotspot(env, 'mechanical', { yaw: 0, pitch: 0, point }, 'info');
+    expect(ops.hotspot(env, h).position).toEqual({ kind: 'world', x: 1.235, y: 0.988, z: -2.5 });
+    // Dragged in the preview: onto the surface found there.
+    ops.moveHotspot(env, h, { yaw: 0, pitch: 0, point: { x: 0, y: 1, z: -3 } });
+    expect(ops.hotspot(env, h).position).toEqual({ kind: 'world', x: 0, y: 1, z: -3 });
+    valid(env);
+  });
+
   it('adds equipment, places it in a scene and on the plan, and needs confirming again after a move', () => {
     const env = demoEnvironment();
     const id = s.addEquipment(env, 'fire-extinguisher', 'f1');

@@ -19,7 +19,7 @@ import {
   type Route,
   type Spherical,
 } from '@evactis-3dworkflow/schema';
-import { EditError, floor, scene, uniqueId, wrapDeg } from './ops.ts';
+import { EditError, floor, positionAt, scene, uniqueId, wrapDeg, type Placement } from './ops.ts';
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -132,15 +132,11 @@ export function placeEquipmentInScene(
   env: Environment,
   id: string,
   sceneId: string,
-  at: Spherical,
+  at: Placement,
 ) {
   const e = equipment(env, id);
   scene(env, sceneId);
-  const position = {
-    kind: 'spherical' as const,
-    yaw: r2(wrapDeg(at.yaw)),
-    pitch: r2(Math.max(-90, Math.min(90, at.pitch))),
-  };
+  const position = positionAt(at, r2);
   const existing = e.placements.find((p) => p.sceneId === sceneId);
   if (existing) existing.position = position;
   else e.placements.push({ sceneId, position, style: 'A' });
@@ -207,6 +203,7 @@ export function addRoute(
     priority: r.priority,
     segments: [{ floorId: r.floorId, points: r.points.map((p) => ({ x: r1(p.x), y: r1(p.y) })) }],
     sceneSequence: [],
+    paths3d: [],
     zoneIds: [],
     assemblyPointId: r.assemblyPointId,
     starts: [],
