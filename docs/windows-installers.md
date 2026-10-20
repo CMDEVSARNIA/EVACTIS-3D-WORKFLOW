@@ -65,4 +65,18 @@ an older one on some Windows 11 builds — the closest thing to a fresh client m
    ```
    For a test-signed build, first import `signer.cer` into *Trusted Root* and *Trusted
    Publishers* inside the sandbox.
-5. Repeat on Windows 10 22H2 and Windows 11 hosts. Record results in the phase notes.
+5. **Delivery packages (Phase 10).** Also copy the `delivery-packages` CI artifact
+   (`Evactis Demo Centre Setup.exe`, `portable\`, `demo*.evx`) to
+   `C:\evx-test\packages\`, then in the sandbox:
+   ```powershell
+   C:\evx-test\scripts\windows\package-acceptance.ps1 -Packages C:\evx-test\packages -ViewerInstaller (Get-ChildItem C:\evx-test\EVACTIS-3DWORKFLOW-Viewer-*-setup.exe).FullName -LogDir $env:TEMP\packages
+   ```
+   On Windows 10 the sandbox has no WebView2 Runtime, which is the point: the
+   per-facility setup must install it from its embedded offline installer (the first
+   check that matters). Before running the script, note whether
+   `HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}`
+   exists. The script runs the portable viewer *after* that install, so it proves the
+   portable folder runs, not that it runs without WebView2. To check that case, open a
+   fresh sandbox and double-click `portable\EVACTIS-3DWORKFLOW-Viewer.exe` first.
+   Without a bundled fixed runtime it is expected to fail (assumption 66, ADR 0018).
+6. Repeat on Windows 10 22H2 and Windows 11 hosts. Record results in the phase notes.
