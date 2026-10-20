@@ -30,6 +30,9 @@ export default defineConfig({
     emptyOutDir: false,
     sourcemap: false,
     assetsInlineLimit: 0,
+    // Shared code stays in the main file (lazy chunks import from it) instead of being
+    // split into a third file behind a re-exporting facade.
+    rollupOptions: { preserveEntrySignatures: 'allow-extension' },
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       formats: ['es'],

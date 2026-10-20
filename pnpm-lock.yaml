@@ -272,6 +272,9 @@ importers:
       '@evactis-3dworkflow/brand':
         specifier: workspace:*
         version: link:../brand
+      '@evactis-3dworkflow/print':
+        specifier: workspace:*
+        version: link:../print
       '@evactis-3dworkflow/schema':
         specifier: workspace:*
         version: link:../schema

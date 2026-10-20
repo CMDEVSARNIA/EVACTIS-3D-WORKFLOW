@@ -46,6 +46,9 @@ export interface SkinHost {
   showDialog(title: string, content: Node[], modifier?: string): Promise<void>;
   closeDialog(): void;
   resolve(path: string): string | null;
+  readonly trainingActive: boolean;
+  showModules(): Promise<void>;
+  showChecklist(): Promise<void>;
 }
 
 const ICON: Record<SkinCommand, IconName> = {
@@ -62,6 +65,8 @@ const ICON: Record<SkinCommand, IconName> = {
   'zoom-out': 'zoom-out',
   fullscreen: 'fullscreen',
   vr: 'vr',
+  'start-module': 'start-module',
+  checklist: 'checklist',
 };
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string) => {
@@ -247,6 +252,9 @@ export class SkinChrome {
         return planFloors(this.host.environment).length > 0;
       case 'evac-route':
         return this.host.environment.routes.length > 0;
+      case 'start-module':
+      case 'checklist':
+        return this.host.environment.modules.length > 0;
       default:
         return true;
     }
@@ -319,6 +327,12 @@ export class SkinChrome {
       case 'help':
         await this.help();
         return;
+      case 'start-module':
+        await h.showModules();
+        return;
+      case 'checklist':
+        await h.showChecklist();
+        return;
       case 'vr':
         return;
     }
@@ -335,6 +349,7 @@ export class SkinChrome {
         setButtonIcon(b, document.fullscreenElement ? 'fullscreen-exit' : 'fullscreen', lang);
       else setButtonIcon(b, ICON[c], lang);
       if (c === 'evac-route') setButtonPressed(b, h.activeRouteId !== null);
+      if (c === 'start-module') setButtonPressed(b, h.trainingActive);
       const order = this.order();
       const i = h.sceneId ? order.indexOf(h.sceneId) : -1;
       if (c === 'previous') b.disabled = i <= 0;

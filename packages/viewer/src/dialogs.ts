@@ -42,8 +42,17 @@ export class Dialogs {
     return this.el.open;
   }
 
+  /** Dialogs asked for while one is open wait their turn (e.g. a step's question after a sign's popup). */
+  private queue: Promise<void> = Promise.resolve();
+
   /** Shows content; resolves when the dialog closes. */
   show(title: string, content: Node[], modifier?: string): Promise<void> {
+    const shown = this.queue.then(() => this.present(title, content, modifier));
+    this.queue = shown.catch(() => undefined);
+    return shown;
+  }
+
+  private present(title: string, content: Node[], modifier?: string): Promise<void> {
     this.el.className = modifier ? `evx-viewer__dialog ${modifier}` : 'evx-viewer__dialog';
     this.title.textContent = title;
     this.title.hidden = !title;

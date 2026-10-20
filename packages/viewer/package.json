@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@evactis-3dworkflow/brand": "workspace:*",
+    "@evactis-3dworkflow/print": "workspace:*",
     "@evactis-3dworkflow/schema": "workspace:*",
     "pdfjs-dist": "4.10.38",
     "three": "0.186.1"

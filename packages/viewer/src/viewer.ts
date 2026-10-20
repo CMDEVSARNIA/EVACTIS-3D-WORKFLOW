@@ -2,8 +2,10 @@ import type {
   Action,
   Environment,
   Hotspot,
+  QuizQuestion,
   Route,
   Scene,
+  TrainingModule,
   Transition,
 } from '@evactis-3dworkflow/schema';
 import {
@@ -24,6 +26,7 @@ import {
 import { soundDirection, Sounds, type SoundState } from './audio.ts';
 import { Controls } from './controls.ts';
 import { Dialogs } from './dialogs.ts';
+import { Training, type ModuleResult, type TrainingEvents } from './training.ts';
 import { Emitter } from './events.ts';
 import { HotspotLayer } from './hotspots.ts';
 import { uiStrings } from './i18n.ts';
@@ -82,7 +85,7 @@ export interface ViewerOptions {
   kiosk?: boolean;
 }
 
-export interface ViewerEvents extends Record<string, unknown> {
+export interface ViewerEvents extends Record<string, unknown>, TrainingEvents {
   ready: { sceneId: string };
   scenechange: { sceneId: string; previousSceneId: string | null };
   viewchange: View;
@@ -156,6 +159,7 @@ export class Viewer {
   private videoBar: VideoBar;
   private radar: Radar | null = null;
   private chrome: SkinChrome | null = null;
+  private trainer: Training;
   private isMuted = false;
   private timedKey = '';
   private sceneLoad = 0;
@@ -222,6 +226,7 @@ export class Viewer {
       close: () => this.hideRoute(),
     });
     this.dialogs = new Dialogs(this.element, () => uiStrings(this.lang));
+    this.trainer = new Training(this.trainingHost());
     this.live = document.createElement('div');
     this.live.className = 'evx-viewer__live';
     this.live.setAttribute('aria-live', 'polite');
@@ -243,8 +248,11 @@ export class Viewer {
       'languagechange',
       'audiencechange',
       'livelayerchange',
+      'modulestart',
+      'moduleend',
     ] as const)
       this.events.on(e, refresh);
+    this.events.on('languagechange', () => this.trainer.render());
     if (options.skin) this.setSkin(options.skin, options.kiosk);
     // Sound may only start after a gesture inside the page.
     const unlock = () => this.sounds.unlock();
@@ -519,6 +527,36 @@ export class Viewer {
     return this.isMuted;
   }
 
+  /** Starts a training module (its audience must match); a running one is left. */
+  startModule(moduleId: string): Promise<void> {
+    return this.trainer.start(moduleId);
+  }
+
+  /** Leaves the running module without results. */
+  quitModule(): void {
+    this.trainer.quit();
+  }
+
+  /** The module in progress, if any. */
+  get training(): { moduleId: string; stepIndex: number } | null {
+    return this.trainer.active;
+  }
+
+  /** Training modules this audience may take. */
+  get modules(): TrainingModule[] {
+    return this.trainer.available();
+  }
+
+  /** The start-module button: pick a module (or continue the one in progress). */
+  showModules(): Promise<void> {
+    return this.trainer.picker();
+  }
+
+  /** The checklist button: the running module's checklist. */
+  showChecklist(): Promise<void> {
+    return this.trainer.checklist();
+  }
+
   /**
    * Replaces the skin (or removes it with null). Studio's skin designer uses this to
    * show edits live; `kiosk` picks the kiosk layout.
@@ -619,6 +657,7 @@ export class Viewer {
     cancelAnimationFrame(this.animation);
     this.sounds.dispose();
     this.chrome?.dispose();
+    this.trainer.dispose();
     this.controls.dispose();
     this.renderer.dispose();
     this.hotspots.dispose();
@@ -669,7 +708,63 @@ export class Viewer {
         this.lang,
         uiStrings(this.lang),
       ),
+      ...this.trainer.hotspots(this.scene.id),
     ];
+  }
+
+  /** What training works through. */
+  private trainingHost() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const v = this;
+    return {
+      get element() {
+        return v.element;
+      },
+      get environment() {
+        return v.environment;
+      },
+      get language() {
+        return v.lang;
+      },
+      get audience() {
+        return v.state.audience;
+      },
+      get sceneId() {
+        return v.sceneId;
+      },
+      t: () => uiStrings(v.lang),
+      inAudience: (ids: string[]) => v.state.inAudience(ids),
+      goToScene: (id: string) => v.goToScene(id),
+      showDialog: (title: string, content: Node[], modifier?: string) =>
+        v.dialogs.show(title, content, modifier),
+      closeDialog: () => v.dialogs.close(),
+      ask: async (q: QuizQuestion) => {
+        const answer = await v.dialogs.ask(q, v.lang);
+        v.events.emit('answer', answer);
+        return answer;
+      },
+      showRoute: (id: string) => v.showRoute(id),
+      view: () => ({ yaw: v.renderer.view.yaw, pitch: v.renderer.view.pitch }),
+      refreshHotspots: () => v.refreshHotspots(),
+      emit: <K extends keyof TrainingEvents>(type: K, payload: TrainingEvents[K]) =>
+        v.events.emit(type, payload as ViewerEvents[K]),
+      certificate: (result: ModuleResult, name: string) => v.certificate(result, name),
+    };
+  }
+
+  /** Builds the completion certificate on this device (lazily loaded) and saves it. */
+  private async certificate(result: ModuleResult, name: string): Promise<void> {
+    const { certificatePdf } = await import('./certificate.ts');
+    const module = this.environment.modules.find((m) => m.id === result.moduleId)!;
+    const bytes = await certificatePdf(this.environment, module, result, name);
+    const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${module.id}-certificate.pdf`;
+    this.element.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
   /** The narrow view of the Viewer that the skin works through. */
@@ -720,6 +815,11 @@ export class Viewer {
         v.dialogs.show(title, content, modifier),
       closeDialog: () => v.dialogs.close(),
       resolve: (p: string) => v.resolve(p),
+      get trainingActive() {
+        return v.trainer.active !== null;
+      },
+      showModules: () => v.showModules(),
+      showChecklist: () => v.showChecklist(),
     };
   }
 
@@ -867,7 +967,9 @@ export class Viewer {
       const r = this.element.getBoundingClientRect();
       const x = e.clientX - r.left;
       const y = e.clientY - r.top;
-      this.events.emit('panoramaclick', { x, y, ...this.screenToView(x, y) });
+      const at = this.screenToView(x, y);
+      this.events.emit('panoramaclick', { x, y, ...at });
+      if (!this.options.editing) this.trainer.onPanoramaClick(at);
     });
   }
 
@@ -905,11 +1007,13 @@ export class Viewer {
     this.live.textContent = localize(scene.name, this.lang);
     this.events.emit('scenechange', { sceneId, previousSceneId: previous });
     if (!previous) this.events.emit('ready', { sceneId });
+    if (!this.options.editing) this.trainer.onScene(sceneId);
   }
 
   private async activate(h: Hotspot) {
     this.events.emit('hotspotclick', { hotspotId: h.id });
     if (this.options.editing) return;
+    this.trainer.onHotspot(h.id);
     const el = this.element.querySelector(`[data-hotspot-id="${CSS.escape(h.id)}"]`);
     const r = el?.getBoundingClientRect();
     const host = this.element.getBoundingClientRect();
@@ -1058,6 +1162,7 @@ export class Viewer {
         await this.setLiveLayer(action.layerId, action.stateId);
         return;
       case 'startModule':
+        await this.startModule(action.moduleId);
         return;
     }
   }

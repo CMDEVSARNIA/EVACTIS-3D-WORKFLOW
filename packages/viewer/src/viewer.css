@@ -253,7 +253,7 @@
 /* Route banner: what to follow, the alternative route, the floor plan. */
 .evx-viewer__route {
   position: absolute;
-  inset: calc(var(--evx-inset-top, 0px) + 12px) 12px auto;
+  inset: calc(var(--evx-inset-top, 0px) + var(--evx-training-h, 0px) + 12px) 12px auto;
   display: grid;
   gap: 6px;
   max-inline-size: 40rem;
@@ -972,4 +972,155 @@
 .evx-skin__made {
   color: var(--evx-text-muted);
   font-size: 0.875rem;
+}
+
+/* Training (Phase 8): the step panel sits under the top chrome, above the route banner. */
+.evx-training {
+  position: absolute;
+  inset: calc(var(--evx-inset-top, 0px) + 12px) 12px auto;
+  z-index: 3;
+  display: grid;
+  gap: 6px;
+  max-inline-size: 40rem;
+  margin-inline: auto;
+  border-inline-start: 6px solid var(--evx-green);
+  border-radius: 10px;
+  background: rgb(10 10 10 / 0.9);
+  padding: 12px 14px;
+  color: var(--evx-white);
+  font-family: var(--evx-font-body);
+}
+.evx-training[hidden] {
+  display: none;
+}
+.evx-training__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--evx-green);
+  font: 600 0.8125rem / 1.3 var(--evx-font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.evx-training__eyebrow::before {
+  content: '';
+  inline-size: 20px;
+  block-size: 2px;
+  background: var(--evx-green);
+}
+.evx-training__title {
+  margin: 0;
+  font: 800 1rem / 1.25 var(--evx-font-heading);
+  text-transform: uppercase;
+}
+.evx-training__instruction {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.4;
+}
+.evx-training__status {
+  margin: 0;
+  color: var(--evx-text-muted, #ccc);
+  font-size: 0.9375rem;
+}
+.evx-training__status:empty {
+  display: none;
+}
+.evx-training__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block-start: 4px;
+}
+.evx-training__actions > .evx-cta {
+  min-block-size: 44px;
+  font-size: 0.9375rem;
+}
+.evx-training__modules,
+.evx-training__checklist,
+.evx-training__results {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evx-training__module {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  border-block-end: 1px solid rgb(255 255 255 / 0.15);
+  padding-block-end: 12px;
+}
+.evx-training__module-title {
+  margin: 0;
+  font: 800 1.0625rem / 1.3 var(--evx-font-heading);
+}
+.evx-training__meta {
+  margin: 0;
+  color: var(--evx-text-muted, #ccc);
+  font-size: 0.875rem;
+}
+.evx-training__current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-block-end: 12px;
+}
+.evx-training__checklist label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-block-size: 44px;
+}
+.evx-training__checklist input {
+  inline-size: 22px;
+  block-size: 22px;
+  accent-color: var(--evx-green-strong);
+}
+.evx-training__score {
+  margin: 0;
+  font: 800 1.375rem / 1.3 var(--evx-font-heading);
+}
+.evx-training__verdict {
+  margin: 0 0 12px;
+  font-weight: 700;
+}
+.evx-training__verdict[data-passed='true'] {
+  color: var(--evx-green);
+}
+.evx-training__results > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.evx-training__result {
+  flex: none;
+  font-weight: 700;
+}
+.evx-training__results > li[data-status='skipped'] .evx-training__result,
+.evx-training__results > li[data-status='incorrect'] .evx-training__result {
+  color: var(--evx-text-muted, #ccc);
+}
+.evx-training__certificate {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.evx-training__name {
+  min-block-size: 44px;
+  inline-size: min(100%, 24rem);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  border-radius: 8px;
+  background: rgb(255 255 255 / 0.06);
+  padding: 0 12px;
+  color: inherit;
+  font: inherit;
+}
+.evx-viewer__hotspot[data-hotspot-id^='training:'] {
+  border-color: var(--evx-green);
+  background: rgb(10 10 10 / 0.88);
+  color: var(--evx-green);
 }
