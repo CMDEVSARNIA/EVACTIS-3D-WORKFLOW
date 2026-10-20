@@ -253,7 +253,7 @@
 /* Route banner: what to follow, the alternative route, the floor plan. */
 .evx-viewer__route {
   position: absolute;
-  inset: 12px 12px auto;
+  inset: calc(var(--evx-inset-top, 0px) + 12px) 12px auto;
   display: grid;
   gap: 6px;
   max-inline-size: 40rem;
@@ -474,7 +474,7 @@
 /* 360° video controls: bottom centre, above the toolbar area. */
 .evx-viewer__video {
   position: absolute;
-  inset: auto 12px 96px;
+  inset: auto 12px calc(var(--evx-inset-bottom, 84px) + 12px);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -517,7 +517,7 @@
 /* Sound captions: what is playing and where it comes from. */
 .evx-viewer__caption {
   position: absolute;
-  inset: auto 12px 160px;
+  inset: auto 12px calc(var(--evx-inset-bottom, 84px) + 76px);
   max-inline-size: 32rem;
   margin-inline: auto;
   border-radius: 8px;
@@ -691,4 +691,285 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- skin */
+
+/*
+ * Skin chrome over the panorama: three rows of anchor slots. In the top and bottom
+ * rows the right slot keeps its size and the left one shrinks (text wraps), so
+ * elements on one edge never run into each other. The overlay lets pointer events
+ * through to the panorama.
+ */
+.evx-skin {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 2;
+}
+.evx-skin__row-top,
+.evx-skin__row-middle,
+.evx-skin__row-bottom {
+  display: flex;
+  min-block-size: 0;
+}
+.evx-skin__row-middle {
+  flex: 1 1 0;
+}
+.evx-skin__row-bottom {
+  align-items: flex-end;
+}
+.evx-skin__slot {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+.evx-skin__slot > * {
+  pointer-events: auto;
+}
+.evx-skin__slot--top-left,
+.evx-skin__slot--left,
+.evx-skin__slot--bottom-left {
+  flex: 0 1 auto;
+  align-items: flex-start;
+}
+.evx-skin__slot--top,
+.evx-skin__slot--center,
+.evx-skin__slot--bottom {
+  flex: 1 1 0;
+  align-items: center;
+}
+.evx-skin__slot--top-right,
+.evx-skin__slot--right,
+.evx-skin__slot--bottom-right {
+  flex: 0 0 auto;
+  align-items: flex-end;
+}
+.evx-skin__row-middle > .evx-skin__slot {
+  justify-content: center;
+}
+.evx-skin__row-bottom > .evx-skin__slot {
+  justify-content: flex-end;
+}
+.evx-skin [hidden] {
+  display: none !important;
+}
+
+/* Toolbar: the button kit in a row (or column), wrapping rather than overflowing. */
+.evx-skin__toolbar {
+  --evx-btn-size: calc(64px * var(--k, 1));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(8px * var(--k, 1));
+  max-inline-size: 100%;
+}
+.evx-skin__toolbar[data-orientation='vertical'] {
+  flex-direction: column;
+  max-block-size: 100%;
+}
+.evx-skin__toolbar .evx-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Logo: the product lockup on a paper plate (legible on any panorama), client first. */
+.evx-skin__logo {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--k, 1));
+  box-sizing: border-box;
+  block-size: calc(52px * var(--k, 1));
+  max-inline-size: 100%;
+  padding: calc(9px * var(--k, 1)) calc(14px * var(--k, 1));
+  border-radius: calc(10px * var(--k, 1));
+  background: var(--evx-paper);
+  box-shadow: var(--evx-shadow-soft);
+}
+.evx-skin__lockup {
+  display: block;
+  block-size: 100%;
+  min-inline-size: 0;
+}
+.evx-skin__lockup > svg {
+  display: block;
+  block-size: 100%;
+  inline-size: auto;
+}
+.evx-skin__client {
+  display: block;
+  block-size: 100%;
+  max-inline-size: calc(160px * var(--k, 1));
+  object-fit: contain;
+}
+.evx-skin__client-name {
+  color: var(--evx-navy);
+  font: 800 calc(1rem * var(--k, 1)) / 1.1 var(--evx-font-heading);
+  text-transform: uppercase;
+}
+.evx-skin__divider {
+  align-self: stretch;
+  inline-size: 1px;
+  background: rgb(10 47 91 / 0.25);
+}
+
+/* Scene title: website eyebrow (green rule + spaced green caps) over a heavy heading. */
+.evx-skin__title {
+  box-sizing: border-box;
+  max-inline-size: min(100%, calc(26rem * var(--k, 1)));
+  padding: calc(10px * var(--k, 1)) calc(14px * var(--k, 1));
+  border-radius: calc(10px * var(--k, 1));
+  background: rgb(10 10 10 / 0.9);
+  box-shadow: var(--evx-shadow-soft);
+}
+.evx-skin__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  margin: 0 0 0.35em;
+  color: var(--evx-green);
+  font: 600 calc(0.75rem * var(--k, 1)) / 1.3 var(--evx-font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.evx-skin__eyebrow::before {
+  content: '';
+  flex: none;
+  inline-size: 2.6em;
+  block-size: 2px;
+  background: var(--evx-green-strong);
+}
+.evx-skin__heading {
+  margin: 0;
+  color: var(--evx-white);
+  font: 800 calc(1.5rem * var(--k, 1)) / 1.05 var(--evx-font-heading);
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+/* Language switch: a kit-coloured text button. */
+.evx-skin__language {
+  min-inline-size: max(44px, calc(52px * var(--k, 1)));
+  min-block-size: max(44px, calc(52px * var(--k, 1)));
+  border: 0;
+  border-radius: 18%;
+  background: var(--evx-navy);
+  color: var(--evx-white);
+  font: 800 calc(1rem * var(--k, 1)) / 1 var(--evx-font-heading);
+  letter-spacing: 0.06em;
+  box-shadow:
+    var(--evx-shadow-soft),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  cursor: pointer;
+}
+.evx-skin__language:hover,
+.evx-skin__language:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px var(--evx-green),
+    var(--evx-shadow-soft);
+}
+
+/* Radar inside the skin: the slot places it. */
+.evx-skin__radar > .evx-viewer__radar {
+  position: relative;
+  inset: auto;
+  inline-size: calc(150px * var(--k, 1));
+}
+
+/* Menu, info and help panels. */
+.evx-viewer__dialog--menu {
+  inline-size: min(94vw, 34rem);
+}
+.evx-skin__section + .evx-skin__section {
+  margin-block-start: 18px;
+}
+.evx-skin__section-title {
+  margin: 0 0 8px;
+  color: var(--evx-green);
+  font: 600 0.8125rem / 1.3 var(--evx-font-body);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.evx-skin__group {
+  margin: 10px 0 4px;
+  color: var(--evx-white);
+  font-weight: 700;
+}
+.evx-skin__list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.evx-skin__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  inline-size: 100%;
+  min-block-size: 44px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 8px;
+  background: transparent;
+  padding: 6px 12px;
+  color: var(--evx-white);
+  font: 600 0.9375rem / 1.2 var(--evx-font-body);
+  text-align: start;
+  cursor: pointer;
+}
+.evx-skin__row[aria-current='true'] {
+  border-color: var(--evx-green);
+}
+.evx-skin__row:hover,
+.evx-skin__row:focus-visible {
+  outline: none;
+  border-color: var(--evx-green);
+  background: rgb(255 255 255 / 0.06);
+}
+.evx-skin__row--command .evx-btn {
+  --evx-btn-size: 44px;
+  flex: none;
+  pointer-events: none;
+}
+.evx-skin__current {
+  color: var(--evx-text-muted);
+  font-weight: 400;
+}
+.evx-skin__more {
+  display: grid;
+  gap: 6px;
+}
+.evx-skin__field {
+  display: grid;
+  gap: 4px;
+  margin-block-end: 10px;
+  color: var(--evx-white);
+  font-weight: 600;
+}
+.evx-skin__select {
+  min-block-size: 44px;
+  border: 1px solid rgb(255 255 255 / 0.3);
+  border-radius: 8px;
+  background: var(--evx-ink);
+  padding: 6px 10px;
+  color: var(--evx-white);
+  font: inherit;
+}
+.evx-skin__lead {
+  color: var(--evx-white);
+  font-weight: 700;
+}
+.evx-skin__note {
+  border-inline-start: 4px solid var(--evx-green);
+  padding-inline-start: 12px;
+  color: var(--evx-white);
+}
+.evx-skin__made {
+  color: var(--evx-text-muted);
+  font-size: 0.875rem;
 }

@@ -11,6 +11,8 @@ import {
   parseEnvironment,
   routeHeading,
   routesForScene,
+  SkinSchema,
+  type SkinInput,
 } from '@evactis-3dworkflow/schema';
 import {
   AssetError,
@@ -32,6 +34,7 @@ import { LuminanceMap } from './panorama/adaptive.ts';
 import { PanoramaRenderer, type View } from './panorama/renderer.ts';
 import { pdfView } from './pdf.ts';
 import { Radar } from './radar.ts';
+import { SkinChrome } from './skin.ts';
 import { equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
 import { runTransition } from './transitions.ts';
@@ -69,6 +72,14 @@ export interface ViewerOptions {
   editing?: boolean;
   /** Shows the floor-plan radar (corner mini-plan with the view cone). Default: false. */
   radar?: boolean;
+  /**
+   * Lays out the Viewer's interface (toolbar, logo, scene title, radar…) with a skin:
+   * the environment's, `DEFAULT_SKIN`, or any other. Without one, the Viewer shows the
+   * panorama and its hotspots only, for hosts that bring their own interface.
+   */
+  skin?: SkinInput | null;
+  /** Kiosk deployment: the skin's kiosk layout (large touch targets, no full screen). */
+  kiosk?: boolean;
 }
 
 export interface ViewerEvents extends Record<string, unknown> {
@@ -144,6 +155,8 @@ export class Viewer {
   private caption: HTMLDivElement;
   private videoBar: VideoBar;
   private radar: Radar | null = null;
+  private chrome: SkinChrome | null = null;
+  private isMuted = false;
   private timedKey = '';
   private sceneLoad = 0;
   private animation = 0;
@@ -222,12 +235,25 @@ export class Viewer {
       () => uiStrings(this.lang),
       () => this.refreshTimed(),
     );
-    if (options.radar)
+    const skin = options.skin ? SkinSchema.parse(options.skin) : null;
+    if (options.radar || skin?.elements.some((e) => e.type === 'radar'))
       this.radar = new Radar(
         this.element,
         () => uiStrings(this.lang),
         (id) => void this.goToScene(id),
       );
+    if (skin) {
+      this.chrome = new SkinChrome(this.skinHost(), skin, !!options.kiosk);
+      const refresh = () => this.chrome?.refresh();
+      for (const e of [
+        'scenechange',
+        'routechange',
+        'languagechange',
+        'audiencechange',
+        'livelayerchange',
+      ] as const)
+        this.events.on(e, refresh);
+    }
     // Sound may only start after a gesture inside the page.
     const unlock = () => this.sounds.unlock();
     this.element.addEventListener('pointerdown', unlock);
@@ -497,7 +523,17 @@ export class Viewer {
     this.controls.disableGyro();
   }
 
+  get muted(): boolean {
+    return this.isMuted;
+  }
+
+  /** The skin laid out around the panorama, if any (breakpoint, commands). */
+  get skinChrome(): SkinChrome | null {
+    return this.chrome;
+  }
+
   setMuted(muted: boolean): void {
+    this.isMuted = muted;
     this.sounds.setMuted(muted);
     const v = this.renderer.video;
     if (v) v.muted = muted;
@@ -564,6 +600,7 @@ export class Viewer {
     this.destroyed = true;
     cancelAnimationFrame(this.animation);
     this.sounds.dispose();
+    this.chrome?.dispose();
     this.controls.dispose();
     this.renderer.dispose();
     this.hotspots.dispose();
@@ -615,6 +652,57 @@ export class Viewer {
         uiStrings(this.lang),
       ),
     ];
+  }
+
+  /** The narrow view of the Viewer that the skin works through. */
+  private skinHost() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const v = this;
+    return {
+      get element() {
+        return v.element;
+      },
+      get environment() {
+        return v.environment;
+      },
+      get sceneId() {
+        return v.sceneId;
+      },
+      get language() {
+        return v.lang;
+      },
+      get audience() {
+        return v.audience;
+      },
+      get scenes() {
+        return v.scenes;
+      },
+      get muted() {
+        return v.isMuted;
+      },
+      get radarElement() {
+        return v.radar?.element ?? null;
+      },
+      get activeRouteId() {
+        return v.route?.id ?? null;
+      },
+      get liveLayers() {
+        return v.liveLayers;
+      },
+      t: () => uiStrings(v.lang),
+      goToScene: (id: string) => v.goToScene(id),
+      showFloorPlan: () => v.showFloorPlan(),
+      toggleRoute: () => (v.route ? v.hideRoute() : void v.showRoute()),
+      zoom: (f: number) => v.zoom(f),
+      setMuted: (m: boolean) => v.setMuted(m),
+      setLanguage: (l: string) => v.setLanguage(l),
+      setAudience: (a: string | null) => v.setAudience(a),
+      setLiveLayer: (l: string, st: string) => v.setLiveLayer(l, st),
+      showDialog: (title: string, content: Node[], modifier?: string) =>
+        v.dialogs.show(title, content, modifier),
+      closeDialog: () => v.dialogs.close(),
+      resolve: (p: string) => v.resolve(p),
+    };
   }
 
   /** Timed hotspots show while the scene's video is inside their time range. */

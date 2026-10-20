@@ -1,4 +1,5 @@
-import { buttonHtml, setButtonIcon, setButtonPressed } from '@evactis-3dworkflow/brand';
+import { DEFAULT_SKIN } from '@evactis-3dworkflow/schema';
+import { paintBackdrop, BACKDROPS, type BackdropName } from '../../brand/sheet/backdrops.ts';
 import { createViewer, type Viewer } from '../src/index.ts';
 import './demo.css';
 
@@ -9,9 +10,15 @@ declare global {
   }
 }
 
+/**
+ * The demo facility in the Viewer with the Evactis default skin.
+ *   ?scene= ?lang= ?audience=   where to start
+ *   ?kiosk                      kiosk layout (large touch targets, no full screen)
+ *   ?no-skin                    panorama and hotspots only
+ *   ?bg=gradient|bright|dark|busy  legibility tests: the skin over a test backdrop
+ */
 const params = new URLSearchParams(location.search);
 const stage = document.getElementById('stage')!;
-const toolbar = document.querySelector<HTMLElement>('.demo-toolbar')!;
 
 try {
   // Relative, same-folder JSON: works from a local server or the desktop app.
@@ -23,106 +30,23 @@ try {
     sceneId: params.get('scene') ?? undefined,
     reducedMotion: params.has('reduced-motion') || undefined,
     editing: params.has('editing') || undefined,
-    radar: !params.has('no-radar'),
+    skin: params.has('no-skin') ? null : (env.skin ?? DEFAULT_SKIN),
+    kiosk: params.has('kiosk'),
   });
   window.viewer = viewer;
   document.documentElement.lang = viewer.language;
+  viewer.on('languagechange', ({ language }) => (document.documentElement.lang = language));
 
-  const add = (
-    icon: Parameters<typeof buttonHtml>[0]['icon'],
-    onClick: (b: HTMLButtonElement) => void,
-    pressed?: boolean,
-  ) => {
-    const t = document.createElement('template');
-    t.innerHTML = buttonHtml({ icon, pressed, lang: viewer.language === 'fr' ? 'fr' : 'en' });
-    const b = t.content.firstElementChild as HTMLButtonElement;
-    b.addEventListener('click', () => onClick(b));
-    toolbar.append(b);
-    return b;
-  };
-  add('home', () => void viewer.goToScene(viewer.environment.initialSceneId ?? 'lobby'));
-  add('floor-plan', () => void viewer.showFloorPlan());
-  // The evac-route button shows the nearest primary route; the banner offers the other.
-  const evac = add('evac-route', () => {
-    if (viewer.activeRoute) viewer.hideRoute();
-    else viewer.showRoute();
-  });
-  viewer.on('routechange', ({ routeId }) => setButtonPressed(evac, routeId !== null));
-  add('zoom-in', () => viewer.zoom(1.25));
-  add('zoom-out', () => viewer.zoom(0.8));
-  add(
-    'info',
-    (b) => {
-      const fr = b.getAttribute('aria-pressed') !== 'true';
-      setButtonPressed(b, fr);
-      viewer.setLanguage(fr ? 'fr' : 'en');
-      document.documentElement.lang = viewer.language;
-    },
-    viewer.language === 'fr',
-  );
-  add('fullscreen', (b) => {
-    if (document.fullscreenElement) {
-      void document.exitFullscreen();
-      setButtonIcon(b, 'fullscreen');
-    } else {
-      void document.documentElement.requestFullscreen?.();
-      setButtonIcon(b, 'fullscreen-exit');
-    }
-  });
-  // Audience switcher (hidden when the package locks the audience).
-  if (!viewer.environment.settings.lockAudience) {
-    const label = document.createElement('label');
-    label.className = 'demo-audience';
-    const name = document.createElement('span');
-    const select = document.createElement('select');
-    const fill = () => {
-      const fr = viewer.language.startsWith('fr');
-      name.textContent = fr ? 'Public' : 'Audience';
-      select.replaceChildren(
-        ...viewer.environment.audiences.map((a) => {
-          const o = document.createElement('option');
-          o.value = a.id;
-          o.textContent = a.name[viewer.language] ?? a.name.en ?? a.id;
-          return o;
-        }),
-      );
-      select.value = viewer.audience ?? '';
-    };
-    fill();
-    viewer.on('languagechange', fill);
-    viewer.on('audiencechange', ({ audience }) => (select.value = audience ?? ''));
-    select.addEventListener('change', () => viewer.setAudience(select.value || null));
-    label.append(name, select);
-    toolbar.append(label);
-  }
-  // Live layers (e.g. "Conditions: Normal / Smoke"), one switcher each.
-  for (const layer of viewer.environment.liveLayers) {
-    const label = document.createElement('label');
-    label.className = 'demo-audience';
-    const name = document.createElement('span');
-    const select = document.createElement('select');
-    select.dataset.layerId = layer.id;
-    const L = (t: Record<string, string>) => t[viewer.language] ?? t.en ?? '';
-    const fill = () => {
-      name.textContent = L(layer.name);
-      select.replaceChildren(
-        ...layer.states.map((st) => {
-          const o = document.createElement('option');
-          o.value = st.id;
-          o.textContent = L(st.name);
-          return o;
-        }),
-      );
-      select.value = viewer.liveLayers.find((l) => l.layerId === layer.id)?.stateId ?? '';
-    };
-    fill();
-    viewer.on('languagechange', fill);
-    viewer.on('livelayerchange', ({ layerId, stateId }) => {
-      if (layerId === layer.id) select.value = stateId;
-    });
-    select.addEventListener('change', () => void viewer.setLiveLayer(layer.id, select.value));
-    label.append(name, select);
-    toolbar.append(label);
+  const bg = params.get('bg') as BackdropName | null;
+  if (bg && BACKDROPS.includes(bg)) {
+    // A fixed backdrop between the panorama and the skin, for legibility tests.
+    const c = document.createElement('canvas');
+    c.className = 'demo-backdrop';
+    c.width = stage.clientWidth;
+    c.height = stage.clientHeight;
+    paintBackdrop(c.getContext('2d')!, bg);
+    viewer.element.insertBefore(c, viewer.element.querySelector('.evx-skin'));
+    document.body.dataset.backdrop = bg;
   }
   document.body.dataset.ready = 'true';
 } catch (e) {
