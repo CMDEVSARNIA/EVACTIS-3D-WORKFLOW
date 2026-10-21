@@ -62,7 +62,9 @@ $shortName = "Evactis $([char]0x2013) $Name"
 $setup = Join-Path $Packages "$Name Setup.exe"
 $installDir = Join-Path $env:LOCALAPPDATA "Programs\Evactis\$Name"
 $installed = Join-Path $installDir 'EVACTIS-3DWORKFLOW-Viewer.exe'
-$portableDir = Join-Path $env:TEMP 'evx-portable-test'
+# Beside the logs, not under %TEMP%: on the runners that is an 8.3 short path
+# (RUNNER~1), which New-NetFirewallRule -Program refuses ("The parameter is incorrect").
+$portableDir = Join-Path (Split-Path $LogDir) 'evx-portable-test'
 $portable = Join-Path $portableDir 'EVACTIS-3DWORKFLOW-Viewer.exe'
 $viewerDir = Join-Path $env:LOCALAPPDATA 'Programs\EVACTIS\3DWORKFLOW\Viewer'
 $viewer = Join-Path $viewerDir 'EVACTIS-3DWORKFLOW-Viewer.exe'
