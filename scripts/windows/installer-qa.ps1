@@ -57,8 +57,9 @@ function New-OlderMsi([string]$Source, [string]$Target, [string]$Version) {
   $db = $wi.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $wi, @($Target, 1))
   $code = '{' + [guid]::NewGuid().ToString().ToUpper() + '}'
   foreach ($sql in @(
-      'UPDATE `Property` SET `Value` = ''' + $Version + ''' WHERE `Property` = ''ProductVersion''',
-      'UPDATE `Property` SET `Value` = ''' + $code + ''' WHERE `Property` = ''ProductCode'''
+      # Table and key column are both called Property, so the columns are qualified.
+      'UPDATE `Property` SET `Property`.`Value` = ''' + $Version + ''' WHERE `Property`.`Property` = ''ProductVersion''',
+      'UPDATE `Property` SET `Property`.`Value` = ''' + $code + ''' WHERE `Property`.`Property` = ''ProductCode'''
     )) {
     $view = $db.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $db, @($sql))
     $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null) | Out-Null
