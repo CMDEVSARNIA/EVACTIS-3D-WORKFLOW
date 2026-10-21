@@ -55,6 +55,9 @@ EVACTIS-3DWORKFLOW-Viewer-0.1.0-x64-setup.exe /S /CurrentUser   :: per-user, no 
 ```
 
 Per-user installs go to `%LOCALAPPDATA%\Programs\EVACTIS\3DWORKFLOW\<App>`.
+The setup's install folder is fixed in silent installs (it ignores `/D=`): to deploy to
+another folder, use the MSI with `INSTALLDIR`. Uninstalling either kind removes the
+program, its shortcuts, file association and remembered install location.
 
 ## Group Policy (software installation)
 

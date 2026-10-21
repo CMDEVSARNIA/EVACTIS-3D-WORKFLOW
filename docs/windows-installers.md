@@ -49,7 +49,7 @@ attempts), then uninstalled and checked for leftovers.
 | Upgrade | An older release (a copy of the MSI with version 0.0.1 and a new product code) is installed, then the real MSI upgrades it: one Apps & features entry, the new version, the signed program in place. |
 | Downgrade | Installing the older MSI over the new one is refused; the new version stays. |
 | French | The fr-FR MSI installs (Apps & features entry in French, language 1036) and uninstalls. |
-| Accents and an apostrophe in the path | The setup installs to `C:\Données d'Évactis\Visionneuse 3D`; the app starts from there, renders and makes no network request; double-click points there. |
+| Accents and an apostrophe in the path | The MSI installs to `C:\Données d'Évactis\Visionneuse 3D` (`INSTALLDIR`); the app starts from there, renders and makes no network request; double-click points there; uninstall removes it. |
 | Clean uninstall | After each case: no program folder, Start menu shortcut, Apps & features entry, ProgID, `.evx` association or remembered install location. Kept on purpose and listed as INFO: per-user app data and empty parent folders. |
 | Per-user, then per-machine | The per-machine MSI installs to Program Files even after a per-user setup was installed and removed on the same account (it no longer reuses the setup's folder in AppData). |
 

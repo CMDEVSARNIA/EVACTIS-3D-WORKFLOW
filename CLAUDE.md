@@ -452,6 +452,10 @@ makes network calls at runtime.
 83. **The CI bug scanner sends source code (never facility data) to Anthropic**; it is
     opt-in (repository secret), read and report only, and outside every shipped product
     (ADR 0021). *Evactis to confirm source review in Anthropic's cloud is acceptable.*
+84. **Custom install folders are an MSI feature** (`INSTALLDIR`): the NSIS setup's
+    MultiUser layer resets the folder in silent all-users installs, so `/D=` is ignored
+    there; interactive users still pick a folder in its dialog. Uninstall now also
+    forgets the install location, and the MSI never reuses a per-user setup's folder.
 
 ## Requirements added by Evactis
 

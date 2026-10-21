@@ -138,6 +138,11 @@ function New-OlderMsi([string]$Source, [string]$Target, [string]$Version, [strin
   [void][Runtime.InteropServices.Marshal]::ReleaseComObject($info)
   [void][Runtime.InteropServices.Marshal]::ReleaseComObject($db)
   [void][Runtime.InteropServices.Marshal]::ReleaseComObject($wi)
+  # Views and records still hold the file open until collected; msiexec would then fail
+  # with 1619 ("could not be opened").
+  [GC]::Collect()
+  [GC]::WaitForPendingFinalizers()
+  [GC]::Collect()
 }
 
 # What a per-machine uninstall must leave: nothing of the program.
@@ -204,21 +209,17 @@ try {
   Check ((Invoke-Msi @('/x', "`"$msiFr`"") 'fr-uninstall') -eq 0) 'fr-FR uninstall exit code 0'
   Test-Removed $machineDir 'French MSI'
 
-  # ------------------------------------------------------------ setup in a folder with accents
+  # ------------------------------------------------------------ install folder with accents
   # "C:\Donnees d'Evactis\Visionneuse 3D" with e-acute and E-acute (this file stays ASCII).
+  # Through the MSI's INSTALLDIR: the setup .exe ignores /D= in silent all-users installs
+  # (NSIS MultiUser sets its own folder), so a chosen folder is the MSI's job.
   $accented = "C:\Donn$([char]0xE9)es d'$([char]0xC9)vactis\Visionneuse 3D"
-  Write-Host "== NSIS setup into $accented"
+  Write-Host "== MSI into $accented"
   $exe = Join-Path $accented $exeName
   & "$PSScriptRoot\offline.ps1" -Programs @($exe)
-  # One string: NSIS takes everything after /D= (spaces included, no quotes) as the folder,
-  # and it must come last.
-  $p = Start-Process $setup -ArgumentList "/S /AllUsers /D=$accented" -Wait -PassThru
-  Check ($p.ExitCode -eq 0) "setup exit code 0 (got $($p.ExitCode))"
-  Check (Test-Path $exe) 'program installed in the accented folder'
-  if (-not (Test-Path $exe)) {
-    $found = Get-ChildItem "$env:ProgramFiles\EVACTIS", "$env:LOCALAPPDATA\Programs\EVACTIS", 'C:\' -Filter $exeName -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 3
-    Write-Host "  INFO  the setup put it here instead: $($found.FullName -join ', ')"
-  } else {
+  Check ((Invoke-Msi @('/i', "`"$msi`"", "INSTALLDIR=`"$accented`"") 'accented-install') -eq 0) 'MSI installs into the accented folder'
+  Check (Test-Path $exe) 'program installed there'
+  if (Test-Path $exe) {
     $report = Join-Path $LogDir 'accented-report.json'
     Remove-Item $report -ErrorAction SilentlyContinue
     $run = Start-Process $exe -ArgumentList @('--smoke-test', "`"$report`"") -PassThru
@@ -232,14 +233,8 @@ try {
   }
   $open = (Get-ItemProperty "HKLM:\Software\Classes\$progId\shell\open\command" -ErrorAction SilentlyContinue).'(default)'
   Check ($open -like "*$accented*") "double-click opens the program in the accented folder ($open)"
-  $uninstaller = @(Get-Entries | ForEach-Object { $_.UninstallString -replace '^"([^"]+)".*$', '$1' } | Where-Object { $_ -like '*uninstall.exe' })[0]
-  if ($uninstaller) {
-    $dir = Split-Path $uninstaller
-    $p = Start-Process $uninstaller -ArgumentList '/S' -Wait -PassThru
-    for ($i = 0; $i -lt 60 -and (Test-Path (Join-Path $dir $exeName)); $i++) { Start-Sleep -Seconds 1 }
-    Check ($p.ExitCode -eq 0) 'uninstall exit code 0'
-  } else { Check $false 'uninstaller found in Apps & features' }
-  Test-Removed $accented 'NSIS in the accented folder'
+  Check ((Invoke-Msi @('/x', "`"$msi`"") 'accented-uninstall') -eq 0) 'uninstall exit code 0'
+  Test-Removed $accented 'MSI in the accented folder'
   if (Test-Path (Split-Path $accented)) { Write-Host "  INFO  the empty parent folder stays: $(Split-Path $accented)" }
 } finally {
   & "$PSScriptRoot\offline.ps1" -Disable
