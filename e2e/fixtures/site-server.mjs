@@ -137,6 +137,12 @@ await call('POST', '/api/users', {
   cookie,
   body: { username: 'bob', displayName: 'Bob Builder', password: PASSWORD, role: 'member' },
 });
+// Only the administration test changes this account (a password reset signs its owner out
+// everywhere, so it must not be an account another test is using at the same time).
+await call('POST', '/api/users', {
+  cookie,
+  body: { username: 'carol', displayName: 'Carol Clerk', password: PASSWORD, role: 'member' },
+});
 const env = await call('PUT', '/api/environments', {
   cookie,
   body: readFileSync(join(out, 'demo.evx')),
@@ -145,7 +151,7 @@ const env = await call('PUT', '/api/environments', {
 writeFileSync(
   join(out, 'fixture.json'),
   JSON.stringify(
-    { environmentId: env.json.id, password: PASSWORD, users: ['ada', 'bob'] },
+    { environmentId: env.json.id, password: PASSWORD, users: ['ada', 'bob', 'carol'] },
     null,
     2,
   ),
