@@ -90,28 +90,18 @@ export function installTask(dataArg: string | undefined): void {
   }
 
   // Inbound only from the networks the server serves; no outbound rule is needed.
-  removeRules();
-  const remote = config.allowedNetworks.join(',');
-  const rule = (name: string, protocol: string, ports: string) =>
-    run('netsh', [
-      'advfirewall',
-      'firewall',
-      'add',
-      'rule',
-      `name=${RULE} (${name})`,
-      'dir=in',
-      'action=allow',
-      `program=${process.execPath}`,
-      `protocol=${protocol}`,
-      `localport=${ports}`,
-      `remoteip=${remote}`,
-      'profile=any',
-    ]);
-  rule('HTTPS', 'TCP', String(config.port));
-  rule(
-    'TURN',
-    'UDP',
-    `${config.turn.port},${config.turn.relayPorts[0]}-${config.turn.relayPorts[1]}`,
+  powershell(
+    firewallScript(process.execPath, config.allowedNetworks, [
+      { name: 'HTTPS', protocol: 'TCP', ports: [String(config.port)] },
+      {
+        name: 'TURN',
+        protocol: 'UDP',
+        ports: [
+          String(config.turn.port),
+          `${config.turn.relayPorts[0]}-${config.turn.relayPorts[1]}`,
+        ],
+      },
+    ]),
   );
 
   run('schtasks', ['/Run', '/TN', TASK]);
@@ -121,13 +111,53 @@ export function installTask(dataArg: string | undefined): void {
   );
 }
 
+/** PowerShell string literal. */
+const psText = (v: string) => `'${v.replace(/'/g, "''")}'`;
+const psList = (vs: string[]) => `@(${vs.map(psText).join(',')})`;
+const REMOVE_RULES = `Get-NetFirewallRule -Group ${psText(RULE)} -ErrorAction SilentlyContinue | Remove-NetFirewallRule`;
+
+/**
+ * Replaces the server's inbound firewall rules (one group, so uninstall finds them all).
+ * PowerShell's firewall cmdlets take each value as a literal; netsh's own command-line
+ * parser rejected the rule names and address lists passed from Node.
+ */
+export function firewallScript(
+  program: string,
+  networks: string[],
+  rules: { name: string; protocol: 'TCP' | 'UDP'; ports: string[] }[],
+): string {
+  return [
+    "$ErrorActionPreference = 'Stop'",
+    REMOVE_RULES,
+    ...rules.map(
+      (r) =>
+        `New-NetFirewallRule -DisplayName ${psText(`${RULE} (${r.name})`)} -Group ${psText(RULE)} ` +
+        `-Direction Inbound -Action Allow -Program ${psText(program)} -Protocol ${r.protocol} ` +
+        `-LocalPort ${psList(r.ports)} -RemoteAddress ${psList(networks)} -Profile Any | Out-Null`,
+    ),
+  ].join('\n');
+}
+
+const powershell = (script: string, quiet = false) =>
+  run(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-ExecutionPolicy',
+      'Bypass',
+      '-EncodedCommand',
+      Buffer.from(script, 'utf16le').toString('base64'),
+    ],
+    quiet,
+  );
+
 function removeRules(): void {
-  for (const name of ['HTTPS', 'TURN'])
-    try {
-      run('netsh', ['advfirewall', 'firewall', 'delete', 'rule', `name=${RULE} (${name})`], true);
-    } catch {
-      // not there
-    }
+  try {
+    powershell(REMOVE_RULES, true);
+  } catch {
+    // none there
+  }
 }
 
 export function uninstallTask(): void {

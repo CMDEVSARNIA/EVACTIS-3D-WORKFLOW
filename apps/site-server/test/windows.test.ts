@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { taskXml } from '../src/windows.ts';
+import { firewallScript, taskXml } from '../src/windows.ts';
 
 describe('Windows scheduled task', () => {
   const xml = taskXml(
@@ -23,5 +23,27 @@ describe('Windows scheduled task', () => {
       '<Arguments>--data &quot;D:\\Site &amp; Data&quot; --log &quot;D:\\Site &amp; Data\\site-server.log&quot;</Arguments>',
     );
     expect(xml).not.toMatch(/&(?!amp;|quot;|lt;|gt;)/);
+  });
+
+  it('limits inbound firewall rules to the site networks, as PowerShell literals', () => {
+    const script = firewallScript(
+      "C:\\Evactis's Site\\server.exe",
+      ['10.0.0.0/8', 'fe80::/10'],
+      [
+        { name: 'HTTPS', protocol: 'TCP', ports: ['4392'] },
+        { name: 'TURN', protocol: 'UDP', ports: ['3478', '49160-49200'] },
+      ],
+    );
+    const lines = script.split('\n');
+    expect(lines[0]).toBe("$ErrorActionPreference = 'Stop'");
+    expect(lines[1]).toBe(
+      "Get-NetFirewallRule -Group 'EVACTIS 3DWORKFLOW Site Server' -ErrorAction SilentlyContinue | Remove-NetFirewallRule",
+    );
+    expect(lines[2]).toBe(
+      "New-NetFirewallRule -DisplayName 'EVACTIS 3DWORKFLOW Site Server (HTTPS)' -Group 'EVACTIS 3DWORKFLOW Site Server' " +
+        "-Direction Inbound -Action Allow -Program 'C:\\Evactis''s Site\\server.exe' -Protocol TCP " +
+        "-LocalPort @('4392') -RemoteAddress @('10.0.0.0/8','fe80::/10') -Profile Any | Out-Null",
+    );
+    expect(lines[3]).toContain("-Protocol UDP -LocalPort @('3478','49160-49200')");
   });
 });
