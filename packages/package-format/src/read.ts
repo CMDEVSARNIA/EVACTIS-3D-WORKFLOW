@@ -28,6 +28,23 @@ export class IntegrityError extends Error {
   }
 }
 
+/**
+ * A file could not be read at all (missing, or the share or server did not answer, even
+ * after retrying). Unlike an IntegrityError, nothing says the package was tampered with,
+ * so a player reports it as a read problem and keeps what it already shows.
+ */
+export class ReadError extends Error {
+  override name = 'ReadError';
+  readonly path: string;
+  constructor(path: string, cause: unknown) {
+    super(`The package file "${path}" could not be read (${String(cause)})`, { cause });
+    this.path = path;
+  }
+}
+
+/** Waits before each retry of a failed read: a busy server or share often answers next time. */
+const RETRY_DELAYS_MS = [200, 800];
+
 /** The passphrase did not open the package. */
 export class PassphraseError extends Error {
   override name = 'PassphraseError';
@@ -71,11 +88,15 @@ export class PackageReader {
   async stored(path: string): Promise<Uint8Array> {
     const f = this.files.get(path);
     if (!f) throw new IntegrityError(path);
-    let data: Uint8Array;
-    try {
-      data = await this.read(path);
-    } catch {
-      throw new IntegrityError(path);
+    let data: Uint8Array | undefined;
+    for (let attempt = 0; !data; attempt++) {
+      try {
+        data = await this.read(path);
+      } catch (e) {
+        const wait = RETRY_DELAYS_MS[attempt];
+        if (wait === undefined) throw new ReadError(path, e);
+        await new Promise((r) => setTimeout(r, wait));
+      }
     }
     if (data.length !== f.size || (await sha256Hex(data)) !== f.sha256)
       throw new IntegrityError(path);

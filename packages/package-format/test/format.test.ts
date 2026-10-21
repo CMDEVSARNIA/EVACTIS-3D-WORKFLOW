@@ -12,6 +12,7 @@ import {
   PackageReader,
   parseManifest,
   PassphraseError,
+  ReadError,
   seal,
   sha256Hex,
   toHex,
@@ -77,8 +78,29 @@ describe('integrity manifest', () => {
     await expect(r.bytes('media/lobby/a.jpg')).rejects.toBeInstanceOf(IntegrityError);
     await expect(r.bytes('media/other.jpg')).rejects.toBeInstanceOf(IntegrityError);
     await expect(r.verifyAll()).rejects.toThrow(/a\.jpg" failed its integrity check/);
+    // A file that cannot be read is a read problem, not proof of tampering.
     files.delete('environment.json');
-    await expect(r.bytes('environment.json')).rejects.toBeInstanceOf(IntegrityError);
+    await expect(r.bytes('environment.json')).rejects.toBeInstanceOf(ReadError);
+  });
+
+  it('retries a read that fails once (a busy server), and is not fooled into an alarm', async () => {
+    const files = await build();
+    let failures = 1;
+    const flaky = await PackageReader.open(async (p) => {
+      if (p === 'environment.json' && failures-- > 0) throw new Error('503');
+      const b = files.get(p);
+      if (!b) throw new Error('404');
+      return b;
+    });
+    expect(dec(await flaky.bytes('environment.json'))).toBe('{"id":"demo"}');
+    const down = await PackageReader.open(async (p) => {
+      if (p === 'environment.json') throw new Error('connection reset');
+      return files.get(p)!;
+    });
+    const e = await down.bytes('environment.json').catch((x: unknown) => x);
+    expect(e).toBeInstanceOf(ReadError);
+    expect(e).not.toBeInstanceOf(IntegrityError);
+    expect(String(e)).toMatch(/environment\.json" could not be read \(Error: connection reset\)/);
   });
 
   it('rejects manifests that are not ours or that escape the package', () => {

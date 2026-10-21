@@ -29,4 +29,10 @@ export {
   type PackageManifest,
 } from './manifest.ts';
 export { Packer, type PackerOptions, type StoredFile } from './pack.ts';
-export { IntegrityError, PackageReader, PassphraseError, type ReadStored } from './read.ts';
+export {
+  IntegrityError,
+  PackageReader,
+  PassphraseError,
+  ReadError,
+  type ReadStored,
+} from './read.ts';
