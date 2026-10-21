@@ -11,6 +11,8 @@ const BASE = {
   'font-src': ["'self'"],
   'media-src': ["'self'", 'blob:'],
   'connect-src': ["'self'", 'ipc:', 'http://ipc.localhost'],
+  // No web workers: the PDF reader runs pdf.js on the page itself (packages/viewer/src/pdf.ts).
+  'worker-src': ["'none'"],
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
   'form-action': ["'none'"],

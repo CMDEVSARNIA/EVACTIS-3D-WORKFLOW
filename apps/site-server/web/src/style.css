@@ -183,3 +183,26 @@ progress {
   block-size: 1.25rem;
   accent-color: var(--evx-green-strong);
 }
+
+/* In-page questions (ask() in shell.ts) instead of browser confirm()/prompt(). */
+.site-dialog {
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 1.5rem;
+  border: 1px solid var(--evx-rule);
+  border-radius: 8px;
+  background: var(--evx-panel);
+  color: var(--evx-fg);
+}
+.site-dialog::backdrop {
+  background: rgb(0 0 0 / 60%);
+}
+.site-dialog-text {
+  margin: 0 0 1rem;
+  color: var(--evx-fg);
+}
+.site-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-block-start: 1rem;
+}

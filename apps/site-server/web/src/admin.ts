@@ -5,7 +5,7 @@
  */
 import { api, site, type EnvironmentInfo, type Site, type SiteUser } from './api.ts';
 import { clear, formatDate, formatSize, h } from './dom.ts';
-import { field, say, shell, type Shell } from './shell.ts';
+import { ask, field, say, shell, type Shell } from './shell.ts';
 import { localized } from './strings.ts';
 
 type AdminUser = SiteUser & { disabled: boolean };
@@ -87,7 +87,7 @@ async function environments(s: Shell, box: HTMLElement) {
                   type: 'button',
                   class: 'evx-cta evx-cta--ghost site-small',
                   onclick: async () => {
-                    if (!confirm(t.removeConfirm)) return;
+                    if (!(await ask({ t, text: t.removeConfirm, ok: t.remove }))) return;
                     await api('DELETE', `/api/environments/${e.id}`);
                     await environments(s, box);
                   },
@@ -167,8 +167,18 @@ async function people(s: Shell, box: HTMLElement, me: SiteUser) {
                       type: 'button',
                       class: 'evx-cta evx-cta--ghost site-small',
                       onclick: async () => {
-                        const p = prompt(`${t.resetPassword} (${u.username}) — ${t.passwordHint}`);
-                        if (!p) return;
+                        const p = await ask({
+                          t,
+                          text: `${t.resetPassword}: ${u.name} (${u.username})`,
+                          ok: t.save,
+                          input: {
+                            label: t.newPassword,
+                            hint: t.passwordHint,
+                            type: 'password',
+                            minLength: 10,
+                          },
+                        });
+                        if (typeof p !== 'string') return;
                         try {
                           await api('POST', `/api/users/${u.id}/password`, { password: p });
                           say(status, t.saved);
@@ -256,7 +266,7 @@ async function reports(s: Shell, box: HTMLElement) {
           type: 'button',
           class: 'evx-cta evx-cta--ghost site-small',
           onclick: async () => {
-            if (!confirm(t.clearConfirm)) return;
+            if (!(await ask({ t, text: t.clearConfirm, ok: t.clearReports }))) return;
             await api('DELETE', '/api/admin/reports');
             await reports(s, box);
           },

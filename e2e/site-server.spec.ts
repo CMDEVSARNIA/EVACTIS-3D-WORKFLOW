@@ -164,6 +164,18 @@ test('administration: reports start off, the certificate authority is offered, t
   await expect(page.getByRole('heading', { name: 'Administration' })).toBeVisible();
   await expect(page.getByLabel('Record usage on this site')).not.toBeChecked();
   expect(await contrastProblems(page), 'administration').toEqual([]);
+  // Questions are in-page dialogs (not browser prompts): named, modal, Escape cancels.
+  const bobRow = page.getByRole('row').filter({ hasText: 'Bob Builder' });
+  await bobRow.getByRole('button', { name: 'Set password' }).click();
+  const dialog = page.getByRole('dialog', { name: /Set password: Bob Builder/ });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel('New password')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await bobRow.getByRole('button', { name: 'Set password' }).click();
+  await dialog.getByLabel('New password').fill(fx.password);
+  await dialog.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved.' })).toBeVisible();
   const ca = await page.request.get(`${SITE}/ca.pem`);
   expect((await ca.text()).startsWith('-----BEGIN CERTIFICATE-----')).toBe(true);
 });

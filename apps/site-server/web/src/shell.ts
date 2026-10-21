@@ -99,3 +99,62 @@ export function say(el: HTMLElement, text: string, error = false): void {
   el.setAttribute('role', error ? 'alert' : 'status');
   el.classList.toggle('site-error', error);
 }
+
+interface Question {
+  t: Strings;
+  /** The question, also the dialog's accessible name. */
+  text: string;
+  /** The confirming button ("Remove", "Save"…). */
+  ok: string;
+  /** Asks for a value as well (e.g. a new password). */
+  input?: { label: string; hint?: string; type?: string; minLength?: number };
+}
+
+/**
+ * An in-page question instead of the browser's confirm()/prompt(), which cannot be
+ * styled, translated or reliably used with assistive technology. A native modal
+ * <dialog> keeps focus inside and closes on Escape. Resolves to true (or the typed
+ * value), or null when cancelled.
+ */
+export function ask(q: Question): Promise<string | true | null> {
+  return new Promise((resolve) => {
+    const input = q.input
+      ? h('input', {
+          type: q.input.type ?? 'text',
+          required: true,
+          minLength: q.input.minLength,
+          autocomplete: q.input.type === 'password' ? 'new-password' : 'off',
+        })
+      : null;
+    const dialog = h('dialog', { class: 'site-dialog', 'aria-label': q.text });
+    const form = h(
+      'form',
+      { method: 'dialog', class: 'site-form' },
+      h('p', { class: 'site-dialog-text' }, q.text),
+      input && q.input ? field(q.input.label, input, q.input.hint) : null,
+      h(
+        'div',
+        { class: 'site-dialog-actions' },
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'evx-cta evx-cta--ghost site-small',
+            onclick: () => dialog.close('cancel'),
+          },
+          q.t.cancel,
+        ),
+        h('button', { type: 'submit', value: 'ok', class: 'evx-cta site-small' }, q.ok),
+      ),
+    );
+    dialog.append(form);
+    dialog.addEventListener('close', () => {
+      const ok = dialog.returnValue === 'ok';
+      dialog.remove();
+      resolve(ok ? (input ? input.value : true) : null);
+    });
+    document.body.append(dialog);
+    dialog.showModal();
+    (input ?? form.querySelector<HTMLButtonElement>('button[type="submit"]'))?.focus();
+  });
+}

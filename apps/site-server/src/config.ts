@@ -22,6 +22,11 @@ export interface LdapConfig {
   /** PEM of the directory's certificate authority, for ldaps:// or StartTLS. */
   caFile?: string;
   startTls?: boolean;
+  /**
+   * Sign in over plain ldap:// without StartTLS, which sends people's passwords across
+   * the network unencrypted. Refused unless set; never recommended.
+   */
+  allowPlainLdap?: boolean;
 }
 
 export interface Config {
@@ -93,6 +98,10 @@ function check(c: Config): Config {
   if (c.ldap) {
     if (!/^ldaps?:\/\//.test(c.ldap.url)) fail('ldap.url must start with ldap:// or ldaps://');
     if (!c.ldap.userFilter.includes('{username}')) fail('ldap.userFilter needs {username}');
+    if (c.ldap.url.startsWith('ldap://') && !c.ldap.startTls && !c.ldap.allowPlainLdap)
+      fail(
+        'ldap.url is plain ldap:// without startTls: passwords would cross the network in clear. Use ldaps://, set "startTls": true, or (not recommended) "allowPlainLdap": true',
+      );
   }
   return c;
 }

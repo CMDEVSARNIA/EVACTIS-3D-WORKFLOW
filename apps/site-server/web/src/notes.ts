@@ -8,7 +8,7 @@ import type { Viewer } from '@evactis-3dworkflow/viewer/open-package';
 import { api, type SiteUser } from './api.ts';
 import { clear, formatDate, h } from './dom.ts';
 import type { LiveChannel } from './live.ts';
-import { field, say } from './shell.ts';
+import { ask, field, say } from './shell.ts';
 import { localized, type Lang, type Strings } from './strings.ts';
 
 export interface Person {
@@ -358,7 +358,7 @@ export class NotesLayer {
               type: 'button',
               class: 'evx-cta evx-cta--ghost site-small',
               onclick: async () => {
-                if (!confirm(t.deleteConfirm)) return;
+                if (!(await ask({ t, text: t.deleteConfirm, ok: t.deleteNote }))) return;
                 await api('DELETE', `/api/notes/${n.id}`);
                 this.notes.delete(n.id);
                 this.schedule();
