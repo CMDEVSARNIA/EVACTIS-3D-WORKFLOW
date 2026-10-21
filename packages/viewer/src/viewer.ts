@@ -392,6 +392,19 @@ export class Viewer {
     return { ...this.renderer.view };
   }
 
+  /**
+   * Editing: what a click at the centre of the view would place (direction, and the
+   * model surface there in GLB and splat scenes). The keyboard way to place: turn the
+   * view with the arrow keys, then place at the centre.
+   */
+  centrePlacement(): { yaw: number; pitch: number; point?: WorldPoint | null } {
+    const r = this.element.getBoundingClientRect();
+    const x = r.width / 2;
+    const y = r.height / 2;
+    const at = this.screenToView(x, y);
+    return { ...at, point: this.renderer.is3d ? this.renderer.pick(x, y) : undefined };
+  }
+
   setView(view: Partial<View>): void {
     const v = this.renderer.view;
     this.renderer.setView({

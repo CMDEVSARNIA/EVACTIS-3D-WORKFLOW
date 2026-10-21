@@ -648,6 +648,23 @@ export function SafetyEditor({
     <section className="evx-editor__stage evx-safety-stage" aria-label={s.modes[mode]}>
       {planPicker}
       {mode === 'equipment' && <p className="evx-hint">{s.toolHint[tool]}</p>}
+      {mode === 'equipment' && tool === 'scene' && item && sceneId && (
+        // The keyboard way: turn the preview with the arrow keys, then place (or move)
+        // the item at the centre of the view.
+        <button
+          type="button"
+          className="evx-cta evx-cta--ghost evx-cta--small justify-self-start"
+          onClick={() => {
+            const at = viewer.current?.centrePlacement();
+            if (at)
+              edit(s.labels.placeEquipment, (d) =>
+                so.placeEquipmentInScene(d, item.id, sceneId, at),
+              );
+          }}
+        >
+          {t.editor.placeAtCentre}
+        </button>
+      )}
       <div className="evx-safety-views">
         {scene && sceneId && mode !== 'package' && (
           <Preview
@@ -728,6 +745,7 @@ export function SafetyEditor({
               highlightRoute={route?.id ?? null}
               crosshair={crosshair}
               onPoint={onPlanPoint}
+              cursor={{ label: t.editor.planCursor, hint: t.editor.planCursorHint }}
               onPick={(p) => {
                 if (draft || crosshair) return;
                 if (p.kind === 'equipment') selectEquipment(p.id, 'plan');

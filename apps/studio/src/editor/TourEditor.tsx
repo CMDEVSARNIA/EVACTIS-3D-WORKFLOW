@@ -417,6 +417,19 @@ export function TourEditor({
               }}
             />
             {!testing && <p className="evx-hint">{e.placeHint[mode]}</p>}
+            {!testing && mode !== 'select' && (
+              // The keyboard way: turn the preview with the arrow keys, then place here.
+              <button
+                type="button"
+                className="evx-cta evx-cta--ghost evx-cta--small justify-self-start"
+                onClick={() => {
+                  const at = viewer.current?.centrePlacement();
+                  if (at) place(at);
+                }}
+              >
+                {e.placeAtCentre}
+              </button>
+            )}
           </>
         ) : (
           <div className="evx-panel evx-editor__empty">
@@ -489,6 +502,16 @@ export function TourEditor({
                 {e.degrees(hotspot.position.pitch)}
               </p>
             )}
+            <button
+              type="button"
+              className="evx-cta evx-cta--ghost evx-cta--small justify-self-start"
+              onClick={() => {
+                const at = viewer.current?.centrePlacement();
+                if (at) edit(e.labels.moveHotspot, (d) => ops.moveHotspot(d, hotspot.id, at));
+              }}
+            >
+              {e.moveToCentre}
+            </button>
             {scene?.media.type === 'video360' && (
               <TimeRange
                 t={t}

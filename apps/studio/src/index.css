@@ -455,6 +455,28 @@ textarea.evx-field {
   inline-size: 100%;
   block-size: 100%;
 }
+/* Keyboard cursor over a plan (PlanCursor.tsx): takes focus, never clicks. */
+.evx-plan__keys {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.evx-plan__keys:focus-visible {
+  outline: 3px solid var(--evx-green);
+  outline-offset: -3px;
+}
+.evx-plan__crosshair {
+  position: absolute;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  translate: -50% -50%;
+  border: 2px solid var(--evx-navy);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #fff;
+  background:
+    linear-gradient(var(--evx-navy), var(--evx-navy)) center / 2px 100% no-repeat,
+    linear-gradient(var(--evx-navy), var(--evx-navy)) center / 100% 2px no-repeat;
+}
 .evx-plan > img {
   pointer-events: none;
   user-select: none;

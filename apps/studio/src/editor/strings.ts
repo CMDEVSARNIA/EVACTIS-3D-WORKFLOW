@@ -161,6 +161,11 @@ export const EDITOR = {
     planModes: { none: 'View', place: 'Place scene', calibrate: 'Set scale' },
     placeWhich: 'Scene to place',
     planPlaceHint: 'Click on the plan where the scene was captured.',
+    placeAtCentre: 'Place at the centre of the view',
+    moveToCentre: 'Move to the centre of the view',
+    planCursor: (x: number, y: number) => `Plan, keyboard cursor at ${x}% across, ${y}% down`,
+    planCursorHint:
+      'Arrow keys move the cursor (Shift: bigger steps, Alt: finer); Enter acts at the cursor, as a click would.',
     calibrateHint: (n: number): string =>
       n === 0
         ? 'Click the first of two points whose real distance you know.'
@@ -385,6 +390,12 @@ export const EDITOR = {
     planModes: { none: 'Afficher', place: 'Placer une scène', calibrate: 'Définir l’échelle' },
     placeWhich: 'Scène à placer',
     planPlaceHint: 'Cliquez sur le plan à l’endroit de la prise de vue.',
+    placeAtCentre: 'Placer au centre de la vue',
+    moveToCentre: 'Déplacer au centre de la vue',
+    planCursor: (x: number, y: number) =>
+      `Plan, curseur clavier à ${x} % depuis la gauche, ${y} % depuis le haut`,
+    planCursorHint:
+      'Les flèches déplacent le curseur (Maj : plus vite, Alt : plus fin); Entrée agit au curseur, comme un clic.',
     calibrateHint: (n: number): string =>
       n === 0
         ? 'Cliquez sur le premier de deux points dont vous connaissez la distance réelle.'

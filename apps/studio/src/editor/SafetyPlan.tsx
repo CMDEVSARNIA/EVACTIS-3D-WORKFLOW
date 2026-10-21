@@ -12,6 +12,7 @@ import {
   type PlanPoint,
 } from '@evactis-3dworkflow/schema';
 import type { MouseEvent } from 'react';
+import { PlanCursor } from './PlanCursor';
 
 export type Pick = { kind: 'equipment' | 'posting' | 'route'; id: string };
 
@@ -26,6 +27,7 @@ export function SafetyPlan({
   crosshair,
   onPoint,
   onPick,
+  cursor,
 }: {
   env: Environment;
   floorId: string;
@@ -38,6 +40,8 @@ export function SafetyPlan({
   crosshair: boolean;
   onPoint: (p: PlanPoint) => void;
   onPick: (p: Pick) => void;
+  /** The keyboard cursor's name and hint (see PlanCursor). */
+  cursor: { label: (x: number, y: number) => string; hint: string };
 }) {
   const plan = env.buildings.flatMap((b) => b.floors).find((f) => f.id === floorId)?.plan;
   if (!plan) return null;
@@ -66,6 +70,15 @@ export function SafetyPlan({
       }}
     >
       <img src={image} alt="" draggable={false} />
+      {(crosshair || draft) && (
+        <PlanCursor
+          width={W}
+          height={H}
+          label={cursor.label}
+          hint={cursor.hint}
+          onPoint={onPoint}
+        />
+      )}
       <svg
         viewBox={`0 0 ${W} ${H}`}
         data-mode={crosshair ? 'place' : 'none'}

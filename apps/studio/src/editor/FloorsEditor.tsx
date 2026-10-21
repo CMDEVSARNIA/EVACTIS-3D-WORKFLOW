@@ -4,6 +4,7 @@
  * Plan positions drive link suggestions and, later, the Viewer's mini-map and routes.
  */
 import type { Environment, PlanPoint } from '@evactis-3dworkflow/schema';
+import { PlanCursor } from './PlanCursor';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import { api, type AssetRecord, type ImportEvent, type ProjectInfo } from '../api.ts';
 import { describeError } from '../format.ts';
@@ -68,6 +69,7 @@ function PlanCanvas({
   points,
   label,
   onPoint,
+  cursor,
 }: {
   env: Environment;
   floorId: string;
@@ -79,6 +81,7 @@ function PlanCanvas({
   points: PlanPoint[];
   label: (id: string) => string;
   onPoint: (p: PlanPoint) => void;
+  cursor: { label: (x: number, y: number) => string; hint: string };
 }) {
   const r = Math.max(width, height) / 90;
   const click = (ev: MouseEvent<SVGSVGElement>) => {
@@ -101,6 +104,15 @@ function PlanCanvas({
       }}
     >
       <img src={image} alt="" draggable={false} />
+      {mode !== 'none' && (
+        <PlanCursor
+          width={width}
+          height={height}
+          label={cursor.label}
+          hint={cursor.hint}
+          onPoint={onPoint}
+        />
+      )}
       <svg
         viewBox={`0 0 ${width} ${height}`}
         data-testid="plan-canvas"
@@ -359,6 +371,7 @@ export function FloorsEditor({
                 points={mode === 'calibrate' ? points : []}
                 label={sceneName}
                 onPoint={onPoint}
+                cursor={{ label: e.planCursor, hint: e.planCursorHint }}
               />
               {mode === 'place' && <p className="evx-hint">{e.planPlaceHint}</p>}
               {mode === 'calibrate' && (
