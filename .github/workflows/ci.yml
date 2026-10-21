@@ -34,6 +34,9 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             poppler-utils unzip libxml2-utils slapd
           sudo systemctl stop slapd || true
+          # The tests start their own throw-away slapd with its files in a temporary
+          # folder, which the package's AppArmor profile (system folders only) refuses.
+          if [ -f /etc/apparmor.d/usr.sbin.slapd ]; then sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.slapd || true; fi
       - name: pnpm check
         run: pnpm check
       - uses: actions/upload-artifact@v4

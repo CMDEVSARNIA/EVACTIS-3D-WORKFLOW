@@ -56,15 +56,22 @@ beforeAll(async () => {
   const port = await freePort();
   url = `ldap://127.0.0.1:${port}`;
   slapd = spawn(SLAPD, ['-d', '0', '-f', join(dir, 'slapd.conf'), '-h', `${url}/`], {
-    stdio: 'ignore',
+    stdio: ['ignore', 'ignore', 'pipe'],
   });
+  // If slapd stops (a bad config, or an AppArmor profile confining it to its system
+  // folders), say why instead of failing later with "connection refused".
+  let said = '';
+  let exited: number | null = null;
+  slapd.stderr!.on('data', (b) => (said += b));
+  slapd.on('exit', (code) => (exited = code ?? -1));
   const admin = new Client({ url });
   for (let i = 0; ; i++) {
     try {
       await admin.bind(`cn=admin,${BASE}`, 'admin-secret');
       break;
     } catch (e) {
-      if (i > 50) throw e;
+      if (exited !== null) throw new Error(`slapd exited (${exited}): ${said.trim()}`);
+      if (i > 100) throw e;
       await new Promise((r) => setTimeout(r, 100));
     }
   }
