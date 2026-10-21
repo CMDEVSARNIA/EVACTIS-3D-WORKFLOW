@@ -40,6 +40,9 @@ holder; B=$!
 holder; O=$!
 sleep 0.3
 in_ns() { local pid=$1; shift; nsenter --net="/proc/$pid/ns/net" "$@"; }
+# Background work is started with nsenter itself (it execs the command), not through
+# in_ns: $! must be the process, or cleanup would leave it running.
+ns() { echo "--net=/proc/$1/ns/net"; }
 
 ip link add s-a type veth peer name a-s
 ip link add s-b type veth peer name b-s
@@ -55,7 +58,7 @@ ip route add default via 192.0.2.2
 # The outside end answers ARP and logs whatever reaches it (it forwards nothing), so a
 # failure says where the server tried to go.
 in_ns "$O" sh -c 'ip addr add 192.0.2.2/30 dev out-s; ip link set out-s up'
-in_ns "$O" python3 -u -c '
+nsenter "$(ns "$O")" python3 -u -c '
 import socket, struct, sys
 s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(3))
 s.bind(("out-s", 0))
@@ -95,7 +98,7 @@ sleep 2 # let link-local chatter settle before the baseline
 before=$(outbound)
 
 echo "== machine A cannot reach machine B directly"
-in_ns "$B" node -e 'require("http").createServer((q,r)=>r.end("b")).listen(8081,"10.77.2.2")' &
+nsenter "$(ns "$B")" node -e 'require("http").createServer((q,r)=>r.end("b")).listen(8081,"10.77.2.2")' &
 pids+=($!)
 sleep 0.5
 if in_ns "$A" curl -s --max-time 3 http://10.77.2.2:8081/ >/dev/null; then echo "A reached B directly" >&2; exit 1; fi
