@@ -51,4 +51,10 @@ export default tseslint.config(
     files: ['e2e/**', '**/test/**', '**/*.test.ts', '**/*.test.tsx'],
     rules: { 'no-restricted-syntax': 'off' },
   },
+  {
+    // Development tooling that runs in GitHub Actions and talks to Anthropic's API by
+    // design (ADR 0021); never part of a shipped product.
+    files: ['tools/bug-scanner/**'],
+    rules: { 'no-restricted-syntax': 'off' },
+  },
 );

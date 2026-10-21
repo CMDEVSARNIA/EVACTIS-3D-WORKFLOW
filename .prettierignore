@@ -26,3 +26,5 @@ demo-dist
 player-dist
 player-classic-dist
 e2e/__screenshots__/
+tools/bug-scanner/claude-lock.json
+tools/bug-scanner/package-lock.json

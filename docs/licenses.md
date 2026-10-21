@@ -78,6 +78,11 @@ axe-core 4.14.0 with @axe-core/playwright 4.14.0 (Deque; MPL-2.0): accessibility
 inside Playwright pages only (`e2e/a11y.spec.ts`), never shipped. Its only network code
 re-reads a page's own cross-origin stylesheets, which our pages do not have; the e2e
 network guard blocks anything off loopback regardless.
+Anthropic TypeScript SDK `@anthropic-ai/sdk` 1.0.0 (Apache-2.0) with its dependencies
+`@babel/runtime`, `json-schema-to-ts`, `ts-algebra`, `standardwebhooks`,
+`@stablelib/base64` (MIT), `@opentelemetry/api` (Apache-2.0) and `fast-sha256`
+(Unlicense): the CI bug scanner only (`tools/bug-scanner/`, its own lockfile, ADR 0021).
+It calls Anthropic's API by design and is never installed into or shipped with a product.
 
 ## Vendored source
 

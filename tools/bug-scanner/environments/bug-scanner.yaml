@@ -1,0 +1,10 @@
+# The sandbox the bug scanner runs in. The repository is cloned into it by Anthropic's
+# git proxy before the agent starts; the scan itself needs no network, so nothing else
+# is reachable (no package registries, no MCP servers, no other hosts).
+name: evactis-bug-scanner
+config:
+  type: cloud
+  networking:
+    type: limited
+    allow_package_managers: false
+    allow_mcp_servers: false

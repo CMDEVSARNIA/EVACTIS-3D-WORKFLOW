@@ -1,0 +1,84 @@
+name: Bug scan
+
+# Runs the GitHub Bug Scanner (a Claude Managed Agent; tools/bug-scanner) on the code.
+# Development tooling only: the repository's source goes to Anthropic for review, never
+# client or facility data, and no shipped product depends on it (ADR 0021).
+#
+# Reports only: a job summary, file/line annotations and a "bug-scan" artifact. Findings
+# never fail the job; a scan that could not run does. Does nothing until the repository
+# has an ANTHROPIC_API_KEY secret (tools/bug-scanner/README.md).
+
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+      - 'brand/**'
+      - 'e2e/__screenshots__/**'
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'What to scan'
+        type: choice
+        options: [changes, full]
+        default: full
+      base:
+        description: 'Compare with this commit (changes only; default: the previous push)'
+        required: false
+  schedule:
+    - cron: '23 6 * * 1' # Mondays, whole repository
+
+permissions:
+  contents: read
+
+# One scan at a time per branch, none cancelled: each push scans only its own changes.
+concurrency:
+  group: bug-scan-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Bug scan (Claude Managed Agent)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Check for the API key
+        id: key
+        env:
+          HAS_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        run: |
+          if [ "$HAS_KEY" != true ]; then
+            echo "::notice title=Bug scan skipped::Add an ANTHROPIC_API_KEY repository secret to enable it (tools/bug-scanner/README.md)."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.run == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.run == 'true'
+        with:
+          node-version: 22
+      - name: Install the scanner (Anthropic SDK, pinned by lockfile)
+        if: steps.key.outputs.run == 'true'
+        run: npm ci --prefix tools/bug-scanner --ignore-scripts --no-audit --no-fund
+      - name: Scan
+        if: steps.key.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Read-only (permissions above). Anthropic's git proxy clones with it; it expires
+          # when this job ends and is never placed inside the agent's sandbox.
+          GITHUB_TOKEN: ${{ github.token }}
+          SCAN_SCOPE: ${{ github.event_name == 'schedule' && 'full' || inputs.scope || 'changes' }}
+          SCAN_BASE: ${{ inputs.base }}
+          SCAN_BUDGET_CENTS: ${{ vars.BUG_SCAN_BUDGET_CENTS || '300' }}
+          SCAN_TIMEOUT_MINUTES: '40'
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+          BUG_SCANNER_AGENT_ID: ${{ vars.BUG_SCANNER_AGENT_ID }}
+          BUG_SCANNER_ENVIRONMENT_ID: ${{ vars.BUG_SCANNER_ENVIRONMENT_ID }}
+        run: node tools/bug-scanner/scan.mjs
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.key.outputs.run == 'true'
+        with:
+          name: bug-scan
+          path: bug-scan/
+          if-no-files-found: ignore

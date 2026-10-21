@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "resources": {
+    "./agents/git-hub-bug-scanner.md": {
+      "kind": "agent",
+      "id": "agent_0169uy2eBv7y3uJHbAAhEVri",
+      "version": "1",
+      "hash": ""
+    }
+  }
+}

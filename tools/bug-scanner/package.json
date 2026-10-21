@@ -1,0 +1,14 @@
+{
+  "name": "evactis-3dworkflow-bug-scanner",
+  "private": true,
+  "description": "Runs the GitHub Bug Scanner agent on this repository from GitHub Actions. Development tooling only; never part of a shipped product.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "scan": "node scan.mjs",
+    "test": "node --test report.test.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.0.0"
+  }
+}
