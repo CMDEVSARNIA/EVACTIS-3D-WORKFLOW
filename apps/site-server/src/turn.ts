@@ -235,6 +235,7 @@ export class TurnServer {
   constructor(private o: TurnOptions) {
     if (isIP(o.relayAddress) !== 4)
       throw new Error(`TURN relay address must be IPv4: ${o.relayAddress}`);
+    this.relayBind = o.relayAddress;
     this.socket = createSocket('udp4');
     this.socket.on('message', (b, r) => this.onClient(b, r));
     this.socket.on('error', () => undefined);
@@ -428,6 +429,15 @@ export class TurnServer {
     return Math.min(asked, MAX_LIFETIME);
   }
 
+  /**
+   * Relay sockets are bound to the relayed address itself, so peers see packets come
+   * from exactly the address and port the allocation announced (bound to 0.0.0.0, the
+   * kernel would pick the source per route and peers would see a different address).
+   * Only when that address is not on this machine (a relay address set for a
+   * translated network) does it fall back to the listening address.
+   */
+  private relayBind: string | undefined;
+
   private async bindRelay(): Promise<{ socket: Socket; port: number } | null> {
     const [lo, hi] = this.o.relayPorts;
     const span = hi - lo + 1;
@@ -437,10 +447,14 @@ export class TurnServer {
       if (this.usedPorts.has(port)) continue;
       const socket = createSocket('udp4');
       const ok = await new Promise<boolean>((resolve) => {
-        socket.once('error', () => resolve(false));
-        socket.bind(port, this.o.host && this.o.host !== '0.0.0.0' ? this.o.host : undefined, () =>
-          resolve(true),
-        );
+        socket.once('error', (e: NodeJS.ErrnoException) => {
+          if (e.code === 'EADDRNOTAVAIL' && this.relayBind) {
+            this.relayBind = this.o.host && this.o.host !== '0.0.0.0' ? this.o.host : undefined;
+            i--; // try this port again on the fallback address
+          }
+          resolve(false);
+        });
+        socket.bind(port, this.relayBind, () => resolve(true));
       });
       if (ok) {
         socket.on('error', () => undefined);

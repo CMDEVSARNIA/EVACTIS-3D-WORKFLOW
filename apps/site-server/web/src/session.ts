@@ -49,6 +49,7 @@ export class GuidedSessions {
   };
   private following = true;
   private ice: RTCConfiguration | null = null;
+  private queue: Promise<unknown> = Promise.resolve();
   private lastNav = 0;
   private navTimer = 0;
   private off: (() => void)[] = [];
@@ -75,19 +76,19 @@ export class GuidedSessions {
     on('session', (m) => {
       this.current = m.session as SessionInfo;
       this.me = String(m.you);
-      void this.syncPeers();
+      this.serial(() => this.syncPeers());
       this.render();
     });
     on('member.joined', (m) => {
       if (!this.current) return;
       this.current.members.push(m.member as Member);
-      void this.syncPeers();
+      this.serial(() => this.syncPeers());
       this.render();
     });
     on('member.left', (m) => {
       if (!this.current) return;
       this.current.members = this.current.members.filter((x) => x.peerId !== m.peerId);
-      this.drop(String(m.peerId));
+      this.serial(async () => this.drop(String(m.peerId)));
       this.render();
     });
     on('session.ended', () => {
@@ -96,7 +97,9 @@ export class GuidedSessions {
       say(this.status, o.t.ended);
     });
     on('nav', (m) => void this.follow(m));
-    on('signal', (m) => void this.signal(String(m.from), m.data as Record<string, unknown>));
+    on('signal', (m) =>
+      this.serial(() => this.signal(String(m.from), m.data as Record<string, unknown>)),
+    );
     on('error', (m) => say(this.status, String(m.message), true));
     const sendNav = () => this.sendNav();
     this.off.push(o.viewer.on('viewchange', sendNav), o.viewer.on('scenechange', sendNav));
@@ -136,6 +139,15 @@ export class GuidedSessions {
   }
 
   // ---------------------------------------------------------------- WebRTC
+  /**
+   * Signals and membership changes are handled one at a time, in arrival order: an ICE
+   * candidate must never overtake the offer it belongs to, and two messages arriving
+   * together must not each create a connection to the same person.
+   */
+  private serial(work: () => Promise<void>) {
+    this.queue = this.queue.then(work).catch(() => undefined);
+  }
+
   private async config(): Promise<RTCConfiguration> {
     if (!this.ice) {
       const r = await api<{ iceServers: RTCIceServer[] }>('GET', '/api/ice');
@@ -148,9 +160,10 @@ export class GuidedSessions {
   }
 
   private async peer(id: string, offerer: boolean): Promise<Peer> {
+    const config = await this.config();
     const existing = this.peers.get(id);
     if (existing) return existing;
-    const pc = new RTCPeerConnection(await this.config());
+    const pc = new RTCPeerConnection(config);
     const stream = new MediaStream();
     const media = h('video', { autoplay: true, playsInline: true, 'data-peer': id });
     media.srcObject = stream;

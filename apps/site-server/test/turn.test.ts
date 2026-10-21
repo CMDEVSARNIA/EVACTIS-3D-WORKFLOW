@@ -47,6 +47,7 @@ class Client {
   constructor(
     public username: string,
     public password: string,
+    public server?: number,
   ) {}
   async open() {
     await new Promise<void>((r) => this.sock.bind(0, '127.0.0.1', r));
@@ -76,7 +77,7 @@ class Client {
       });
       this.sock.send(
         build(method, CLASS.request, tid, all, auth && this.key ? this.key : undefined),
-        port,
+        this.server ?? port,
         '127.0.0.1',
       );
     });
@@ -201,6 +202,50 @@ describe('LAN TURN relay', () => {
     expect(relayed.every((p) => p.startsWith('127.0.0.1:'))).toBe(true);
     peer.close();
     c.close();
+  });
+
+  it('relays from the address it announced, not whichever one the route picks', async () => {
+    // Relayed address 127.0.0.2, clients and peers on 127.0.0.1: unbound, the relay's
+    // packets would leave from 127.0.0.1 and peers would see an unannounced address.
+    const other = new TurnServer({
+      port: 0,
+      host: '127.0.0.1',
+      relayAddress: '127.0.0.2',
+      relayPorts: [49350, 49360],
+      realm,
+      secret,
+      networks: new Networks(),
+    });
+    const otherPort = await other.listen();
+    const creds = turnCredentials(secret, 'user-3');
+    const c = new Client(creds.username, creds.credential, otherPort);
+    await c.open();
+    const peer = createSocket('udp4');
+    try {
+      const ok = await c.allocate();
+      const relay = xorAddress(ok.attrs.find((a) => a.type === ATTR.xorRelayedAddress)!.value)!;
+      expect(relay.address).toBe('127.0.0.2');
+      const from: string[] = [];
+      await new Promise<void>((r) => peer.bind(0, '127.0.0.1', r));
+      peer.on('message', (_b, r) => from.push(`${r.address}:${r.port}`));
+      const peerPort = (peer.address() as { port: number }).port;
+      await c.request(METHOD.createPermission, [
+        [ATTR.xorPeerAddress, xorPeer('127.0.0.1', peerPort)],
+      ]);
+      c.sock.send(
+        build(METHOD.send, CLASS.indication, randomBytes(12), [
+          [ATTR.xorPeerAddress, xorPeer('127.0.0.1', peerPort)],
+          [ATTR.data, Buffer.from('from the relay')],
+        ]),
+        otherPort,
+        '127.0.0.1',
+      );
+      await expect.poll(() => from).toEqual([`127.0.0.2:${relay.port}`]);
+    } finally {
+      peer.close();
+      c.close();
+      other.close();
+    }
   });
 
   it('refuses to relay to an address outside the site network', async () => {
