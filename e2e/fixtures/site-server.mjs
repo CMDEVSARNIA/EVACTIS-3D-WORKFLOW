@@ -7,6 +7,10 @@
  * Stays running (Playwright stops it); target/e2e-site/fixture.json says what was made.
  *
  *   node e2e/fixtures/site-server.mjs <port>
+ *
+ * EVX_SITE_OUT (output folder), EVX_SITE_HOST (listen address, default 127.0.0.1) and
+ * EVX_SITE_RELAY (TURN relay address, default 127.0.0.1) let the isolated-network
+ * acceptance (scripts/linux/site-server-lan.sh) reuse it.
  */
 import { execFileSync, spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -16,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const port = Number(process.argv[2] ?? 4190);
-const out = join(repo, 'target/e2e-site');
+const out = resolve(process.env.EVX_SITE_OUT ?? join(repo, 'target/e2e-site'));
 const data = join(out, 'data');
 const bundle = join(repo, 'apps/site-server/dist/server.cjs');
 const shell = process.platform === 'win32';
@@ -45,9 +49,13 @@ writeFileSync(
   join(data, 'config.json'),
   JSON.stringify({
     siteName: 'Riverside Hospital',
-    host: '127.0.0.1',
+    host: process.env.EVX_SITE_HOST ?? '127.0.0.1',
     port,
-    turn: { port: port + 1, relayAddress: '127.0.0.1', relayPorts: [49500, 49540] },
+    turn: {
+      port: port + 1,
+      relayAddress: process.env.EVX_SITE_RELAY ?? '127.0.0.1',
+      relayPorts: [49500, 49540],
+    },
   }),
 );
 
@@ -75,7 +83,8 @@ const code = await new Promise((resolve, reject) => {
     }
   });
 });
-server.stdout.resume();
+// From here on the server's log goes to ours (the LAN acceptance checks it for errors).
+server.stdout.pipe(process.stdout);
 
 const ca = readFileSync(join(data, 'tls/ca.pem'));
 /** One HTTPS call, trusting only the site's own authority. */
