@@ -215,7 +215,7 @@ makes network calls at runtime.
   - [x] EN/FR completeness: every string in both languages, checked by test
   - [x] Performance budgets: bundles (core, lazy chunks, players), first scene shown, frame time, Studio import throughput
   - [x] Security review: threat model, CSP and IPC audit, Site Server hardening; SBOM (CycloneDX, npm + Rust) from the lockfiles, offline
-  - [ ] Site Server carry-overs: Windows service mode, in-page admin dialogs (no browser prompts)
+  - [x] Site Server carry-overs: Windows service mode, in-page admin dialogs (no browser prompts)
   - [ ] Installer QA matrix: upgrade over the previous version, per-user/per-machine, French Windows, uninstall leaves no files
   - [x] Release procedure: offline signing station checklist, timestamping, release kit contents (ADR 0008)
   - [ ] Handover docs: IT deployment guide (complete), Studio and Viewer user guides (EN/FR), Site Server guide, release notes

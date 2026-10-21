@@ -42,6 +42,19 @@ features, publisher, association, file icon), launched with `--smoke-test` (the 
 must render its UI in WebView2, talk to the Rust core and report **zero** network
 attempts), then uninstalled and checked for leftovers.
 
+**Installer QA matrix** (`scripts/windows/installer-qa.ps1`, Phase 12), with the Viewer:
+
+| Case | Checked |
+| --- | --- |
+| Upgrade | An older release (a copy of the MSI with version 0.0.1 and a new product code) is installed, then the real MSI upgrades it: one Apps & features entry, the new version, the signed program in place. |
+| Downgrade | Installing the older MSI over the new one is refused; the new version stays. |
+| French | The fr-FR MSI installs (Apps & features entry in French, language 1036) and uninstalls. |
+| Accents and an apostrophe in the path | The setup installs to `C:\Données d'Évactis\Visionneuse 3D`; the app starts from there, renders and makes no network request; double-click points there. |
+| Clean uninstall | After each case: no program folder, Start menu shortcut, Apps & features entry, ProgID or `.evx` association. Kept on purpose and listed as INFO: per-user app data, the setup's install-location value, empty parent folders. |
+
+Not covered by a hosted runner: a Windows installation whose display language is French
+(the runners are English). That check is part of the release procedure on a French PC.
+
 **Limits of a hosted runner:** the network adapter cannot be disabled without killing
 the job, so "networking disabled" there means outbound traffic is firewalled for the
 installer, msiexec, the app and all WebView2 processes, plus a dead WinHTTP proxy. The

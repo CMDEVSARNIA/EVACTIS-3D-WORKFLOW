@@ -176,6 +176,9 @@ jobs:
             scripts/windows/smoke-test.ps1 -App $app -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-$app-*-en-US.msi").FullName
           }
           scripts/windows/smoke-test.ps1 -App Viewer -PerUser -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-Viewer-*-setup.exe").FullName
+      - name: Installer QA (upgrade, downgrade refused, French MSI, accented folder, clean uninstall)
+        shell: pwsh
+        run: scripts/windows/installer-qa.ps1 -Installers out/installers
       - name: Delivery packages (installer, portable, .evx, passphrase, integrity)
         shell: pwsh
         run: |
@@ -187,5 +190,6 @@ jobs:
           name: smoke-logs-${{ matrix.os }}
           path: |
             out/smoke/
+            out/installer-qa/
             out/packages-smoke/
           retention-days: 14
