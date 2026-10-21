@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firewallScript, taskXml } from '../src/windows.ts';
+import { firewallNetworks, firewallScript, taskXml } from '../src/windows.ts';
 
 describe('Windows scheduled task', () => {
   const xml = taskXml(
@@ -45,5 +45,11 @@ describe('Windows scheduled task', () => {
         "-LocalPort @('4392') -RemoteAddress @('10.0.0.0/8','fe80::/10') -Profile Any | Out-Null",
     );
     expect(lines[3]).toContain("-Protocol UDP -LocalPort @('3478','49160-49200')");
+  });
+
+  it('leaves loopback out of the firewall rules (Windows refuses it there)', () => {
+    expect(
+      firewallNetworks(['10.0.0.0/8', '127.0.0.0/8', 'fc00::/7', 'fe80::/10', '::1/128', '::1']),
+    ).toEqual(['10.0.0.0/8', 'fc00::/7', 'fe80::/10']);
   });
 });

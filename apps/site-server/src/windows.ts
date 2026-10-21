@@ -91,7 +91,7 @@ export function installTask(dataArg: string | undefined): void {
 
   // Inbound only from the networks the server serves; no outbound rule is needed.
   powershell(
-    firewallScript(process.execPath, config.allowedNetworks, [
+    firewallScript(process.execPath, firewallNetworks(config.allowedNetworks), [
       { name: 'HTTPS', protocol: 'TCP', ports: [String(config.port)] },
       {
         name: 'TURN',
@@ -109,6 +109,14 @@ export function installTask(dataArg: string | undefined): void {
     `Installed: "${TASK}" starts at boot as LOCAL SERVICE and is running now.\n` +
       `Data and log: ${dataDir} (site-server.log holds the first-time setup code).`,
   );
+}
+
+/**
+ * The site networks a firewall rule can name. Loopback is left out: Windows refuses it in
+ * a rule ("loopback IPv6 address") and never filters loopback traffic anyway.
+ */
+export function firewallNetworks(networks: string[]): string[] {
+  return networks.filter((n) => !/^(127\.|::1(\/|$)|::ffff:127\.)/i.test(n.trim()));
 }
 
 /** PowerShell string literal. */
