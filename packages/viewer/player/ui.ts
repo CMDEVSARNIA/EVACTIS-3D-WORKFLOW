@@ -3,7 +3,8 @@
  * encrypted package, and the message when a package cannot be opened or has been altered.
  * Built with DOM APIs (no innerHTML) in the brand's dark chrome.
  */
-const STRINGS = {
+// Exported for the EN/FR guardrail (tools/guardrail/check-i18n.mjs).
+export const STRINGS = {
   en: {
     eyebrow: 'Protected environment',
     title: 'Enter the passphrase',

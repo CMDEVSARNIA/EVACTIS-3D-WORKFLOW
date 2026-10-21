@@ -5,7 +5,8 @@
 import { localize, type Environment } from '@evactis-3dworkflow/schema';
 import type { PackageKind } from '@evactis-3dworkflow/package-format';
 
-const HOW: Record<PackageKind, { en: string[]; fr: string[] }> = {
+// Exported for the EN/FR guardrail (tools/guardrail/check-i18n.mjs).
+export const HOW: Record<PackageKind, { en: string[]; fr: string[] }> = {
   installer: {
     en: [
       'Run the setup file. It installs for the current user (no administrator rights) and adds',
@@ -71,7 +72,7 @@ const HOW: Record<PackageKind, { en: string[]; fr: string[] }> = {
 };
 
 /** What is limited when a package is opened from disk (file://), and why. */
-const FROM_DISK = {
+export const FROM_DISK = {
   en: [
     'Opened from disk, browsers forbid a page from reading neighbouring files, so the',
     'environment travels inside small script files (or the one HTML file). As a result:',
