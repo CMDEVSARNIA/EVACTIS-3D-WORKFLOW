@@ -429,9 +429,26 @@ makes network calls at runtime.
 75. **Docker runs with host networking** (the server needs the site's real addresses for
     its certificate, relay and site-network checks).
 76. **The desktop Viewer does not connect to a Site Server**; collaboration is in the
-    browser pages the server serves. Hosting installers on the server, a built-in
-    Windows service mode and nicer admin dialogs (currently browser prompts) are left
-    for Phase 12. *Evactis to confirm.*
+    browser pages the server serves. Hosting installers on the server is not built
+    (unattended Windows mode and in-page dialogs came in Phase 12). *Evactis to confirm.*
+
+## Assumptions (Phase 12)
+
+77. **Target size: 24 px everywhere (WCAG 2.2 AA), 44 px on the Viewer toolbar**; radar
+    dots stay 24 px (close together on a small map; hotspots and the floor plan reach the
+    same places). Assumption 26 is resolved: plans have a keyboard crosshair, previews
+    "place/move at the centre of the view" (ADR 0020).
+78. **Automated accessibility = axe-core rules + our contrast check**; screen-reader
+    walk-throughs (NVDA, Narrator) are a manual release step for Evactis.
+79. **Performance budgets are CI ceilings** (sizes ~10–20 % over today's; load times for
+    software rendering); frame rate is checked by hand on reference PCs
+    (`docs/performance.md`). *Evactis to name the reference PCs.*
+80. **The Site Server runs unattended on Windows as a scheduled task** (LOCAL SERVICE,
+    starts at boot, restarts on failure), not a Windows service (ADR 0020).
+81. **Plain LDAP without StartTLS is refused** unless `allowPlainLdap` is set.
+82. **Package manifests are not signed** (integrity, not authenticity, of a whole
+    package); signing would need an Evactis key in Studio (`docs/security-review.md`).
+    *Evactis to decide.*
 
 ## Requirements added by Evactis
 
