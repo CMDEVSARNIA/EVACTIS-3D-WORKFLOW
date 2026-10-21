@@ -28,7 +28,8 @@
     "guardrail:deps:write": "node tools/guardrail/check-licenses.mjs --write",
     "guardrail:size": "node tools/guardrail/size-budget.mjs",
     "guardrail:scripts": "node tools/guardrail/check-scripts.mjs",
-    "guardrail:i18n": "node --disable-warning=ExperimentalWarning tools/guardrail/check-i18n.mjs"
+    "guardrail:i18n": "node --disable-warning=ExperimentalWarning tools/guardrail/check-i18n.mjs",
+    "sbom": "node tools/sbom.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",

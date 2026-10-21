@@ -39,6 +39,13 @@ jobs:
           if [ -f /etc/apparmor.d/usr.sbin.slapd ]; then sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.slapd || true; fi
       - name: pnpm check
         run: pnpm check
+      - name: Software bill of materials (CycloneDX, from the lockfiles)
+        run: pnpm sbom
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: target/sbom/
+          retention-days: 90
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
