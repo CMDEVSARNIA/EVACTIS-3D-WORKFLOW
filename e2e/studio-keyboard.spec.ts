@@ -17,12 +17,16 @@ interface Saved {
     id: string;
     placements: { sceneId: string; position: { kind: string; yaw?: number } }[];
   }[];
-  scenes: {
-    id: string;
-    planPosition?: { x: number; y: number };
-    hotspots: { id: string; position: { kind: string; yaw?: number; pitch?: number } }[];
-  }[];
+  scenes: { id: string; planPosition?: { x: number; y: number } }[];
+  hotspots: { id: string; position: { kind: string; yaw?: number; pitch?: number } }[];
   buildings: { floors: { id: string; plan?: { widthPx: number; heightPx: number } }[] }[];
+}
+const current = async (page: Page) =>
+  JSON.parse(await page.evaluate(() => window.__evxMemory!.manifest)) as Saved;
+/** Waits until the saved document satisfies `ok` (autosaves can lag an edit). */
+async function savedWhen(page: Page, ok: (d: Saved) => boolean): Promise<Saved> {
+  await expect.poll(async () => ok(await current(page)), { timeout: 10_000 }).toBe(true);
+  return current(page);
 }
 let savesSeen = 0;
 async function settled(page: Page): Promise<Saved> {
@@ -47,13 +51,16 @@ test('places a scene on the plan and a hotspot in the preview with the keyboard 
   await page.getByRole('radio', { name: 'Place scene' }).click();
   const which = page.getByRole('combobox', { name: 'Scene to place' }).first();
   const sceneId = await which.inputValue();
-  const cursor = page.getByRole('application', { name: /^Plan, keyboard cursor at 50% across/ });
+  const cursor = page.getByTestId('plan-cursor');
+  await expect(cursor).toHaveAccessibleName(/^Plan, keyboard cursor at 50% across, 50% down/);
   await cursor.focus();
   await expect(page.locator('.evx-plan__crosshair')).toBeVisible();
   // Three big steps right (5 % of the plan each), two small steps up (1 % each).
   for (let i = 0; i < 3; i++) await page.keyboard.press('Shift+ArrowRight');
   for (let i = 0; i < 2; i++) await page.keyboard.press('ArrowUp');
-  await expect(cursor).toHaveAccessibleName(/65% across, 4[78]% down/);
+  // Steps are a share of the plan's longer side (equal distances both ways); the saved
+  // position below is checked exactly.
+  await expect(cursor).not.toHaveAccessibleName(/50% across, 50% down/);
   await page.keyboard.press('Enter');
   const doc = await settled(page);
   const scene = doc.scenes.find((s) => s.id === sceneId)!;
@@ -67,7 +74,7 @@ test('places a scene on the plan and a hotspot in the preview with the keyboard 
   await page.getByRole('tab', { name: 'Tour' }).click();
   const preview = page.locator('.evx-viewer');
   await expect(preview).toBeVisible();
-  const all = (d: Saved) => d.scenes.flatMap((s) => s.hotspots);
+  const all = (d: Saved) => d.hotspots;
   const before = all(doc).length;
   await page.getByRole('radio', { name: 'Add information' }).click();
   // Turn the view with the keyboard, as the Viewer allows, then place at the centre.
@@ -75,8 +82,7 @@ test('places a scene on the plan and a hotspot in the preview with the keyboard 
   for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowRight');
   await page.waitForTimeout(500);
   await page.getByRole('button', { name: 'Place at the centre of the view' }).click();
-  const after = await settled(page);
-  expect(all(after).length).toBe(before + 1);
+  const after = await savedWhen(page, (d) => all(d).length === before + 1);
   const added = all(after).find((h) => !all(doc).some((o) => o.id === h.id))!;
 
   // Move the new (selected) hotspot to the centre of another view.
@@ -84,15 +90,17 @@ test('places a scene on the plan and a hotspot in the preview with the keyboard 
   for (let i = 0; i < 12; i++) await page.keyboard.press('ArrowLeft');
   await page.waitForTimeout(500);
   await page.getByRole('button', { name: 'Move to the centre of the view' }).click();
-  const moved = all(await settled(page)).find((h) => h.id === added.id)!;
-  expect(Math.abs(moved.position.yaw! - added.position.yaw!)).toBeGreaterThan(5);
+  await savedWhen(page, (d) => {
+    const h = all(d).find((x) => x.id === added.id);
+    return !!h && Math.abs(h.position.yaw! - added.position.yaw!) > 5;
+  });
 
   // ---------------------------------------------------------------- equipment
   // Select an item from the list, choose "Place in scene", turn the view, place: all keys.
   await page.getByRole('tab', { name: 'Safety' }).click();
   const yawOf = (d: Saved) =>
     d.equipment.find((x) => x.id === 'fe-101')!.placements[0]!.position.yaw!;
-  const first = yawOf(JSON.parse(await page.evaluate(() => window.__evxMemory!.manifest)));
+  const first = yawOf(await current(page));
   await page.locator('.evx-editor__scenes [data-equipment-id="fe-101"]').focus();
   await page.keyboard.press('Enter');
   await page.getByRole('radio', { name: 'Place in scene' }).focus();
@@ -103,5 +111,5 @@ test('places a scene on the plan and a hotspot in the preview with the keyboard 
   await page.waitForTimeout(500);
   await page.getByRole('button', { name: 'Place at the centre of the view' }).focus();
   await page.keyboard.press('Enter');
-  expect(Math.abs(yawOf(await settled(page)) - first)).toBeGreaterThan(5);
+  await savedWhen(page, (d) => Math.abs(yawOf(d) - first) > 5);
 });

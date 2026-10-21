@@ -74,7 +74,15 @@ export async function contrastProblems(page: Page, root = 'body'): Promise<Contr
       if (!own) continue;
       const s = getComputedStyle(el);
       const box = el.getBoundingClientRect();
-      if (s.visibility === 'hidden' || s.display === 'none' || !box.width || !box.height) continue;
+      // Screen-reader-only text (clipped to 1 × 1 px) is not seen, so has no contrast.
+      if (
+        s.visibility === 'hidden' ||
+        s.display === 'none' ||
+        !box.width ||
+        !box.height ||
+        (box.width <= 1 && box.height <= 1)
+      )
+        continue;
       if (el.closest('[disabled], [aria-disabled="true"]')) continue;
       // Fully transparent (e.g. a hotspot behind the camera): nobody can see it.
       if (opacity(el) === 0) continue;

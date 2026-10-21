@@ -858,3 +858,9 @@ textarea.evx-field {
 .evx-package-kind[data-selected] {
   border-color: var(--evx-accent);
 }
+
+/* A checkbox or radio is clicked through its whole label: make that row at least 24 px
+   tall, the WCAG 2.2 minimum target size. */
+label:has(> input:is([type='checkbox'], [type='radio'])) {
+  min-block-size: 1.5rem;
+}
