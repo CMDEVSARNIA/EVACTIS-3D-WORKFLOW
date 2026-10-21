@@ -210,14 +210,14 @@ makes network calls at runtime.
   - [x] Acceptance (browser, loopback): notes, replies, session, audio over relay (`e2e/site-server.spec.ts`)
   - [x] Acceptance (isolated network): two machines on separate subnets with no path between them, server outbound blocked and counted (`scripts/linux/site-server-lan.sh`, CI job "Site Server")
 - [ ] **Phase 12 — Hardening and handover** (in progress)
-  - [ ] Accessibility: axe (WCAG 2.1 AA) on Studio, Viewer, packaged player and Site Server pages, both themes and languages; 44 px targets; keyboard-only walk-throughs
-  - [ ] Keyboard alternatives for mouse-only authoring: plan placement (assumption 26), hotspot and equipment placement
-  - [ ] EN/FR completeness: every string in both languages, checked by test
-  - [ ] Performance budgets: bundles (core, lazy chunks, players), first scene shown, frame time, Studio import throughput
-  - [ ] Security review: threat model, CSP and IPC audit, Site Server hardening; SBOM (CycloneDX, npm + Rust) from the lockfiles, offline
+  - [x] Accessibility: axe (WCAG 2.1 AA) on Studio, Viewer, packaged player and Site Server pages, both themes and languages; 44 px targets; keyboard-only walk-throughs
+  - [x] Keyboard alternatives for mouse-only authoring: plan placement (assumption 26), hotspot and equipment placement
+  - [x] EN/FR completeness: every string in both languages, checked by test
+  - [x] Performance budgets: bundles (core, lazy chunks, players), first scene shown, frame time, Studio import throughput
+  - [x] Security review: threat model, CSP and IPC audit, Site Server hardening; SBOM (CycloneDX, npm + Rust) from the lockfiles, offline
   - [ ] Site Server carry-overs: Windows service mode, in-page admin dialogs (no browser prompts)
   - [ ] Installer QA matrix: upgrade over the previous version, per-user/per-machine, French Windows, uninstall leaves no files
-  - [ ] Release procedure: offline signing station checklist, timestamping, release kit contents (ADR 0008)
+  - [x] Release procedure: offline signing station checklist, timestamping, release kit contents (ADR 0008)
   - [ ] Handover docs: IT deployment guide (complete), Studio and Viewer user guides (EN/FR), Site Server guide, release notes
 
 ## Assumptions (Phase 1)
