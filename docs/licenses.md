@@ -14,7 +14,7 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 
 ## Generated dependency tables
 
-- [npm production dependencies](licenses/npm-production.md) (Studio and Viewer UIs)
+- [npm production dependencies](licenses/npm-production.md) (Studio and Viewer UIs, Site Server)
 - [Rust crates in the Windows build](licenses/rust-crates.md)
 
 ## Key runtime libraries
@@ -33,6 +33,10 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | @noble/hashes 2.4.0, @noble/ciphers 2.4.0 | Delivery packages (`packages/package-format`): SHA-256 integrity manifest, Argon2id key from the passphrase, AES-256-GCM, where WebCrypto is unavailable (plain-http intranets); audited, no dependencies | MIT | None. Pure JavaScript, no WebAssembly or workers; URLs in the source are citation comments. |
 | aes-gcm 0.10.3, argon2 0.5.3 (RustCrypto) | Desktop Viewer: opening encrypted `.evx` packages in memory (`crates/evx-package`) | Apache-2.0 OR MIT | None (no network code). |
 | pdfjs-dist 4.10.38 | Viewer: local PDF reader (loaded on first use, separate chunks) | Apache-2.0 (LICENSE text to ship with the Viewer; no NOTICE file) | None as used: no worker URL, `isEvalSupported: false`, no font/CMap/wasm downloads, no streaming or range fetches; only the package file it is given. Its optional native `@napi-rs/canvas` is removed by a pnpm override. |
+| fastify 5.12.5 (+ its dependencies in the generated table) | Site Server (Phase 11): HTTPS server, routing, JSON | MIT | None outbound: it only answers requests. Bundled into `dist/server.cjs` with esbuild; `NOTICES.txt` beside the program carries the licence text of each of the ~48 bundled packages (made by `scripts/bundle.mjs` from the bundle's inputs; the build fails if one has none). |
+| ws 8.22.0 | Site Server: live updates and guided-session signalling (WebSocket `/live`) | MIT | None outbound: server side only. Its optional native add-ons are not installed. |
+| ldapts 9.2.0 | Site Server: optional sign-in against the site's LDAP / Active Directory | MIT | Connects only to the directory the administrator configures, and only if its address is on the site network (checked before connecting). Off unless configured. |
+| node:sqlite (part of Node.js 22) | Site Server database | MIT (Node.js) | None. |
 
 ## Fonts (bundled — never loaded from Google Fonts or a CDN)
 
@@ -51,6 +55,8 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 | NSIS 3 (via Tauri bundler) | Build-time; stub embedded in setup .exe. Since Phase 10 also **redistributed with Studio** (`<install>\nsis\`: makensis, stubs, headers, plugins) to build per-facility installers; their stub is embedded in each generated setup | zlib/libpng licence (bzip2 and LZMA portions under their own permissive terms, per NSIS `COPYING`) | Keep NSIS's `COPYING` in the bundled folder. No network code; makensis reads only the local script and files. |
 | Microsoft Edge WebView2 Fixed Version runtime (optional) | Studio `<install>\webview2\` when built with `-WebView2FixedRuntime`; copied into portable viewers and per-facility installers | Microsoft WebView2 Runtime distribution terms (redistribution with an app permitted) | Not bundled by default (ADR 0018). Used by the Viewer when `webview2\msedgewebview2.exe` sits beside it. |
 | 3DWORKFLOW Viewer program | Inside Studio (`<install>\viewer\`), copied into portable viewers and per-facility installers | Evactis (this product) | The signed release build; Studio never rebuilds or re-signs it. |
+| Node.js 22 runtime | Site Server: inside the standalone program (`evactis-3dworkflow-site-server[.exe]`, a Node single executable application) and the Docker image | MIT, with the third-party notices of its bundled components (OpenSSL: Apache-2.0, ICU, V8, libuv, …) in Node's `LICENSE` — shipped as `NODE-LICENSE.txt` beside the program | The program is the unmodified runtime of the build machine with the server injected (`scripts/sea.mjs`); nothing is downloaded. Node makes no network calls of its own. |
+| Docker base image `node:22.22.0-bookworm-slim` (pinned by digest) | Site Server container image | Node.js: MIT; Debian packages under their own licences (`/usr/share/doc/*/copyright` in the image) | Built once where a registry is reachable, then moved with `docker save` / `docker load`. Nothing in the image calls out at runtime. |
 | WiX Toolset 3 (via Tauri bundler) | Build-time only | MS-RL | Not redistributed. |
 | FFmpeg — `ffmpeg.exe`, `ffprobe.exe` (BtbN/FFmpeg-Builds static win64 **LGPL** build) | Studio only, `<install>\ffmpeg\`; run as separate processes for 360 video import | GNU LGPL (2.1 or later; v3 when built with `--enable-version3`) — `ffmpeg\LICENSE.txt` ships beside it | `scripts/windows/get-ffmpeg.ps1` refuses any build configured with `--enable-gpl` or `--enable-nonfree`; the Windows smoke test re-checks the installed copy. The exact archive, URL and SHA-256 are recorded in `ffmpeg\SOURCE.txt`, which also carries Evactis's written offer of the corresponding source (see ADR 0010, assumption 14). Signed with the Evactis key so application-control policies accept it. Every invocation is limited to `-protocol_whitelist file,pipe`. |
 
@@ -60,7 +66,10 @@ TypeScript (Apache-2.0), Vite (MIT), Vitest (MIT), Playwright (Apache-2.0), ESLi
 (MIT), typescript-eslint (MIT), Prettier (MIT), Turborepo (MPL-2.0; telemetry disabled
 via `TURBO_TELEMETRY_DISABLED=1`), Tailwind CSS (MIT), React plugin for Vite (MIT),
 jsdom (MIT), Testing Library (MIT), resvg-js (MPL-2.0), opentype.js (MIT), pngjs
-(MIT), jpeg-js (BSD-3-Clause; demo panorama encoding), esbuild (MIT; library minification), Tauri CLI (Apache-2.0 OR MIT), Rust toolchain (Apache-2.0 OR MIT).
+(MIT), jpeg-js (BSD-3-Clause; demo panorama encoding), esbuild (MIT; library minification), Tauri CLI (Apache-2.0 OR MIT), Rust toolchain (Apache-2.0 OR MIT),
+postject 1.0.0-alpha.6 (MIT; injects the Site Server into the Node runtime at build time),
+OpenLDAP `slapd` (OpenLDAP Public License; a throw-away directory for the Site Server's
+LDAP tests, installed by CI only).
 IWER 2.5.0 (Immersive Web Emulation Runtime, Meta; MIT) with gl-matrix (MIT) and
 webxr-layers-polyfill (Apache-2.0): a WebXR headset emulator injected into Playwright
 pages only (`e2e/fixtures/iwer.mjs`), never bundled into Studio or the Viewer. No network

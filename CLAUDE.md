@@ -63,9 +63,10 @@ makes network calls at runtime.
 | `crates/evx-desktop` | Tauri shell shared by both apps (window, offline navigation guard, commands). |
 | `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, contentOps, trainingOps, skinOps, autolink, Tour/Floors/Safety/Content/Training/Skin/Versions); `src/testing/` is the e2e-only in-memory backend. |
 | `apps/viewer-desktop` | 3DWORKFLOW Viewer desktop: Tauri v2 + vanilla TS. |
+| `apps/site-server` | 3DWORKFLOW Site Server (Phase 11): Node 22 + Fastify + `node:sqlite`, own TLS authority and TURN relay, LAN-only; pages in `web/`; bundle (`dist/server.cjs`), standalone program (`scripts/sea.mjs`), Docker image (`Dockerfile`). Admin guide: `docs/site-server.md`. |
 | `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
-| `scripts/linux` | Real-app smoke test: built Studio/Viewer in a network namespace with no interfaces, screenshots. |
+| `scripts/linux` | Real-app smoke test: built Studio/Viewer in a network namespace with no interfaces, screenshots. `site-server-lan.sh`: two machines + Site Server on an isolated namespace network (`e2e-lan/`). |
 | `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator, smoke-report checker. |
 | `e2e/` | Playwright tests; all run in network-blocked mode (`e2e/offline.ts`). Fixtures in `e2e/fixtures/` import real media with the Rust pipeline; `e2e/scorm-harness/` is a strict local LMS. |
 | `docs/` | Decisions (`docs/decisions/`), licences, IT deployment, brand usage, signage note. |
@@ -199,7 +200,15 @@ makes network calls at runtime.
   - [x] Acceptance (real apps, Linux, no network interfaces): `.evx` plain/encrypted, portable, wrong passphrase, altered byte (`scripts/linux/real-app-smoke.sh`)
   - [ ] Acceptance (Windows 10/11, firewalled): per-facility installer, portable, `.evx` double-click, passphrase, integrity (`scripts/windows/package-acceptance.ps1` in CI)
   - [ ] Clean-machine check with networking disabled (Windows Sandbox, `docs/windows-installers.md`), incl. a machine without the WebView2 Runtime
-- [ ] Phase 11 — 3DWORKFLOW Site Server (optional)
+- [x] **Phase 11 — 3DWORKFLOW Site Server (optional)** (awaiting review)
+  - [x] Server core: config, site-network guard (requests, relay, directory), own HTTPS authority, accounts (scrypt, throttle, setup code), environments (checked on upload)
+  - [x] Shared notes pinned in scenes: categories, threads, assignees, status, photos (metadata stripped), live updates
+  - [x] Guided sessions: host navigation synced, WebRTC audio/video through the server's own TURN relay (no public STUN), up to 8 people
+  - [x] Usage reports (off by default, CSV, never sent anywhere); LDAP/Active Directory sign-in (tested against a real OpenLDAP)
+  - [x] Pages: portal, administration, environment view with notes and session panel (EN/FR, contrast-checked)
+  - [x] Standalone program (Node single executable, Linux + signed Windows) and Docker image
+  - [x] Acceptance (browser, loopback): notes, replies, session, audio over relay (`e2e/site-server.spec.ts`)
+  - [x] Acceptance (isolated network): two machines on separate subnets with no path between them, server outbound blocked and counted (`scripts/linux/site-server-lan.sh`, CI job "Site Server")
 - [ ] Phase 12 — Hardening and handover
 
 ## Assumptions (Phase 1)
@@ -394,6 +403,26 @@ makes network calls at runtime.
     keeps panoramas at 2048 px per cube face. Listed in each package's README.
 69. **A package never overwrites an earlier one**; a failed package removes only what it
     wrote. Packages over 4 GB or 65,535 files are refused (ZIP64 not written yet).
+
+## Assumptions (Phase 11)
+
+70. **Node 22, not 20**: Node 20 reached end of life in April 2026 and `node:sqlite` needs
+    22. The standalone program is the build machine's own Node runtime with the server
+    injected (no download), signed on Windows like the apps.
+71. **SQLite only**; PostgreSQL is deferred behind the small data modules (ADR 0019).
+72. **The server makes its own HTTPS authority** (microphones and cameras need a secure
+    context); IT installs `ca.pem` by Group Policy or configures its own certificate.
+73. **Its own TURN relay, full mesh, at most 8 people** with media per session; guided
+    sessions live in memory (a restart ends them). Relay sockets are bound to the
+    announced relay address.
+74. **Everything needs sign-in**; status, category and assignee of a note can be changed
+    by anyone signed in, title/text/position by the author or an administrator.
+75. **Docker runs with host networking** (the server needs the site's real addresses for
+    its certificate, relay and site-network checks).
+76. **The desktop Viewer does not connect to a Site Server**; collaboration is in the
+    browser pages the server serves. Hosting installers on the server, a built-in
+    Windows service mode and nicer admin dialogs (currently browser prompts) are left
+    for Phase 12. *Evactis to confirm.*
 
 ## Requirements added by Evactis
 
