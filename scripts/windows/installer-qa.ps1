@@ -51,25 +51,46 @@ function Invoke-Msi([string[]]$arguments, [string]$log) {
 }
 
 # A copy of $Source that Windows Installer sees as an older release of the same product.
+# Late-bound call on a Windows Installer automation object.
+function Invoke-Msi-Com($target, [string]$member, [string]$kind, [object[]]$arguments) {
+  $target.GetType().InvokeMember($member, $kind, $null, $target, $arguments)
+}
+
+# Sets one Property-table value: select the row, change the record, update the row (no
+# SQL UPDATE). On failure, says which statement and Windows Installer's own error.
+function Set-MsiProperty($installer, $db, [string]$name, [string]$value) {
+  $sql = "SELECT ``Property``, ``Value`` FROM ``Property`` WHERE ``Property`` = '$name'"
+  try {
+    $view = Invoke-Msi-Com $db 'OpenView' 'InvokeMethod' @($sql)
+    Invoke-Msi-Com $view 'Execute' 'InvokeMethod' $null | Out-Null
+    $row = Invoke-Msi-Com $view 'Fetch' 'InvokeMethod' $null
+    if ($null -eq $row) { throw "no $name row in the Property table" }
+    Invoke-Msi-Com $row 'StringData' 'SetProperty' @(2, $value) | Out-Null
+    Invoke-Msi-Com $view 'Modify' 'InvokeMethod' @(2, $row) | Out-Null # msiViewModifyUpdate
+    Invoke-Msi-Com $view 'Close' 'InvokeMethod' $null | Out-Null
+  } catch {
+    $detail = ''
+    try {
+      $last = Invoke-Msi-Com $installer 'LastErrorRecord' 'InvokeMethod' $null
+      if ($last) { $detail = Invoke-Msi-Com $last 'FormatText' 'InvokeMethod' $null }
+    } catch { }
+    throw "Setting $name in the MSI failed ($($_.Exception.Message)); statement: $sql; Windows Installer: $detail"
+  }
+}
+
+# A copy of $Source that Windows Installer sees as an older release of the same product.
 function New-OlderMsi([string]$Source, [string]$Target, [string]$Version) {
   Copy-Item $Source $Target -Force
+  Set-ItemProperty $Target -Name IsReadOnly -Value $false
   $wi = New-Object -ComObject WindowsInstaller.Installer
-  $db = $wi.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $wi, @($Target, 1))
-  $code = '{' + [guid]::NewGuid().ToString().ToUpper() + '}'
-  foreach ($sql in @(
-      # Table and key column are both called Property, so the columns are qualified.
-      'UPDATE `Property` SET `Property`.`Value` = ''' + $Version + ''' WHERE `Property`.`Property` = ''ProductVersion''',
-      'UPDATE `Property` SET `Property`.`Value` = ''' + $code + ''' WHERE `Property`.`Property` = ''ProductCode'''
-    )) {
-    $view = $db.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $db, @($sql))
-    $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null) | Out-Null
-    $view.GetType().InvokeMember('Close', 'InvokeMethod', $null, $view, $null) | Out-Null
-  }
+  $db = Invoke-Msi-Com $wi 'OpenDatabase' 'InvokeMethod' @($Target, 1) # msiOpenDatabaseModeTransact
+  Set-MsiProperty $wi $db 'ProductVersion' $Version
+  Set-MsiProperty $wi $db 'ProductCode' ('{' + [guid]::NewGuid().ToString().ToUpper() + '}')
   # A new package code too, so Windows Installer does not take it for the cached release.
-  $info = $db.GetType().InvokeMember('SummaryInformation', 'GetProperty', $null, $db, @(1))
-  $info.GetType().InvokeMember('Property', 'SetProperty', $null, $info, @(9, ('{' + [guid]::NewGuid().ToString().ToUpper() + '}'))) | Out-Null
-  $info.GetType().InvokeMember('Persist', 'InvokeMethod', $null, $info, $null) | Out-Null
-  $db.GetType().InvokeMember('Commit', 'InvokeMethod', $null, $db, $null) | Out-Null
+  $info = Invoke-Msi-Com $db 'SummaryInformation' 'GetProperty' @(1)
+  Invoke-Msi-Com $info 'Property' 'SetProperty' @(9, ('{' + [guid]::NewGuid().ToString().ToUpper() + '}')) | Out-Null
+  Invoke-Msi-Com $info 'Persist' 'InvokeMethod' $null | Out-Null
+  Invoke-Msi-Com $db 'Commit' 'InvokeMethod' $null | Out-Null
   [void][Runtime.InteropServices.Marshal]::ReleaseComObject($info)
   [void][Runtime.InteropServices.Marshal]::ReleaseComObject($db)
   [void][Runtime.InteropServices.Marshal]::ReleaseComObject($wi)
