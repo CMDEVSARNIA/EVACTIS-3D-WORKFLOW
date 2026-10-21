@@ -44,6 +44,8 @@ export interface ServerDeps {
   /** One-time code for creating the first administrator (null once one exists). */
   setupCode: string | null;
   log?: boolean;
+  /** Write the log to this file instead of standard output (when run as a scheduled task). */
+  logFile?: string;
 }
 
 export const COOKIE = 'evx_session';
@@ -118,7 +120,11 @@ export async function createServer(d: ServerDeps): Promise<{
     logger:
       d.log === false
         ? false
-        : { level: 'info', redact: ['req.headers.cookie', 'req.headers.authorization'] },
+        : {
+            level: 'info',
+            redact: ['req.headers.cookie', 'req.headers.authorization'],
+            ...(d.logFile ? { file: d.logFile } : {}),
+          },
     bodyLimit: 1024 * 1024,
     trustProxy: false,
     requestTimeout: 10 * 60_000,

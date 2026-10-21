@@ -104,7 +104,12 @@ export function webFiles(dir: string): WebFiles {
 export async function start(argv = process.argv.slice(2)) {
   const { values } = parseArgs({
     args: argv,
-    options: { data: { type: 'string' }, config: { type: 'string' }, web: { type: 'string' } },
+    options: {
+      data: { type: 'string' },
+      config: { type: 'string' },
+      web: { type: 'string' },
+      log: { type: 'string' },
+    },
   });
   const dataDir = resolve(values.data ?? process.env.EVX_SITE_DATA ?? 'site-data');
   const config = loadConfig(dataDir, values.config);
@@ -137,6 +142,7 @@ export async function start(argv = process.argv.slice(2)) {
     web: webFiles(resolve(values.web ?? join(here, 'web'))),
     turn: { secret: turnSecret(secret), port: config.turn.port, realm },
     setupCode,
+    ...(values.log ? { logFile: resolve(values.log) } : {}),
   });
   const turn = new TurnServer({
     port: config.turn.port,

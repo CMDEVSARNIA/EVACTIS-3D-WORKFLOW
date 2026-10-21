@@ -90,6 +90,26 @@ jobs:
           & scripts/windows/sign.ps1 apps/site-server/dist/standalone/evactis-3dworkflow-site-server.exe
           $s = Get-AuthenticodeSignature apps/site-server/dist/standalone/evactis-3dworkflow-site-server.exe
           if (-not $s.SignerCertificate) { throw 'the Site Server program is not signed' }
+          # Unattended mode: a boot task as LOCAL SERVICE; it must answer, log the setup
+          # code to its data folder, and uninstall cleanly.
+          $exe = (Resolve-Path apps/site-server/dist/standalone/evactis-3dworkflow-site-server.exe).Path
+          $data = Join-Path $PWD 'out\site-task'
+          New-Item -ItemType Directory -Force $data | Out-Null
+          '{"siteName":"Task check","port":4392,"turn":{"port":4393}}' | Set-Content -Encoding ascii (Join-Path $data 'config.json')
+          & $exe install-task --data $data
+          $ok = $false
+          $PSNativeCommandUseErrorActionPreference = $false  # curl fails until the server is up
+          foreach ($i in 1..60) {
+            curl.exe -sk --max-time 2 https://127.0.0.1:4392/health | Out-Null
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Start-Sleep 1
+          }
+          $PSNativeCommandUseErrorActionPreference = $true
+          if (-not $ok) { Get-Content (Join-Path $data 'site-server.log') -ErrorAction SilentlyContinue; throw 'the scheduled task did not start the server' }
+          if (-not (Select-String -Quiet 'setup code' (Join-Path $data 'site-server.log'))) { throw 'no setup code in the log' }
+          & $exe uninstall-task
+          if (Get-ScheduledTask -TaskName 'EVACTIS 3DWORKFLOW Site Server' -ErrorAction SilentlyContinue) { throw 'the task is still registered' }
+          Write-Host 'Scheduled task: installed, answered, logged the setup code, uninstalled.'
       - uses: actions/upload-artifact@v4
         with:
           name: site-server-windows

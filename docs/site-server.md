@@ -50,10 +50,22 @@ photos.
 
 ### As a service
 
-- **Windows**: register the program with the Service Control Manager through a
-  service wrapper the site already uses (for example WinSW or NSSM), with
-  `--data <folder>` as its argument and a dedicated low-privilege account that owns the
-  data folder. *A built-in Windows service mode is planned for Phase 12.*
+- **Windows**: copy the program to `C:\Program Files\Evactis\Site Server\`, then from an
+  elevated prompt:
+
+  ```
+  "C:\Program Files\Evactis\Site Server\evactis-3dworkflow-site-server.exe" install-task --data D:\EvactisSite
+  ```
+
+  This registers the scheduled task "EVACTIS 3DWORKFLOW Site Server", which starts the
+  server at boot as the built-in LOCAL SERVICE account (no password, few rights) and
+  restarts it within a minute if it stops. It gives that account change rights on the
+  data folder only, adds inbound firewall rules for the HTTPS and TURN ports limited to
+  `allowedNetworks`, and starts the server now. The log, with the first-time setup code,
+  is `site-server.log` in the data folder. `uninstall-task` removes the task and the
+  rules and keeps the data. (A Node program cannot answer the Windows Service Control
+  Manager itself; if the site prefers a true service, a wrapper such as WinSW works too,
+  with `--data <folder> --log <file>` as arguments.)
 - **Linux (systemd)**:
 
   ```ini
@@ -129,7 +141,9 @@ Browsers allow microphone and camera only on trusted HTTPS. Either:
   ```
 
   The lookup account needs read access only. Use `ldaps://` or `"startTls": true` so
-  passwords never cross the network in clear. People in neither group cannot sign in.
+  passwords never cross the network in clear: the server refuses to start with plain
+  `ldap://` and neither, unless `"allowPlainLdap": true` is set (not recommended).
+  People in neither group cannot sign in.
   No cloud identity provider is supported, by design.
 
 ## Usage reports
