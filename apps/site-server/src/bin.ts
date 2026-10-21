@@ -1,3 +1,4 @@
+import './quiet.ts';
 import { ConfigError } from './config.ts';
 import { start } from './main.ts';
 

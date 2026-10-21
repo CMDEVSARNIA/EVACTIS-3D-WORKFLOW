@@ -88,3 +88,53 @@ jobs:
             target/real-app-smoke/*.json
             target/real-app-smoke/*.log
           retention-days: 14
+
+  site-server:
+    # Phase 11 acceptance: two client machines and the Site Server on an isolated network
+    # built from network namespaces (no path between the clients, none to the internet).
+    # They share notes and run a guided session with audio over the server's own relay;
+    # the run fails if the server sends one packet off the site network. Then the
+    # standalone program and the Docker image are built and started.
+    name: Site Server (isolated network, standalone, Docker)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Allow unprivileged network namespaces (Ubuntu 24.04 restricts them)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Build the Site Server and the demo facility
+        run: pnpm turbo run build --filter=@evactis-3dworkflow/site-server...
+      - name: Two machines on an isolated network, server outbound blocked
+        run: scripts/linux/site-server-lan.sh target/site-lan
+      - name: Standalone program (Node single executable)
+        run: node apps/site-server/scripts/sea.mjs --check
+      - name: Docker image
+        run: |
+          pnpm --filter @evactis-3dworkflow/site-server docker
+          # The image runs as uid 1000 (node), which must own the data folder.
+          data=$(mktemp -d)
+          echo '{"siteName":"Docker check","port":4390,"turn":{"port":4391}}' >"$data/config.json"
+          sudo chown -R 1000:1000 "$data"
+          docker run -d --name evx-site --network host -v "$data:/data" evactis-3dworkflow-site-server:0.1.0
+          for i in $(seq 30); do curl -skf https://127.0.0.1:4390/health && break; sleep 1; done
+          docker logs evx-site 2>&1 | tee docker.log
+          grep -q 'setup code' docker.log && ! grep -q '"level":50' docker.log
+          docker rm -f evx-site
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-server
+          path: |
+            target/site-lan/server.log
+            target/site-lan/outside.txt
+            target/site-lan/results/
+            apps/site-server/dist/standalone/
+          retention-days: 14

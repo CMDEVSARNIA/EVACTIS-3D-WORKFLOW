@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "start": "node --disable-warning=ExperimentalWarning dist/server.cjs",
-    "sea": "node scripts/sea.mjs"
+    "sea": "node scripts/sea.mjs",
+    "docker": "docker build -t evactis-3dworkflow-site-server:0.1.0 -f Dockerfile dist"
   },
   "dependencies": {
     "fastify": "5.12.5",

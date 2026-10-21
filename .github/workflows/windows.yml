@@ -79,6 +79,22 @@ jobs:
           Remove-Item -Recurse "$out/Evactis Demo Centre"
           & scripts/windows/sign.ps1 "$out/Evactis Demo Centre Setup.exe"
           Get-ChildItem $out | Format-Table Name, @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }
+      - name: Site Server standalone program (Phase 11)
+        # The Node runtime of this build with the Site Server injected; started once on
+        # loopback, then signed like every other program.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          node apps/site-server/scripts/sea.mjs --check
+          & scripts/windows/sign.ps1 apps/site-server/dist/standalone/evactis-3dworkflow-site-server.exe
+          $s = Get-AuthenticodeSignature apps/site-server/dist/standalone/evactis-3dworkflow-site-server.exe
+          if (-not $s.SignerCertificate) { throw 'the Site Server program is not signed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-server-windows
+          path: apps/site-server/dist/standalone/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: delivery-packages
