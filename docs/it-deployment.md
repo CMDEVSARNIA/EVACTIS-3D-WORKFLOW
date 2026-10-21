@@ -1,6 +1,7 @@
 # IT deployment guide — EVACTIS 3DWORKFLOW
 
-*Phase 1 draft; completed in Phase 12. Version numbers below are examples.*
+*Version numbers below are examples. Companion guides: [Site Server](site-server.md),
+[release procedure](release-procedure.md), [security review](security-review.md).*
 
 EVACTIS 3DWORKFLOW Studio and Viewer install and uninstall like any Windows program.
 Neither contacts Evactis, Microsoft or any other server: no telemetry, no update
@@ -97,8 +98,55 @@ your own Windows Update / WSUS policy.
 | `%APPDATA%\ca.evactis.3dworkflow.<app>`, `%LOCALAPPDATA%\ca.evactis.3dworkflow.<app>` | Settings, WebView2 cache | Only if the user ticks "Delete application data" (setup .exe) |
 | `Documents\EVACTIS 3DWORKFLOW` | User projects | **Never** |
 
+## Delivered environments (what clients receive per facility)
+
+Evactis prepares each facility's environment in Studio and delivers it in one of these
+forms (ADR 0018). All of them work with no network connection; every file is checked
+against an SHA-256 manifest before use, and encrypted ones ask for a passphrase that
+travels separately.
+
+| Form | How it is opened | IT notes |
+| --- | --- | --- |
+| Per-facility setup (`<Facility> Setup.exe`) | Installs the Viewer with the environment, per user, Start menu "Evactis – <facility>" | No administrator rights; `/S` for silent; uninstalls only its own files; installs WebView2 from its own offline copy only if missing |
+| `.evx` file | Double-click (needs the Viewer installed), or "Open an environment…" | Deploy the Viewer MSI once, then copy `.evx` files to a share or each PC |
+| Portable folder | Run `EVACTIS-3DWORKFLOW-Viewer.exe` in the folder; `viewer.json` beside it names the environment | Nothing installed; needs WebView2 on the PC unless a fixed runtime was included |
+| Intranet folder | Publish on any internal web server (static files) | Strict Content-Security-Policy is in the pages; no server code |
+| Browser folder / single HTML file | Open `index.html` / the `.html` file from disk | For PCs where nothing can be installed |
+| SCORM 1.2 / 2004 | Import into the LMS | Reports score, completion, success, time only |
+
+## Application control (AppLocker, WDAC, Defender SmartScreen)
+
+Every program is Authenticode-signed by Evactis, including the bundled FFmpeg and the
+Viewer inside Studio; a **publisher rule for "Evactis"** covers them all. Per-facility
+setups are signed at Evactis's signing station before delivery. Nothing downloads or
+executes code at runtime, and no scripting engine is exposed.
+
+## Network and firewall
+
+Studio and the Viewer need **no network access and no firewall rules**; they may be
+blocked outbound entirely (CI tests them that way). The optional Site Server needs
+inbound HTTPS (8443/tcp), TURN (3478/udp) and its relay range (49160–49200/udp) from the
+site network only, and no outbound access; its `install-task` command adds those inbound
+rules ([site-server.md](site-server.md#network)).
+
+## Accessibility
+
+Studio, the Viewer and the Site Server pages are tested against WCAG 2.1 AA (automated
+rules, text contrast, 24 px targets, 44 px on the Viewer toolbar), work in English and
+French, follow the system's reduced-motion setting, and can be used with the keyboard
+alone, including placing scenes, hotspots and equipment in Studio.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Blank window | WebView2 Runtime present (`Apps & features` → "Microsoft Edge WebView2 Runtime"); for portable viewers, a fixed runtime in `webview2\` beside the program |
+| "This environment failed its integrity check" | The package was altered or damaged in transit; copy it again from the original medium |
+| Passphrase refused | The passphrase is case-sensitive; it cannot be recovered (ask Evactis for a new package) |
+| Self-test | `EVACTIS-3DWORKFLOW-Viewer.exe --smoke-test report.json` writes what the program checked (including that no network request was made) |
+
 ## Updates
 
-There is no auto-updater. New versions ship as new installers that upgrade in place.
-Clients running the optional 3DWORKFLOW Site Server (Phase 11) can host the latest
-installer on their LAN.
+There is no auto-updater and no update check. New versions ship as new installers that
+upgrade in place (MSI: same UpgradeCode). Delivered environments are replaced by
+delivering a new package; a package never overwrites an earlier one.
