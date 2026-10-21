@@ -74,6 +74,10 @@ IWER 2.5.0 (Immersive Web Emulation Runtime, Meta; MIT) with gl-matrix (MIT) and
 webxr-layers-polyfill (Apache-2.0): a WebXR headset emulator injected into Playwright
 pages only (`e2e/fixtures/iwer.mjs`), never bundled into Studio or the Viewer. No network
 code (URLs in it are comments).
+axe-core 4.14.0 with @axe-core/playwright 4.14.0 (Deque; MPL-2.0): accessibility rules run
+inside Playwright pages only (`e2e/a11y.spec.ts`), never shipped. Its only network code
+re-reads a page's own cross-origin stylesheets, which our pages do not have; the e2e
+network guard blocks anything off loopback regardless.
 
 ## Vendored source
 

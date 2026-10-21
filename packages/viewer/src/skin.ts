@@ -377,7 +377,13 @@ export class SkinChrome {
         const other = h.environment.settings.languages.find((l) => l !== h.language);
         if (!other) p.hidden = true;
         p.textContent = other ? other.toUpperCase() : '';
-        p.setAttribute('aria-label', other?.startsWith('fr') ? 'Français' : 'English');
+        // The name starts with the visible text (WCAG 2.5.3, label in name): speech users
+        // say "FR", screen readers hear the language spelled out.
+        const tag = other ? other.toUpperCase() : '';
+        p.setAttribute(
+          'aria-label',
+          `${tag} — ${other?.startsWith('fr') ? 'Français' : 'English'}`,
+        );
         p.lang = other ?? '';
       }
       if (p.classList.contains('evx-skin__title')) {
