@@ -45,12 +45,18 @@ function Get-Entries {
   $roots = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
   @(Get-ChildItem $roots -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object { $_.DisplayName -eq $name })
 }
+# Runs msiexec silently; on failure, shows the errors from its log.
 function Invoke-Msi([string[]]$arguments, [string]$log) {
-  $p = Start-Process msiexec.exe -ArgumentList ($arguments + @('/qn', '/norestart', '/l*v', "`"$LogDir\$log.log`"")) -Wait -PassThru
+  $file = "$LogDir\$log.log"
+  $p = Start-Process msiexec.exe -ArgumentList ($arguments + @('/qn', '/norestart', '/l*v', "`"$file`"")) -Wait -PassThru
+  if ($p.ExitCode -ne 0 -and (Test-Path $file)) {
+    Write-Host "  msiexec $($arguments -join ' ') ended with $($p.ExitCode); from its log:"
+    Get-Content $file | Select-String -Pattern 'Error \d{4}|Return value 3|error code|failed' |
+      Select-Object -Last 12 | ForEach-Object { Write-Host "    $($_.Line.Trim())" }
+  }
   $p.ExitCode
 }
 
-# A copy of $Source that Windows Installer sees as an older release of the same product.
 # Late-bound call on a Windows Installer automation object.
 function Invoke-Msi-Com($target, [string]$member, [string]$kind, [object[]]$arguments) {
   $target.GetType().InvokeMember($member, $kind, $null, $target, $arguments)
@@ -78,13 +84,51 @@ function Set-MsiProperty($installer, $db, [string]$name, [string]$value) {
   }
 }
 
+# One Property-table value of an MSI file.
+function Get-MsiProperty([string]$Path, [string]$Name) {
+  $wi = New-Object -ComObject WindowsInstaller.Installer
+  $db = Invoke-Msi-Com $wi 'OpenDatabase' 'InvokeMethod' @($Path, 0) # read only
+  $view = Invoke-Msi-Com $db 'OpenView' 'InvokeMethod' @("SELECT ``Value`` FROM ``Property`` WHERE ``Property`` = '$Name'")
+  Invoke-Msi-Com $view 'Execute' 'InvokeMethod' $null | Out-Null
+  $row = Invoke-Msi-Com $view 'Fetch' 'InvokeMethod' $null
+  $value = if ($row) { Invoke-Msi-Com $row 'StringData' 'GetProperty' @(1) } else { $null }
+  Invoke-Msi-Com $view 'Close' 'InvokeMethod' $null | Out-Null
+  [void][Runtime.InteropServices.Marshal]::ReleaseComObject($db)
+  $value
+}
+
+# The Upgrade table names the versions this package replaces or refuses (computed from its
+# own version at build time). An older release has those bounds at its own, older version.
+function Set-UpgradeBounds($installer, $db, [string]$From, [string]$To) {
+  $view = Invoke-Msi-Com $db 'OpenView' 'InvokeMethod' @('SELECT `UpgradeCode`, `VersionMin`, `VersionMax`, `Language`, `Attributes`, `Remove`, `ActionProperty` FROM `Upgrade`')
+  Invoke-Msi-Com $view 'Execute' 'InvokeMethod' $null | Out-Null
+  $changed = 0
+  while ($row = Invoke-Msi-Com $view 'Fetch' 'InvokeMethod' $null) {
+    $hit = $false
+    foreach ($col in 2, 3) {
+      if ((Invoke-Msi-Com $row 'StringData' 'GetProperty' @($col)) -eq $From) {
+        Invoke-Msi-Com $row 'StringData' 'SetProperty' @($col, $To) | Out-Null
+        $hit = $true
+      }
+    }
+    if ($hit) {
+      # Version bounds are part of the key, so the row is replaced, not updated.
+      Invoke-Msi-Com $view 'Modify' 'InvokeMethod' @(4, $row) | Out-Null # msiViewModifyReplace
+      $changed++
+    }
+  }
+  Invoke-Msi-Com $view 'Close' 'InvokeMethod' $null | Out-Null
+  if ($changed -eq 0) { throw "no Upgrade row mentions $From" }
+}
+
 # A copy of $Source that Windows Installer sees as an older release of the same product.
-function New-OlderMsi([string]$Source, [string]$Target, [string]$Version) {
+function New-OlderMsi([string]$Source, [string]$Target, [string]$Version, [string]$Current) {
   Copy-Item $Source $Target -Force
   Set-ItemProperty $Target -Name IsReadOnly -Value $false
   $wi = New-Object -ComObject WindowsInstaller.Installer
   $db = Invoke-Msi-Com $wi 'OpenDatabase' 'InvokeMethod' @($Target, 1) # msiOpenDatabaseModeTransact
   Set-MsiProperty $wi $db 'ProductVersion' $Version
+  Set-UpgradeBounds $wi $db $Current $Version
   Set-MsiProperty $wi $db 'ProductCode' ('{' + [guid]::NewGuid().ToString().ToUpper() + '}')
   # A new package code too, so Windows Installer does not take it for the cached release.
   $info = Invoke-Msi-Com $db 'SummaryInformation' 'GetProperty' @(1)
@@ -104,6 +148,10 @@ function Test-Removed([string]$installDir, [string]$what) {
   Check (-not (Test-Path "HKLM:\Software\Classes\$progId")) "$what : ProgID $progId removed"
   $assoc = (Get-ItemProperty 'HKLM:\Software\Classes\.evx' -ErrorAction SilentlyContinue).'(default)'
   Check (-not $assoc) "$what : .evx association removed"
+  foreach ($root in 'HKLM', 'HKCU') {
+    $where = (Get-ItemProperty "${root}:\Software\Evactis\$name" -ErrorAction SilentlyContinue).'(default)'
+    Check (-not $where) "$what : install location forgotten in $root (was '$where')"
+  }
   # Kept on purpose or shared with Studio; listed so a change shows up in the log.
   foreach ($p in @(
       $menuDir,
@@ -128,7 +176,7 @@ Check ((Get-Entries).Count -eq 0) 'no Viewer installed before the QA run'
 try {
   # ------------------------------------------------------------ upgrade and downgrade (MSI)
   Write-Host "== upgrade: 0.0.1 -> $version (MSI, per machine)"
-  New-OlderMsi -Source $msi -Target $older -Version '0.0.1'
+  New-OlderMsi -Source $msi -Target $older -Version '0.0.1' -Current $version
   Check ((Invoke-Msi @('/i', "`"$older`"") 'older-install') -eq 0) 'older version installs'
   Check ((Get-Entries).DisplayVersion -contains '0.0.1') 'Apps & features shows 0.0.1'
   Check ((Invoke-Msi @('/i', "`"$msi`"") 'upgrade') -eq 0) "upgrade to $version exit code 0"
@@ -149,8 +197,9 @@ try {
   # ------------------------------------------------------------ French MSI
   Write-Host '== French MSI (fr-FR)'
   Check ((Invoke-Msi @('/i', "`"$msiFr`"") 'fr-install') -eq 0) 'fr-FR MSI installs'
-  $entries = Get-Entries
-  Check ($entries.Count -eq 1 -and [int]$entries[0].Language -eq 1036) "Apps & features entry in French (Language $($entries[0].Language))"
+  $lang = Get-MsiProperty $msiFr 'ProductLanguage'
+  Check ($lang -eq '1036') "the French MSI is French (ProductLanguage $lang)"
+  Check ((Get-Entries).Count -eq 1) 'one Apps & features entry'
   Check (Test-Path (Join-Path $machineDir $exeName)) 'program installed'
   Check ((Invoke-Msi @('/x', "`"$msiFr`"") 'fr-uninstall') -eq 0) 'fr-FR uninstall exit code 0'
   Test-Removed $machineDir 'French MSI'
@@ -161,24 +210,35 @@ try {
   Write-Host "== NSIS setup into $accented"
   $exe = Join-Path $accented $exeName
   & "$PSScriptRoot\offline.ps1" -Programs @($exe)
-  $p = Start-Process $setup -ArgumentList @('/S', '/AllUsers', "/D=$accented") -Wait -PassThru
+  # One string: NSIS takes everything after /D= (spaces included, no quotes) as the folder,
+  # and it must come last.
+  $p = Start-Process $setup -ArgumentList "/S /AllUsers /D=$accented" -Wait -PassThru
   Check ($p.ExitCode -eq 0) "setup exit code 0 (got $($p.ExitCode))"
   Check (Test-Path $exe) 'program installed in the accented folder'
-  $report = Join-Path $LogDir 'accented-report.json'
-  Remove-Item $report -ErrorAction SilentlyContinue
-  $run = Start-Process $exe -ArgumentList @('--smoke-test', "`"$report`"") -PassThru
-  if (-not $run.WaitForExit(150000)) { $run.Kill(); Check $false 'app exited within 150 s' }
-  Check ($run.ExitCode -eq 0) "the app starts from there (exit code $($run.ExitCode))"
-  if (Test-Path $report) {
-    $r = Get-Content $report | ConvertFrom-Json
-    Check ($r.uiReady -eq $true) 'its UI renders'
-    Check (@($r.blockedRequests).Count -eq 0) 'no network requests attempted'
-  } else { Check $false 'smoke report written' }
+  if (-not (Test-Path $exe)) {
+    $found = Get-ChildItem "$env:ProgramFiles\EVACTIS", "$env:LOCALAPPDATA\Programs\EVACTIS", 'C:\' -Filter $exeName -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 3
+    Write-Host "  INFO  the setup put it here instead: $($found.FullName -join ', ')"
+  } else {
+    $report = Join-Path $LogDir 'accented-report.json'
+    Remove-Item $report -ErrorAction SilentlyContinue
+    $run = Start-Process $exe -ArgumentList @('--smoke-test', "`"$report`"") -PassThru
+    if (-not $run.WaitForExit(150000)) { $run.Kill(); Check $false 'app exited within 150 s' }
+    Check ($run.ExitCode -eq 0) "the app starts from there (exit code $($run.ExitCode))"
+    if (Test-Path $report) {
+      $r = Get-Content $report | ConvertFrom-Json
+      Check ($r.uiReady -eq $true) 'its UI renders'
+      Check (@($r.blockedRequests).Count -eq 0) 'no network requests attempted'
+    } else { Check $false 'smoke report written' }
+  }
   $open = (Get-ItemProperty "HKLM:\Software\Classes\$progId\shell\open\command" -ErrorAction SilentlyContinue).'(default)'
   Check ($open -like "*$accented*") "double-click opens the program in the accented folder ($open)"
-  $p = Start-Process (Join-Path $accented 'uninstall.exe') -ArgumentList @('/S') -Wait -PassThru
-  for ($i = 0; $i -lt 60 -and (Test-Path $exe); $i++) { Start-Sleep -Seconds 1 }
-  Check ($p.ExitCode -eq 0) 'uninstall exit code 0'
+  $uninstaller = @(Get-Entries | ForEach-Object { $_.UninstallString -replace '^"([^"]+)".*$', '$1' } | Where-Object { $_ -like '*uninstall.exe' })[0]
+  if ($uninstaller) {
+    $dir = Split-Path $uninstaller
+    $p = Start-Process $uninstaller -ArgumentList '/S' -Wait -PassThru
+    for ($i = 0; $i -lt 60 -and (Test-Path (Join-Path $dir $exeName)); $i++) { Start-Sleep -Seconds 1 }
+    Check ($p.ExitCode -eq 0) 'uninstall exit code 0'
+  } else { Check $false 'uninstaller found in Apps & features' }
   Test-Removed $accented 'NSIS in the accented folder'
   if (Test-Path (Split-Path $accented)) { Write-Host "  INFO  the empty parent folder stays: $(Split-Path $accented)" }
 } finally {
