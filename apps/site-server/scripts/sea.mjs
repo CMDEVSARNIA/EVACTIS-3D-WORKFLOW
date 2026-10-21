@@ -167,7 +167,13 @@ async function check() {
     if (/ExperimentalWarning|Error/.test(log)) throw new Error(`unexpected output:\n${log}`);
     console.log('check: /health and the start page answered; setup code printed');
   } finally {
-    server.kill();
-    rmSync(data, { recursive: true, force: true });
+    // Wait for it to stop first: Windows keeps the database locked until the process
+    // has exited.
+    if (server.exitCode === null && server.signalCode === null) {
+      const stopped = new Promise((r) => server.once('exit', r));
+      server.kill();
+      await stopped;
+    }
+    rmSync(data, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   }
 }

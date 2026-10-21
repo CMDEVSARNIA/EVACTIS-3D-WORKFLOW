@@ -198,7 +198,7 @@ makes network calls at runtime.
   - [x] Studio Package dialog: every kind, passphrase twice, kiosk, SCORM version, folder, progress, size warning, unconfirmed-safety count; Studio bundles the Viewer, NSIS and the players
   - [x] Acceptance (browser): intranet, browser folder, single file plain/encrypted, wrong passphrase, altered files (`e2e/delivery.spec.ts`); dialog (`e2e/studio-package.spec.ts`)
   - [x] Acceptance (real apps, Linux, no network interfaces): `.evx` plain/encrypted, portable, wrong passphrase, altered byte (`scripts/linux/real-app-smoke.sh`)
-  - [ ] Acceptance (Windows 10/11, firewalled): per-facility installer, portable, `.evx` double-click, passphrase, integrity (`scripts/windows/package-acceptance.ps1` in CI)
+  - [x] Acceptance (Windows 10/11, firewalled): per-facility installer, portable, `.evx` double-click, passphrase, integrity (`scripts/windows/package-acceptance.ps1` in CI; first green on windows-2022/2025, 2026-10-21)
   - [ ] Clean-machine check with networking disabled (Windows Sandbox, `docs/windows-installers.md`), incl. a machine without the WebView2 Runtime
 - [x] **Phase 11 — 3DWORKFLOW Site Server (optional)** (awaiting review)
   - [x] Server core: config, site-network guard (requests, relay, directory), own HTTPS authority, accounts (scrypt, throttle, setup code), environments (checked on upload)
