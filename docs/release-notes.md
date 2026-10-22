@@ -4,12 +4,12 @@
 
 ## English
 
-### 1.0.0 (proposed) — draft, not yet released
+### 1.0.0 — release candidate 1 (not yet released)
 
 | | |
 | --- | --- |
-| Version | Studio, Viewer and Site Server **1.0.0** (the builds say 0.1.0 until the version is raised at release, `docs/release-procedure.md` step 1) |
-| Date, commit | Filled in at release |
+| Version | Studio, Viewer and Site Server **1.0.0** (release candidate 1; the version is final unless a later candidate is needed) |
+| Date, commit | Filled in at release (the signed kit's `README.txt` records the commit) |
 | SBOM advisory check | Filled in at release (step 1) |
 | Reference-PC measurements | Filled in at release (`docs/performance.md`) |
 
@@ -61,12 +61,12 @@ anywhere.
 
 ## Français
 
-### 1.0.0 (proposée) — ébauche, pas encore publiée
+### 1.0.0 — version candidate 1 (pas encore publiée)
 
 | | |
 | --- | --- |
-| Version | Studio, Viewer et Site Server **1.0.0** (les versions affichent 0.1.0 jusqu’à la hausse de version à la publication, étape 1 de `docs/release-procedure.md`) |
-| Date, commit | À remplir à la publication |
+| Version | Studio, Viewer et Site Server **1.0.0** (version candidate 1; le numéro est définitif sauf si une autre candidate est nécessaire) |
+| Date, commit | À remplir à la publication (le `README.txt` de la trousse signée indique le commit) |
 | Vérification des avis de sécurité (SBOM) | À remplir à la publication (étape 1) |
 | Mesures sur les postes de référence | À remplir à la publication (`docs/performance.md`) |
 

@@ -43,15 +43,35 @@ Follow [windows-installers.md](windows-installers.md#fully-offline-build-and-sig
 
 ## 3. The release kit
 
-| Item | From |
-| --- | --- |
-| Studio setup (NSIS, per-user) and MSI (EN, FR) | `out/installers` |
-| Viewer setup (NSIS) and MSI (EN, FR) | `out/installers` |
-| Site Server: Windows program, Linux program, Docker image archive, `NOTICES.txt`, `NODE-LICENSE.txt` | `apps/site-server/dist/standalone`, `docker save` |
-| FFmpeg source offer (`ffmpeg\SOURCE.txt`, inside Studio) or the source archive itself | assumption 14 |
-| SBOM (`evactis-3dworkflow.cdx.json`) | `pnpm sbom` |
-| Guides: IT deployment, Site Server administration, Studio and Viewer user guides (EN/FR), release notes | `docs/` |
-| SHA-256 of every file in the kit (`SHA256SUMS.txt`) | `Get-FileHash` |
+`tools/release-kit.mjs` assembles the kit from the signed files and refuses to finish
+if any item is missing or an installer carries another version than the apps'
+`package.json`. It never downloads anything and never overwrites an earlier kit.
+
+```sh
+pnpm sbom
+node tools/release-kit.mjs --installers out/installers \
+  --site-windows <folder with the signed evactis-3dworkflow-site-server.exe> \
+  --site-linux apps/site-server/dist/standalone \
+  --docker evactis-3dworkflow-site-server-<version>.tar.gz --commit <sha>
+node tools/release-kit.mjs --verify out/release/EVACTIS-3DWORKFLOW-<version>
+```
+
+| Item | In the kit | From |
+| --- | --- | --- |
+| Studio setup (NSIS, per-user or all users) and MSI (EN, FR) | `installers/` | `out/installers` |
+| Viewer setup (NSIS) and MSI (EN, FR) | `installers/` | `out/installers` |
+| Site Server: Windows and Linux programs with `NOTICES.txt` and `NODE-LICENSE.txt`; Docker image archive | `site-server/` | `apps/site-server/dist/standalone`, `docker save … \| gzip` |
+| FFmpeg source offer (`ffmpeg\SOURCE.txt`, inside Studio) or the source archive itself | (inside Studio) | assumption 14 |
+| SBOM (`evactis-3dworkflow.cdx.json`) | `sbom/` | `pnpm sbom` |
+| Guides: IT deployment, Windows installers, Site Server administration, Studio and Viewer user guides (EN/FR), release notes, licences, safety-sign note | `docs/` | `docs/` |
+| Bilingual `README.txt` (contents, how to check the kit) | top | written by the script |
+| SHA-256 of every file (`SHA256SUMS.txt`, `sha256sum -c` format) | top | written by the script |
+
+Every push also makes a **test-signed** kit in CI (workflow "Windows installers", job
+"Release kit (test-signed)", artifact `release-kit-test-signed`): the same script over the
+CI's test-certificate installers, proving the kit is complete and the versions agree.
+Its README opens with "TEST-SIGNED BUILD: NOT FOR DELIVERY"; it is never delivered.
+Only a kit assembled from the signing station's files goes to a client.
 
 ## 4. Release notes (template)
 
