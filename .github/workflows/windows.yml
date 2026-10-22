@@ -229,7 +229,11 @@ jobs:
           v=$(node -p "require('./apps/site-server/package.json').version")
           docker save "evactis-3dworkflow-site-server:$v" | gzip >"out/evactis-3dworkflow-site-server-$v-docker.tar.gz"
       - name: SBOM
-        run: pnpm sbom
+        # tools/sbom.mjs reads Cargo metadata offline; this runner compiles no Rust, so
+        # fetch the locked crates first (the SBOM itself is made from the lockfiles).
+        run: |
+          cargo fetch --locked
+          pnpm sbom
       - name: Assemble and verify the kit
         run: |
           v=$(node -p "require('./apps/site-server/package.json').version")
