@@ -3,6 +3,7 @@ name: Windows installers
 # Builds signed (test certificate until the Evactis certificate is provided) NSIS and
 # MSI installers for Studio and Viewer, then installs, launches and uninstalls each
 # one silently with the product's network access blocked.
+# The last job assembles a test-signed release kit from them.
 
 on:
   push:
@@ -192,4 +193,55 @@ jobs:
             out/smoke/
             out/installer-qa/
             out/packages-smoke/
+          retention-days: 14
+
+  release-kit:
+    # The release kit (docs/release-procedure.md, section 3) assembled from this run's
+    # test-signed installers and Site Server, a fresh Linux program, Docker image archive
+    # and SBOM. Proves the kit is complete and every version agrees; never delivered
+    # (README says TEST-SIGNED). The real kit is assembled from the signing station's files.
+    name: Release kit (test-signed)
+    needs: [build, smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installers
+          path: out/installers
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-server-windows
+          path: out/site-server-windows
+      - name: Site Server for Linux (standalone program, Docker image archive)
+        run: |
+          pnpm turbo run build --filter=@evactis-3dworkflow/site-server...
+          node apps/site-server/scripts/sea.mjs --check
+          pnpm --filter @evactis-3dworkflow/site-server docker
+          v=$(node -p "require('./apps/site-server/package.json').version")
+          docker save "evactis-3dworkflow-site-server:$v" | gzip >"out/evactis-3dworkflow-site-server-$v-docker.tar.gz"
+      - name: SBOM
+        run: pnpm sbom
+      - name: Assemble and verify the kit
+        run: |
+          v=$(node -p "require('./apps/site-server/package.json').version")
+          node tools/release-kit.mjs --test-signed --commit "$GITHUB_SHA" \
+            --installers out/installers --site-windows out/site-server-windows \
+            --site-linux apps/site-server/dist/standalone \
+            --docker "out/evactis-3dworkflow-site-server-$v-docker.tar.gz"
+          node tools/release-kit.mjs --verify "out/release/EVACTIS-3DWORKFLOW-$v"
+          (cd "out/release/EVACTIS-3DWORKFLOW-$v" && sha256sum --quiet -c SHA256SUMS.txt)
+          head -n 3 "out/release/EVACTIS-3DWORKFLOW-$v/README.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-kit-test-signed
+          path: out/release/
           retention-days: 14

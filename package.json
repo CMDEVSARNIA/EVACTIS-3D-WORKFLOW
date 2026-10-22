@@ -21,7 +21,7 @@
     "test:e2e:update": "playwright test --update-snapshots",
     "test:rust": "cargo test -p evx-core -p evx-media",
     "brand:generate": "pnpm --filter @evactis-3dworkflow/brand run generate",
-    "check": "pnpm run format:check && pnpm run lint && pnpm run brand:check && pnpm run installers:check && pnpm run guardrail:scripts && node --test tools/bug-scanner/report.test.mjs && turbo run typecheck test build && pnpm run test:rust && pnpm run guardrail:urls && pnpm run guardrail:i18n && pnpm run guardrail:size && pnpm run guardrail:deps && pnpm run test:e2e",
+    "check": "pnpm run format:check && pnpm run lint && pnpm run brand:check && pnpm run installers:check && pnpm run guardrail:scripts && node --test tools/bug-scanner/report.test.mjs tools/release-kit.test.mjs && turbo run typecheck test build && pnpm run test:rust && pnpm run guardrail:urls && pnpm run guardrail:i18n && pnpm run guardrail:size && pnpm run guardrail:deps && pnpm run test:e2e",
     "brand:check": "pnpm --filter @evactis-3dworkflow/brand run generate:check",
     "installers:templates": "node tools/windows/make-installer-templates.mjs",
     "installers:check": "node tools/windows/make-installer-templates.mjs --check",

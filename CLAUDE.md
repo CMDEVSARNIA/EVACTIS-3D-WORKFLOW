@@ -67,7 +67,7 @@ makes network calls at runtime.
 | `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
 | `scripts/linux` | Real-app smoke test: built Studio/Viewer in a network namespace with no interfaces, screenshots. `site-server-lan.sh`: two machines + Site Server on an isolated namespace network (`e2e-lan/`). |
-| `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator, smoke-report checker. `tools/bug-scanner/`: CI-only bug scan by a Claude Managed Agent (ADR 0021), never shipped. |
+| `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator, smoke-report checker, release-kit assembler (`release-kit.mjs`, also `--verify`). `tools/bug-scanner/`: CI-only bug scan by a Claude Managed Agent (ADR 0021), never shipped. |
 | `e2e/` | Playwright tests; all run in network-blocked mode (`e2e/offline.ts`). Fixtures in `e2e/fixtures/` import real media with the Rust pipeline; `e2e/scorm-harness/` is a strict local LMS. |
 | `docs/` | Decisions (`docs/decisions/`), licences, IT deployment, brand usage, signage note. |
 
