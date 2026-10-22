@@ -4,8 +4,8 @@
   network access blocked (scripts/windows/offline.ps1).
 
 .EXAMPLE
-  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Viewer-0.1.0-x64-en-US.msi -App Viewer
-  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Studio-0.1.0-x64-setup.exe -App Studio -PerUser
+  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi -App Viewer
+  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Studio-1.0.0-x64-setup.exe -App Studio -PerUser
 #>
 param(
   [Parameter(Mandatory)][string]$Installer,

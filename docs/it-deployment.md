@@ -29,8 +29,8 @@ Both are Authenticode-signed by Evactis (offline, on a hardware token; see
 ## MSI — silent install and removal
 
 ```bat
-msiexec /i EVACTIS-3DWORKFLOW-Viewer-0.1.0-x64-en-US.msi /qn /norestart /l*v viewer-install.log
-msiexec /x EVACTIS-3DWORKFLOW-Viewer-0.1.0-x64-en-US.msi /qn /norestart
+msiexec /i EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi /qn /norestart /l*v viewer-install.log
+msiexec /x EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi /qn /norestart
 ```
 
 | Property | Default | Meaning |
@@ -49,8 +49,8 @@ an older version is refused ("A newer version … is already installed").
 ## Setup .exe — silent options
 
 ```bat
-EVACTIS-3DWORKFLOW-Viewer-0.1.0-x64-setup.exe /S /AllUsers      :: per-machine (admin)
-EVACTIS-3DWORKFLOW-Viewer-0.1.0-x64-setup.exe /S /CurrentUser   :: per-user, no admin
+EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-setup.exe /S /AllUsers      :: per-machine (admin)
+EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-setup.exe /S /CurrentUser   :: per-user, no admin
 "C:\Program Files\EVACTIS\3DWORKFLOW\Viewer\uninstall.exe" /S
 ```
 
@@ -77,7 +77,7 @@ program, its shortcuts, file association and remembered install location.
 ## Configuration Manager (SCCM / MECM)
 
 Create an Application with a Windows Installer (`*.msi`) deployment type. Install:
-`msiexec /i "EVACTIS-3DWORKFLOW-Viewer-0.1.0-x64-en-US.msi" /qn /norestart`. Uninstall:
+`msiexec /i "EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi" /qn /norestart`. Uninstall:
 `msiexec /x {ProductCode} /qn`. Detection: the MSI product code.
 
 ## WebView2 on offline machines

@@ -951,7 +951,7 @@ dependencies = [
 
 [[package]]
 name = "evactis-3dworkflow-studio"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "evx-core",
  "evx-desktop",
@@ -965,7 +965,7 @@ dependencies = [
 
 [[package]]
 name = "evactis-3dworkflow-viewer"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "evx-core",
  "evx-desktop",
@@ -980,7 +980,7 @@ dependencies = [
 
 [[package]]
 name = "evx-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -988,7 +988,7 @@ dependencies = [
 
 [[package]]
 name = "evx-desktop"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "evx-core",
  "serde",
@@ -997,7 +997,7 @@ dependencies = [
 
 [[package]]
 name = "evx-media"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "flate2",
  "image",
@@ -1011,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "evx-package"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "aes-gcm",
  "argon2",

@@ -1,6 +1,6 @@
 {
   "name": "@evactis-3dworkflow/site-server",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "EVACTIS 3DWORKFLOW Site Server — optional, client-hosted, LAN-only: shared notes, guided sessions, local usage reports.",
   "license": "UNLICENSED",
@@ -14,7 +14,7 @@
     "test": "vitest run",
     "start": "node --disable-warning=ExperimentalWarning dist/server.cjs",
     "sea": "node scripts/sea.mjs",
-    "docker": "docker build -t evactis-3dworkflow-site-server:0.1.0 -f Dockerfile dist"
+    "docker": "docker build -t evactis-3dworkflow-site-server:$npm_package_version -f Dockerfile dist"
   },
   "dependencies": {
     "fastify": "5.12.5",

@@ -133,7 +133,7 @@ jobs:
           data=$(mktemp -d)
           echo '{"siteName":"Docker check","port":4390,"turn":{"port":4391}}' >"$data/config.json"
           sudo chown -R 1000:1000 "$data"
-          docker run -d --name evx-site --network host -v "$data:/data" evactis-3dworkflow-site-server:0.1.0
+          docker run -d --name evx-site --network host -v "$data:/data" "evactis-3dworkflow-site-server:$(node -p "require('./apps/site-server/package.json').version")"
           for i in $(seq 30); do curl -skf https://127.0.0.1:4390/health && break; sleep 1; done
           docker logs evx-site 2>&1 | tee docker.log
           grep -q 'setup code' docker.log && ! grep -q '"level":50' docker.log

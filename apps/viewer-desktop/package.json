@@ -1,6 +1,6 @@
 {
   "name": "@evactis-3dworkflow/viewer-desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "EVACTIS 3DWORKFLOW Viewer — framework-free desktop player (Tauri v2).",
   "license": "UNLICENSED",
