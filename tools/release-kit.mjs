@@ -26,6 +26,7 @@ import {
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { writeInstallGuides } from './install-guide.mjs';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SUMS = 'SHA256SUMS.txt';
@@ -122,6 +123,14 @@ export async function buildKit(o) {
     mkdirSync(dirname(join(kit, dest)), { recursive: true });
     copyFileSync(src, join(kit, dest));
   }
+  // The branded Windows installation guide, in English and French, for this version.
+  const guides = await writeInstallGuides({
+    out: join(kit, 'docs'),
+    version,
+    date: o.date ?? new Date().toISOString().slice(0, 10),
+    testSigned: o.testSigned,
+  });
+  plan.push(...guides.map((g) => [g, `docs/${basename(g)}`]));
   writeFileSync(
     join(kit, 'README.txt'),
     readme({
@@ -191,7 +200,8 @@ function readme({ version, commit, testSigned, docker, date, files }) {
       : '                (no Docker image archive in this kit: docker save it where the base image is available)',
     '  sbom/         CycloneDX software bill of materials (check it against an advisory database',
     '                on a connected machine; only the SBOM leaves the building)',
-    '  docs/         IT deployment, Windows installers, Site Server administration, Studio and',
+    '  docs/         Windows installation guide (PDF, EN and FR), IT deployment, Windows installers,',
+    '                Site Server administration, Studio and',
     '                Viewer guides (EN/FR), release notes, licences, safety-sign note',
     '  FFmpeg (LGPL) ships inside Studio with its licence and source offer (ffmpeg\\SOURCE.txt).',
     '',
@@ -205,7 +215,8 @@ function readme({ version, commit, testSigned, docker, date, files }) {
     '  installers/   Studio et Viewer : programme d’installation .exe et MSI (en-US, fr-FR)',
     '  site-server/  Site Server pour Windows et Linux, avec NOTICES.txt et NODE-LICENSE.txt',
     '  sbom/         nomenclature logicielle CycloneDX',
-    '  docs/         guides (déploiement TI, Site Server, Studio, Viewer), notes de version, licences',
+    '  docs/         guide d’installation Windows (PDF, EN et FR), guides (déploiement TI, Site Server,',
+    '                Studio, Viewer), notes de version, licences',
     'Vérifiez la trousse avant usage : chaque fichier figure dans SHA256SUMS.txt avec son SHA-256.',
     '',
     `${files.length} files / fichiers.`,

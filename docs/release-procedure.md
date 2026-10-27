@@ -64,6 +64,7 @@ node tools/release-kit.mjs --verify out/release/EVACTIS-3DWORKFLOW-<version>
 | FFmpeg source offer (`ffmpeg\SOURCE.txt`, inside Studio) or the source archive itself | (inside Studio) | assumption 14 |
 | SBOM (`evactis-3dworkflow.cdx.json`) | `sbom/` | `pnpm sbom` |
 | Guides: IT deployment, Windows installers, Site Server administration, Studio and Viewer user guides (EN/FR), release notes, licences, safety-sign note | `docs/` | `docs/` |
+| Windows installation guide, branded PDF in English and French (`tools/install-guide.mjs`) | `docs/` | written by the script |
 | Bilingual `README.txt` (contents, how to check the kit) | top | written by the script |
 | SHA-256 of every file (`SHA256SUMS.txt`, `sha256sum -c` format) | top | written by the script |
 

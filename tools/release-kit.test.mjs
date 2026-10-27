@@ -67,10 +67,12 @@ test('assembles every item with a checksum list that verifies', async () => {
     'site-server/linux/NODE-LICENSE.txt',
     'sbom/evactis-3dworkflow.cdx.json',
     'docs/licenses/rust-crates.md',
+    'docs/EVACTIS-3DWORKFLOW-9.8.7-Windows-Install-Guide-EN.pdf',
+    'docs/EVACTIS-3DWORKFLOW-9.8.7-Windows-Install-Guide-FR.pdf',
   ])
     assert.ok(listed.includes(f), f);
   assert.ok(!listed.some((f) => f.endsWith('signer.cer')), 'the signer certificate stays out');
-  assert.equal(listed.length, 6 + 6 + 1 + 9 + 1);
+  assert.equal(listed.length, 6 + 6 + 1 + 9 + 2 + 1);
   const readme = readFileSync(join(kit, 'README.txt'), 'utf8');
   assert.match(readme, /^\*\*\* TEST-SIGNED BUILD: NOT FOR DELIVERY/);
   assert.match(readme, /EVACTIS 3DWORKFLOW 9\.8\.7 .*\r\nCommit abc123 · assembled 2026-10-22/);

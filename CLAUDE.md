@@ -54,7 +54,7 @@ makes network calls at runtime.
 | `packages/viewer` | 3DWORKFLOW Viewer core: `createViewer()`, tiles, controls, transitions, actions, hotspots, skin chrome. Demo page in `demo/` (`?kiosk`, `?no-skin`, `?bg=`); packaged player in `player/` (→ `player-dist/`, used by packages). |
 | `packages/package-format` | Delivery package format: integrity manifest (SHA-256), Argon2id + AES-256-GCM encryption, `PackageReader` (verify, unlock, decrypt in memory). Mirrored in Rust by `crates/evx-package`. |
 | `packages/packaging` | Delivery packages (`buildDelivery`): installer (NSIS script), `.evx`, portable, intranet, browser folder, single HTML file, SCORM 1.2/2004; README, streamed ZIP writer, asset listing. CLI: `tools/package.mjs`. |
-| `packages/print` | Evacuation plan PDFs (letter/tabloid, bilingual, "You are here") and equipment register (CSV/XLSX/PDF); pdf-lib, no network. |
+| `packages/print` | Evacuation plan PDFs (letter/tabloid, bilingual, "You are here") and equipment register (CSV/XLSX/PDF); quick-start, certificate and the Windows installation guide (EN/FR, `tools/install-guide.mjs`, in the release kit); pdf-lib, no network. |
 | `packages/demo-facility` | Seeded demo facility: procedural panoramas + tiles + validated environment (`pnpm build` renders it); Phase 6 media (HDR office, alarm, photos, PDF; WebM videos from `scripts/video.ts`). |
 | `packages/desktop-bridge` | UI side of the desktop shell (app info, smoke-test report, network watch). |
 | `crates/evx-media` | Studio media pipeline: validation, EXIF, cube tiling, previews, HDR, stereo, video via LGPL FFmpeg, GLB/splat checks. No network code. |
