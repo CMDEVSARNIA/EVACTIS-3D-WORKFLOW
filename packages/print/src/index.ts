@@ -23,3 +23,10 @@ export {
   type QuickStartData,
   type QuickStartKind,
 } from './quickstart.ts';
+export {
+  INSTALL_GUIDE,
+  installGuidePdf,
+  installGuideTexts,
+  type GuideLang,
+  type InstallGuideData,
+} from './install-guide.ts';

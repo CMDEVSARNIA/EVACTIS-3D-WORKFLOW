@@ -2,12 +2,15 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import fontkit from '@pdf-lib/fontkit';
 import { describe, expect, it } from 'vitest';
 import { demoEnvironment } from '../../demo-facility/src/environment.ts';
 import {
   PrintError,
   certificatePdf,
   quickStartPdf,
+  installGuidePdf,
+  installGuideTexts,
   crc32,
   evacuationPlanPdf,
   registerCsv,
@@ -291,5 +294,77 @@ describe('quick-start guide', () => {
       expect(fr, s).toContain(s);
     const raw = Buffer.from(bytes).toString('latin1');
     expect(raw).not.toMatch(/\/URI|\/JavaScript|\/JS\b|\/Launch/);
+  });
+});
+
+describe('Windows installation guide', () => {
+  const guide = (lang: 'en' | 'fr', testSigned = false) =>
+    installGuidePdf(
+      { lang, version: '1.0.0', date: '2026-10-27', testSigned },
+      { fonts: assets.fonts, logo: assets.logo! },
+    );
+
+  it('prints each language with the steps, signature check, IT commands and page numbers', async () => {
+    const en = await guide('en');
+    const fr = await guide('fr');
+    for (const [lang, g] of [
+      ['en', en],
+      ['fr', fr],
+    ] as const) {
+      expect(g.minFontPt).toBeGreaterThanOrEqual(8);
+      expect(g.pages).toBeLessThanOrEqual(6);
+      const pdf = save(`install-guide-${lang}.pdf`, g.pdf);
+      expect(run('pdfinfo', pdf)).toMatch(new RegExp(`Pages:\\s+${g.pages}`));
+      const t = text(pdf).replace(/\s+/g, ' ');
+      for (const s of [
+        'EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-setup.exe',
+        'msiexec /i EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi /qn /norestart',
+        '/S /CurrentUser',
+        `${g.pages} `,
+      ])
+        expect(t, s).toContain(s);
+      expect(t).not.toContain('TEST');
+      const raw = Buffer.from(g.pdf).toString('latin1');
+      expect(raw).not.toMatch(/\/URI|\/JavaScript|\/JS\b|\/Launch/);
+    }
+    const tEn = text(save('ig-en.pdf', en.pdf)).replace(/\s+/g, ' ');
+    const tFr = text(save('ig-fr.pdf', fr.pdf)).replace(/\s+/g, ' ');
+    for (const s of [
+      'INSTALLING EVACTIS 3DWORKFLOW',
+      'The signer must be "Evactis"',
+      'Install just for me',
+      'No internet connection is needed',
+      'Page 1 of',
+    ])
+      expect(tEn, s).toContain(s);
+    for (const s of [
+      'INSTALLER EVACTIS 3DWORKFLOW',
+      'Le signataire doit être « Evactis »',
+      'Aucune connexion Internet n’est nécessaire',
+      'Page 1 de',
+    ])
+      expect(tFr, s).toContain(s);
+  });
+
+  it('a test-signed build says so and tells the reader not to trust the test certificate', async () => {
+    const t = text(save('ig-test.pdf', (await guide('en', true)).pdf)).replace(/\s+/g, ' ');
+    expect(t).toContain('TEST BUILD, NOT FOR DELIVERY');
+    expect(t).toContain('Do not add the test certificate');
+    expect(t).not.toContain('The signer must be "Evactis"');
+    const tf = text(save('ig-test-fr.pdf', (await guide('fr', true)).pdf)).replace(/\s+/g, ' ');
+    expect(tf).toContain('VERSION D’ESSAI, NE PAS LIVRER');
+  });
+
+  it('has every text in both languages, and the print fonts draw every character', () => {
+    const en = installGuideTexts('en');
+    const fr = installGuideTexts('fr');
+    expect(fr.length).toBe(en.length);
+    const fonts = Object.values(assets.fonts).map((b) => fontkit.create(Buffer.from(b)));
+    const missing = new Set<string>();
+    for (const s of [...en, ...fr])
+      for (const ch of s)
+        if (ch !== '\n' && !fonts.every((f) => f.hasGlyphForCodePoint(ch.codePointAt(0)!)))
+          missing.add(ch);
+    expect([...missing]).toEqual([]);
   });
 });

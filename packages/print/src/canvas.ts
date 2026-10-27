@@ -42,6 +42,7 @@ export const C = {
   subtle: hex('#4B5563'),
   rule: hex('#C9CED6'),
   panel: hex('#F2F4F7'),
+  surfaceDark: hex('#101809'),
 };
 
 export class Canvas {
@@ -89,12 +90,34 @@ export class Canvas {
     return this.fonts[weight].widthOfTextAtSize(text, size);
   }
 
-  /** Splits text into lines no wider than `max`. */
+  /**
+   * Splits text into lines no wider than `max`. A word wider than a whole line (a long
+   * file name) is broken after its hyphens or backslashes.
+   */
   wrap(text: string, size: number, max: number, weight: Weight = 'regular'): string[] {
     const lines: string[] = [];
+    const pieces = (word: string): string[] => {
+      if (this.width(word, size, weight) <= max) return [word];
+      const out: string[] = [];
+      let cur = '';
+      for (const part of word.split(/(?<=[-\\])/)) {
+        if (cur && this.width(cur + part, size, weight) > max) {
+          out.push(cur);
+          cur = part;
+        } else cur += part;
+      }
+      return [...out, cur];
+    };
     for (const para of text.split('\n')) {
       let line = '';
-      for (const word of para.split(/\s+/).filter(Boolean)) {
+      for (const piece of para.split(/\s+/).filter(Boolean).map(pieces)) {
+        if (piece.length > 1) {
+          if (line) lines.push(line);
+          lines.push(...piece.slice(0, -1));
+          line = piece.at(-1)!;
+          continue;
+        }
+        const word = piece[0]!;
         const next = line ? `${line} ${word}` : word;
         if (line && this.width(next, size, weight) > max) {
           lines.push(line);
