@@ -22,10 +22,15 @@ SetCompressor zlib
 !ifndef VERSION | VIEWER_SETUP | STUDIO_SETUP | WEBVIEW2 | OUTFILE
   !error "Pass VERSION, VIEWER_SETUP, STUDIO_SETUP, WEBVIEW2 and OUTFILE with /D"
 !endif
-; makensis compiles from the script's own folder. Forward slashes work on Windows and on
-; a Linux build machine alike.
-!define ROOT "../../.."
-!define ART "${ROOT}/apps/viewer-desktop/src-tauri"
+; makensis compiles from the script's own folder. Windows makensis needs backslashes in
+; File paths (the Modern UI copies its bitmaps with File); Linux makensis needs slashes.
+!ifdef NSIS_WIN32_MAKENSIS
+  !define S "\"
+!else
+  !define S "/"
+!endif
+!define ROOT "..${S}..${S}.."
+!define ART "${ROOT}${S}apps${S}viewer-desktop${S}src-tauri"
 !define WEBVIEW2APPGUID "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 
 !include MUI2.nsh
@@ -42,10 +47,10 @@ OutFile "${OUTFILE}"
 VIProductVersion "${VERSION}.0"
 VIFileVersion "${VERSION}.0"
 
-!define MUI_ICON "${ART}/icons/icon.ico"
+!define MUI_ICON "${ART}${S}icons${S}icon.ico"
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "${ART}/windows/nsis-header.bmp"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${ART}/windows/nsis-sidebar.bmp"
+!define MUI_HEADERIMAGE_BITMAP "${ART}${S}windows${S}nsis-header.bmp"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${ART}${S}windows${S}nsis-sidebar.bmp"
 !define MUI_ABORTWARNING
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_LANGDLL_ALLLANGUAGES
@@ -58,7 +63,7 @@ Var RadioAll
 !define MUI_WELCOMEPAGE_TITLE "$(welcomeTitle)"
 !define MUI_WELCOMEPAGE_TEXT "$(welcomeText)"
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "${ROOT}/packaging/windows/LICENSE-EULA.txt"
+!insertmacro MUI_PAGE_LICENSE "${ROOT}${S}packaging${S}windows${S}LICENSE-EULA.txt"
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE ComponentsLeave
 !insertmacro MUI_PAGE_COMPONENTS
 Page custom ModePage ModeLeave
