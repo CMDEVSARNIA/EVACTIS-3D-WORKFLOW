@@ -35,6 +35,9 @@ Details and the template changes: `docs/decisions/0006-installer-templates.md`.
 
 ## What CI proves (every push)
 
+The combined setup (`EVACTIS-3DWORKFLOW-<version>-x64-Setup.exe`, ADR 0022) is built by the
+same script and smoke-tested twice per runner: the Viewer per user, Studio for all users.
+
 `windows.yml` builds and signs both installers, then on Windows Server 2022 and 2025:
 NSIS per-machine, MSI per-machine (both apps) and NSIS per-user (Viewer) are each
 installed silently, checked (path, signature, file properties, Start menu, Apps &

@@ -26,3 +26,4 @@ accepted record; supersede it with a new one.
 | [0019](0019-site-server.md) | Site Server: one Node process on the site network, its own TLS and TURN | Accepted |
 | [0020](0020-hardening.md) | Hardening: accessibility tests, keyboard authoring, budgets, unattended Site Server on Windows | Accepted |
 | [0021](0021-bug-scanner.md) | Bug scanner: a Claude Managed Agent reviews the source in CI (read and report only) | Accepted |
+| [0022](0022-combined-setup.md) | One combined Windows setup that runs the product setups (Viewer and/or Studio) | Accepted |

@@ -20,6 +20,7 @@ checks, no licence server. Installs succeed with networking fully disabled.
 
 | File | Use |
 | --- | --- |
+| `EVACTIS-3DWORKFLOW-<ver>-x64-Setup.exe` | Combined setup: the Viewer, Studio or both, per-machine or per-user (EN/FR wizard). Runs the two setups below; each program keeps its own Apps entry and uninstaller (ADR 0022). |
 | `EVACTIS-3DWORKFLOW-<App>-<ver>-x64-setup.exe` | Interactive install (EN/FR wizard), per-machine or per-user. |
 | `EVACTIS-3DWORKFLOW-<App>-<ver>-x64-en-US.msi` / `-fr-FR.msi` | Managed, per-machine deployment (GPO, Intune, SCCM/ConfigMgr). |
 
@@ -58,6 +59,18 @@ Per-user installs go to `%LOCALAPPDATA%\Programs\EVACTIS\3DWORKFLOW\<App>`.
 The setup's install folder is fixed in silent installs (it ignores `/D=`): to deploy to
 another folder, use the MSI with `INSTALLDIR`. Uninstalling either kind removes the
 program, its shortcuts, file association and remembered install location.
+
+## Combined setup — silent options
+
+```bat
+EVACTIS-3DWORKFLOW-1.0.0-x64-Setup.exe /S /AllUsers /Viewer /Studio   :: both, per-machine (admin)
+EVACTIS-3DWORKFLOW-1.0.0-x64-Setup.exe /S /CurrentUser                :: the Viewer only, per-user
+```
+
+With neither `/Viewer` nor `/Studio` it installs the Viewer. Exit code 0 on success, the
+failing setup's code otherwise, 740 for `/AllUsers` without administrator rights. It
+installs the WebView2 Runtime from its own copy first, only where it is missing.
+Uninstall each program as above.
 
 ## Group Policy (software installation)
 

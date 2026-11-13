@@ -64,7 +64,7 @@ makes network calls at runtime.
 | `apps/studio` | 3DWORKFLOW Studio: Tauri v2 + React + Vite + Tailwind + Radix. Editor in `src/editor/` (store, ops, safetyOps, contentOps, trainingOps, skinOps, autolink, Tour/Floors/Safety/Content/Training/Skin/Versions); `src/testing/` is the e2e-only in-memory backend. |
 | `apps/viewer-desktop` | 3DWORKFLOW Viewer desktop: Tauri v2 + vanilla TS. |
 | `apps/site-server` | 3DWORKFLOW Site Server (Phase 11): Node 22 + Fastify + `node:sqlite`, own TLS authority and TURN relay, LAN-only; pages in `web/`; bundle (`dist/server.cjs`), standalone program (`scripts/sea.mjs`), Docker image (`Dockerfile`). Admin guide: `docs/site-server.md`. |
-| `packaging/windows` | EULA placeholder, vendored upstream installer templates. |
+| `packaging/windows` | EULA placeholder, vendored upstream installer templates; `suite/` the combined setup (Viewer and/or Studio, ADR 0022). |
 | `scripts/windows` | Test certificate, signing, installer build, offline firewall, smoke test. |
 | `scripts/linux` | Real-app smoke test: built Studio/Viewer in a network namespace with no interfaces, screenshots. `site-server-lan.sh`: two machines + Site Server on an isolated namespace network (`e2e-lan/`). |
 | `tools/` | Offline guardrails (URL scan, licences, CSP), static test server, installer template generator, smoke-report checker, release-kit assembler (`release-kit.mjs`, also `--verify`). `tools/bug-scanner/`: CI-only bug scan by a Claude Managed Agent (ADR 0021), never shipped. |
@@ -456,6 +456,11 @@ makes network calls at runtime.
     MultiUser layer resets the folder in silent all-users installs, so `/D=` is ignored
     there; interactive users still pick a folder in its dialog. Uninstall now also
     forgets the install location, and the MSI never reuses a per-user setup's folder.
+85. **One combined setup for people installing by hand** (ADR 0022): it runs the product
+    setups (rebuilt without their own WebView2 copy) and registers nothing itself, so
+    each program keeps its own Apps entry, uninstaller and upgrade path. It does not add
+    the installation guide to the Start menu (it could not remove it again). The six
+    separate installers stay for IT.
 
 ## Requirements added by Evactis
 

@@ -1,8 +1,8 @@
 name: Windows installers
 
 # Builds signed (test certificate until the Evactis certificate is provided) NSIS and
-# MSI installers for Studio and Viewer, then installs, launches and uninstalls each
-# one silently with the product's network access blocked.
+# MSI installers for Studio and Viewer and the combined setup, then installs, launches
+# and uninstalls each one silently with the product's network access blocked.
 # The last job assembles a test-signed release kit from them.
 
 on:
@@ -21,7 +21,7 @@ jobs:
   build:
     name: Build installers
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -177,6 +177,15 @@ jobs:
             scripts/windows/smoke-test.ps1 -App $app -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-$app-*-en-US.msi").FullName
           }
           scripts/windows/smoke-test.ps1 -App Viewer -PerUser -Installer (Get-ChildItem "$i/EVACTIS-3DWORKFLOW-Viewer-*-setup.exe").FullName
+      - name: Combined setup (Viewer for me; Studio for everyone)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # [0-9]: Windows names are case-insensitive, so *-setup.exe would match it too.
+          $suite = @(Get-ChildItem 'out/installers/EVACTIS-3DWORKFLOW-[0-9]*-x64-Setup.exe')
+          if ($suite.Count -ne 1) { throw "Expected one combined setup, found $($suite.Count)" }
+          scripts/windows/smoke-test.ps1 -App Viewer -PerUser -Installer $suite[0].FullName
+          scripts/windows/smoke-test.ps1 -App Studio -Installer $suite[0].FullName -InstallerArgs '/Studio'
       - name: Installer QA (upgrade, downgrade refused, French MSI, accented folder, clean uninstall)
         shell: pwsh
         run: scripts/windows/installer-qa.ps1 -Installers out/installers

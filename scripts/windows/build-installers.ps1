@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
-  Builds the NSIS setup .exe and WiX .msi for Studio and Viewer and copies them to
-  out\installers with stable names:
+  Builds the NSIS setup .exe and WiX .msi for Studio and Viewer, and the combined setup
+  (both programs, ADR 0022), and copies them to out\installers with stable names:
+    EVACTIS-3DWORKFLOW-<version>-x64-Setup.exe        (combined: Viewer and/or Studio)
     EVACTIS-3DWORKFLOW-<App>-<version>-x64-setup.exe
     EVACTIS-3DWORKFLOW-<App>-<version>-x64-<lang>.msi
 
@@ -140,4 +141,35 @@ foreach ($app in @(@{ Dir = 'viewer-desktop'; Name = 'Viewer' }, @{ Dir = 'studi
     Copy-Item $_.FullName (Join-Path $repo "$OutDir\EVACTIS-3DWORKFLOW-$($app.Name)-$version-x64-$lang.msi")
   }
 }
+# The combined setup (ADR 0022): both product setups again, built without their own
+# WebView2 copy (TAURI_EVX_SUITE_PART, read by our NSIS template), wrapped in one setup
+# that carries Microsoft's offline WebView2 installer once. Same signing as above.
+$parts = Join-Path $repo 'target\suite-parts'
+New-Item -ItemType Directory -Force -Path $parts | Out-Null
+$env:TAURI_EVX_SUITE_PART = '1'
+try {
+  foreach ($app in @(@{ Dir = 'viewer-desktop'; Name = 'Viewer' }, @{ Dir = 'studio'; Name = 'Studio' })) {
+    Push-Location (Join-Path $repo "apps\$($app.Dir)")
+    try {
+      pnpm tauri build --ci --verbose --bundles nsis --config (New-Overlay $app)
+      if ($LASTEXITCODE -ne 0) { throw "tauri build (combined setup part) failed for $($app.Name)" }
+    } finally { Pop-Location }
+    $part = @(Get-ChildItem (Join-Path $repo "target\release\bundle\nsis\*$($app.Name)*setup.exe"))
+    if ($part.Count -ne 1) { throw "Expected one $($app.Name) setup for the combined setup, found $($part.Count)" }
+    Copy-Item $part[0].FullName (Join-Path $parts "$($app.Name)-setup.exe") -Force
+  }
+} finally { Remove-Item Env:\TAURI_EVX_SUITE_PART -ErrorAction SilentlyContinue }
+
+$version = (Get-Content (Join-Path $repo 'apps\studio\package.json') | ConvertFrom-Json).version
+$suite = Join-Path (Resolve-Path (Join-Path $repo $OutDir)) "EVACTIS-3DWORKFLOW-$version-x64-Setup.exe"
+$makensis = Join-Path $repo 'target\.tauri\NSIS\makensis.exe'
+& $makensis /V2 /INPUTCHARSET UTF8 "/DVERSION=$version" "/DVIEWER_SETUP=$parts\Viewer-setup.exe" `
+  "/DSTUDIO_SETUP=$parts\Studio-setup.exe" "/DWEBVIEW2=$env:TAURI_EVX_WEBVIEW2_INSTALLER" "/DOUTFILE=$suite" `
+  (Join-Path $repo 'packaging\windows\suite\suite.nsi')
+if ($LASTEXITCODE -ne 0) { throw 'makensis failed for the combined setup' }
+if ($signing) {
+  & $sign $suite
+  if ($LASTEXITCODE -ne 0) { throw 'Signing the combined setup failed' }
+}
+
 Get-ChildItem (Join-Path $repo $OutDir) | Format-Table Name, @{ n = 'MB'; e = { [math]::Round($_.Length / 1MB, 1) } }

@@ -6,11 +6,17 @@
 .EXAMPLE
   .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi -App Viewer
   .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Studio-1.0.0-x64-setup.exe -App Studio -PerUser
+  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-1.0.0-x64-Setup.exe -App Studio -InstallerArgs '/Studio'
+
+  The combined setup (no app name in its file name) is run like a product setup, plus
+  -InstallerArgs to choose the program; the program is then checked and uninstalled with
+  its own uninstaller, as after any other install.
 #>
 param(
   [Parameter(Mandatory)][string]$Installer,
   [Parameter(Mandatory)][ValidateSet('Studio', 'Viewer')][string]$App,
   [switch]$PerUser,
+  [string[]]$InstallerArgs = @(),
   [string]$LogDir = 'out\smoke'
 )
 $ErrorActionPreference = 'Stop'
@@ -25,7 +31,8 @@ $installDir = Join-Path $base "EVACTIS\3DWORKFLOW\$App"
 $exe = Join-Path $installDir $exeName
 $menuRoot = if ($PerUser) { "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" } else { "$env:ProgramData\Microsoft\Windows\Start Menu\Programs" }
 $shortcut = Join-Path $menuRoot "EVACTIS 3DWORKFLOW\3DWORKFLOW $App.lnk"
-$tag = "$App-$(if ($isMsi) { 'msi' } else { 'nsis' })-$(if ($PerUser) { 'user' } else { 'machine' })"
+$kind = if ($isMsi) { 'msi' } elseif ((Split-Path $Installer -Leaf) -notmatch "-$App-") { 'combined' } else { 'nsis' }
+$tag = "$App-$kind-$(if ($PerUser) { 'user' } else { 'machine' })"
 $failures = [System.Collections.Generic.List[string]]::new()
 function Check([bool]$ok, [string]$what) {
   if ($ok) { Write-Host "  PASS  $what" } else { Write-Host "  FAIL  $what"; $failures.Add($what) }
@@ -56,7 +63,7 @@ try {
     $p = Start-Process msiexec.exe -ArgumentList @('/i', "`"$Installer`"", '/qn', '/norestart', '/l*v', "`"$LogDir\$tag-install.log`"") -Wait -PassThru
   } else {
     $mode = if ($PerUser) { '/CurrentUser' } else { '/AllUsers' }
-    $p = Start-Process $Installer -ArgumentList @('/S', $mode) -Wait -PassThru
+    $p = Start-Process $Installer -ArgumentList (@('/S', $mode) + $InstallerArgs) -Wait -PassThru
   }
   Check ($p.ExitCode -eq 0) "silent install exit code 0 (got $($p.ExitCode))"
   Check (Test-Path $exe) "installed to $installDir"
