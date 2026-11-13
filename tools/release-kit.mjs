@@ -88,6 +88,8 @@ export async function buildKit(o) {
   const missing = [];
   const need = (src, dest) => (existsSync(src) ? plan.push([src, dest]) : missing.push(src));
 
+  const combined = `EVACTIS-3DWORKFLOW-${version}-x64-Setup.exe`;
+  need(join(o.installers, combined), `installers/${combined}`);
   for (const app of APPS) {
     const stem = `EVACTIS-3DWORKFLOW-${app}-${version}-x64`;
     for (const name of [`${stem}-setup.exe`, `${stem}-en-US.msi`, `${stem}-fr-FR.msi`])
@@ -192,8 +194,14 @@ function readme({ version, commit, testSigned, docker, date, files }) {
     `EVACTIS 3DWORKFLOW ${version} — release kit / trousse de publication`,
     `Commit ${commit ?? '(not recorded)'} · assembled ${when}`,
     '',
+    `START HERE: installers/EVACTIS-3DWORKFLOW-${version}-x64-Setup.exe installs the Viewer,`,
+    `  Studio or both (see docs/EVACTIS-3DWORKFLOW-${version}-Windows-Install-Guide-EN.pdf).`,
+    `POUR COMMENCER : installers/EVACTIS-3DWORKFLOW-${version}-x64-Setup.exe installe le Viewer,`,
+    `  Studio ou les deux (voir docs/EVACTIS-3DWORKFLOW-${version}-Windows-Install-Guide-FR.pdf).`,
+    '',
     'Contents',
-    '  installers/   Studio and Viewer: setup .exe (per user or all users) and MSI (en-US, fr-FR)',
+    '  installers/   The combined setup above; for IT, each program on its own: setup .exe',
+    '                (per user or all users) and MSI (en-US, fr-FR)',
     '  site-server/  Site Server program for Windows and Linux, with NOTICES.txt and NODE-LICENSE.txt',
     docker
       ? '                and the Docker image archive (docker load -i <file>)'
@@ -212,7 +220,8 @@ function readme({ version, commit, testSigned, docker, date, files }) {
     'Check every .exe and .msi with Get-AuthenticodeSignature: signer Evactis, status Valid.',
     '',
     'Contenu',
-    '  installers/   Studio et Viewer : programme d’installation .exe et MSI (en-US, fr-FR)',
+    '  installers/   le programme d’installation combiné; pour l’informatique, chaque programme',
+    '                séparément : programme d’installation .exe et MSI (en-US, fr-FR)',
     '  site-server/  Site Server pour Windows et Linux, avec NOTICES.txt et NODE-LICENSE.txt',
     '  sbom/         nomenclature logicielle CycloneDX',
     '  docs/         guide d’installation Windows (PDF, EN et FR), guides (déploiement TI, Site Server,',

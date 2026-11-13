@@ -31,6 +31,7 @@ type Block =
   | { note: L; tone: 'info' | 'warn' };
 
 const same = (s: string): L => ({ en: s, fr: s });
+const suite = 'EVACTIS-3DWORKFLOW-{v}-x64-Setup.exe';
 const setup = 'EVACTIS-3DWORKFLOW-Viewer-{v}-x64-setup.exe';
 const msi = 'EVACTIS-3DWORKFLOW-Viewer-{v}-x64-en-US.msi';
 
@@ -161,10 +162,17 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
           ],
           rows: [
             [
+              same(suite),
+              {
+                en: 'Recommended. Installs the Viewer, Studio or both on one computer, with or without administrator rights. The wizard is in English and French.',
+                fr: 'Recommandé. Installe le Viewer, Studio ou les deux sur un ordinateur, avec ou sans droits d’administrateur. L’assistant est en anglais et en français.',
+              },
+            ],
+            [
               same(setup),
               {
-                en: 'You install on one computer. With or without administrator rights; the wizard is in English and French.',
-                fr: 'Vous installez sur un seul ordinateur. Avec ou sans droits d’administrateur; l’assistant est en anglais et en français.',
+                en: 'One program on its own, for example in a script (section 7).',
+                fr: 'Un seul programme, par exemple dans un script (section 7).',
               },
             ],
             [
@@ -179,8 +187,8 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
       },
       {
         p: {
-          en: 'Studio installs the same way: its files carry "Studio" instead of "Viewer".',
-          fr: 'Studio s’installe de la même façon : ses fichiers portent « Studio » au lieu de « Viewer ».',
+          en: 'Studio’s own files carry "Studio" instead of "Viewer".',
+          fr: 'Les fichiers propres à Studio portent « Studio » au lieu de « Viewer ».',
         },
       },
     ],
@@ -237,7 +245,10 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
     blocks: () => [
       {
         steps: [
-          { en: `Double-click ${setup}.`, fr: `Double-cliquez sur ${setup}.` },
+          {
+            en: `Double-click ${suite}. If Windows asks whether to allow changes, check that it names Evactis as the verified publisher, then select Yes.`,
+            fr: `Double-cliquez sur ${suite}. Si Windows demande d’autoriser des modifications, vérifiez que l’éditeur vérifié est Evactis, puis sélectionnez Oui.`,
+          },
           {
             en: 'Choose English or Français, then select OK.',
             fr: 'Choisissez English ou Français, puis sélectionnez OK.',
@@ -247,16 +258,16 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
             fr: 'Sélectionnez Suivant sur la page d’accueil. Lisez le contrat de licence et sélectionnez J’accepte.',
           },
           {
-            en: 'Choose who can use the program. "Install just for me" needs no administrator rights. "Install for anyone using this computer" needs them, and Windows asks for permission: check that it names Evactis as the verified publisher, then select Yes.',
-            fr: 'Choisissez qui pourra utiliser le programme. L’installation pour vous seulement n’exige aucun droit d’administrateur. L’installation pour tous les utilisateurs de l’ordinateur les exige, et Windows demande l’autorisation : vérifiez que l’éditeur vérifié est Evactis, puis sélectionnez Oui.',
+            en: 'Choose the programs: 3DWORKFLOW Viewer is ticked already; tick 3DWORKFLOW Studio only if you build environments (Evactis staff). Select Next.',
+            fr: 'Choisissez les programmes : 3DWORKFLOW Viewer est déjà coché; cochez 3DWORKFLOW Studio seulement si vous construisez des environnements (personnel d’Evactis). Sélectionnez Suivant.',
           },
           {
-            en: 'Keep the suggested folder and the Start menu folder "EVACTIS 3DWORKFLOW", then select Install.',
-            fr: 'Gardez le dossier proposé et le dossier du menu Démarrer « EVACTIS 3DWORKFLOW », puis sélectionnez Installer.',
+            en: 'Choose who can use them: "Just me (no administrator rights needed)" or "Everyone who uses this computer", which needs administrator rights. Select Install.',
+            fr: 'Choisissez qui pourra les utiliser : « Moi seulement (aucun droit d’administrateur requis) » ou « Toutes les personnes qui utilisent cet ordinateur », qui exige des droits d’administrateur. Sélectionnez Installer.',
           },
           {
-            en: 'On the last page, tick "Create desktop shortcut" if you want one, then select Finish.',
-            fr: 'Sur la dernière page, cochez « Créer un raccourci sur le bureau » si vous en voulez un, puis sélectionnez Terminer.',
+            en: 'When the setup says EVACTIS 3DWORKFLOW is installed, select Finish.',
+            fr: 'Lorsque le programme indique qu’EVACTIS 3DWORKFLOW est installé, sélectionnez Terminer.',
           },
         ],
       },
@@ -329,6 +340,10 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
             fr: 'Pour désinstaller : Paramètres › Applications › Applications installées › EVACTIS 3DWORKFLOW Viewer › Désinstaller. La version installée par le programme d’installation .exe offre « Supprimer les données de l’application » (réglages et cache).',
           },
           {
+            en: 'The combined setup installs each program separately: each has its own entry in Settings › Apps and is uninstalled on its own.',
+            fr: 'Le programme d’installation combiné installe chaque programme séparément : chacun a sa propre entrée dans Paramètres › Applications et se désinstalle seul.',
+          },
+          {
             en: 'Studio projects in Documents\\EVACTIS 3DWORKFLOW are never deleted.',
             fr: 'Les projets Studio dans Documents\\EVACTIS 3DWORKFLOW ne sont jamais supprimés.',
           },
@@ -348,10 +363,15 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
           `msiexec /x ${msi} /qn /norestart`,
           `${setup} /S /AllUsers`,
           `${setup} /S /CurrentUser`,
+          `${suite} /S /AllUsers /Viewer /Studio`,
         ],
       },
       {
         bullets: [
+          {
+            en: 'The combined setup takes /S, then /CurrentUser (the default) or /AllUsers, then /Viewer, /Studio or both (the Viewer alone by default). It returns 0 on success; /AllUsers without administrator rights returns 740.',
+            fr: 'Le programme d’installation combiné accepte /S, puis /CurrentUser (par défaut) ou /AllUsers, puis /Viewer, /Studio ou les deux (le Viewer seul par défaut). Il renvoie 0 en cas de réussite; /AllUsers sans droits d’administrateur renvoie 740.',
+          },
           {
             en: 'The MSI installs for all users in C:\\Program Files\\EVACTIS\\3DWORKFLOW\\Viewer; choose another folder with INSTALLDIR="…". The setup ignores /D= in silent installs.',
             fr: 'Le MSI installe pour tous les utilisateurs dans C:\\Program Files\\EVACTIS\\3DWORKFLOW\\Viewer; choisissez un autre dossier avec INSTALLDIR="…". Le programme d’installation ignore /D= en mode silencieux.',

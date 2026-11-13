@@ -332,7 +332,8 @@ describe('Windows installation guide', () => {
     for (const s of [
       'INSTALLING EVACTIS 3DWORKFLOW',
       'The signer must be "Evactis"',
-      'Install just for me',
+      'Just me (no administrator rights needed)',
+      'EVACTIS-3DWORKFLOW-1.0.0-x64-Setup.exe /S /AllUsers /Viewer /Studio',
       'No internet connection is needed',
       'Page 1 of',
     ])
@@ -340,6 +341,7 @@ describe('Windows installation guide', () => {
     for (const s of [
       'INSTALLER EVACTIS 3DWORKFLOW',
       'Le signataire doit être « Evactis »',
+      'Moi seulement (aucun droit d’administrateur requis)',
       'Aucune connexion Internet n’est nécessaire',
       'Page 1 de',
     ])

@@ -24,6 +24,7 @@ function inputs() {
     date: '2026-10-22',
     commit: 'abc123',
   };
+  put(join(o.installers, 'EVACTIS-3DWORKFLOW-9.8.7-x64-Setup.exe'));
   for (const app of ['Studio', 'Viewer'])
     for (const s of ['setup.exe', 'en-US.msi', 'fr-FR.msi'])
       put(join(o.installers, `EVACTIS-3DWORKFLOW-${app}-9.8.7-x64-${s}`));
@@ -61,6 +62,7 @@ test('assembles every item with a checksum list that verifies', async () => {
   assert.deepEqual(listed, [...listed].sort());
   for (const f of [
     'README.txt',
+    'installers/EVACTIS-3DWORKFLOW-9.8.7-x64-Setup.exe',
     'installers/EVACTIS-3DWORKFLOW-Studio-9.8.7-x64-setup.exe',
     'installers/EVACTIS-3DWORKFLOW-Viewer-9.8.7-x64-fr-FR.msi',
     'site-server/windows/evactis-3dworkflow-site-server.exe',
@@ -72,9 +74,10 @@ test('assembles every item with a checksum list that verifies', async () => {
   ])
     assert.ok(listed.includes(f), f);
   assert.ok(!listed.some((f) => f.endsWith('signer.cer')), 'the signer certificate stays out');
-  assert.equal(listed.length, 6 + 6 + 1 + 9 + 2 + 1);
+  assert.equal(listed.length, 7 + 6 + 1 + 9 + 2 + 1);
   const readme = readFileSync(join(kit, 'README.txt'), 'utf8');
   assert.match(readme, /^\*\*\* TEST-SIGNED BUILD: NOT FOR DELIVERY/);
+  assert.match(readme, /START HERE: installers\/EVACTIS-3DWORKFLOW-9\.8\.7-x64-Setup\.exe/);
   assert.match(readme, /EVACTIS 3DWORKFLOW 9\.8\.7 .*\r\nCommit abc123 · assembled 2026-10-22/);
   assert.deepEqual(await verifyKit(kit), []);
 });

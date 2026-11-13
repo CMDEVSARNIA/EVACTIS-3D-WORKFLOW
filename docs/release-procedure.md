@@ -58,6 +58,7 @@ node tools/release-kit.mjs --verify out/release/EVACTIS-3DWORKFLOW-<version>
 
 | Item | In the kit | From |
 | --- | --- | --- |
+| Combined setup (Viewer and/or Studio, ADR 0022): the file people start with | `installers/` | `out/installers` |
 | Studio setup (NSIS, per-user or all users) and MSI (EN, FR) | `installers/` | `out/installers` |
 | Viewer setup (NSIS) and MSI (EN, FR) | `installers/` | `out/installers` |
 | Site Server: Windows and Linux programs with `NOTICES.txt` and `NODE-LICENSE.txt`; Docker image archive | `site-server/` | `apps/site-server/dist/standalone`, `docker save … \| gzip` |
