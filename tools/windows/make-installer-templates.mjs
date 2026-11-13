@@ -69,10 +69,16 @@ function nsis(app) {
     '"$INSTDIR\\${MAINBINARYNAME}.exe,0" "Open with ${PRODUCTNAME}"',
     '"$INSTDIR\\filetypes\\\\{{ext}}.ico" "Open with ${PRODUCTNAME}"',
   );
+  // Inside the combined setup (TAURI_EVX_SUITE_PART=1 at build time, ADR 0022) the suite
+  // carries Microsoft's WebView2 installer once and runs it first, so its parts skip it.
   s = patch(
     s,
     '!define INSTALLWEBVIEW2MODE "{{install_webview2_mode}}"',
-    '!define INSTALLWEBVIEW2MODE "offlineInstaller"',
+    `!if "$%TAURI_EVX_SUITE_PART%" == "1"
+  !define INSTALLWEBVIEW2MODE "skip"
+!else
+  !define INSTALLWEBVIEW2MODE "offlineInstaller"
+!endif`,
   );
   s = patch(
     s,

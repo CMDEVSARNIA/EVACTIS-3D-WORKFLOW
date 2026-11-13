@@ -60,7 +60,11 @@ ${StrLoc}
 !define ADDITIONALPLUGINSPATH "{{additional_plugins_path}}"
 !define ALLOWDOWNGRADES "{{allow_downgrades}}"
 !define DISPLAYLANGUAGESELECTOR "{{display_language_selector}}"
-!define INSTALLWEBVIEW2MODE "offlineInstaller"
+!if "$%TAURI_EVX_SUITE_PART%" == "1"
+  !define INSTALLWEBVIEW2MODE "skip"
+!else
+  !define INSTALLWEBVIEW2MODE "offlineInstaller"
+!endif
 !define WEBVIEW2INSTALLERARGS "/silent"
 !define WEBVIEW2BOOTSTRAPPERPATH "{{webview2_bootstrapper_path}}"
 !define WEBVIEW2INSTALLERPATH "$%TAURI_EVX_WEBVIEW2_INSTALLER%"
