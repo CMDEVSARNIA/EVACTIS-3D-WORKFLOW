@@ -261,5 +261,12 @@ describe('formatting helpers', () => {
       STRINGS.fr.errors.unstitched,
     );
     expect(describeError(en, new Error('boom'))).toBe(en.errors.unknown + 'Error: boom');
+    // Busy files on Windows: a full sentence with what to do, not the raw "os error 5".
+    expect(describeError(en, { code: 'locked', message: 'Access is denied. (os error 5)' })).toBe(
+      en.errors.locked,
+    );
+    expect(describeError(en, { code: 'read-source', message: 'Access is denied.' })).toBe(
+      'The original file could not be read: Access is denied.',
+    );
   });
 });

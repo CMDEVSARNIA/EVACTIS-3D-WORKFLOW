@@ -118,7 +118,7 @@ pub fn write_record(dir: &Path, record: &AssetRecord) -> Result<()> {
     let json = serde_json::to_vec_pretty(record).map_err(|e| MediaError::Invalid(e.to_string()))?;
     let tmp = dir.join(".asset.json.tmp");
     fs::write(&tmp, json)?;
-    fs::rename(&tmp, dir.join(RECORD_FILE))?;
+    crate::fsutil::retry_busy(|| fs::rename(&tmp, dir.join(RECORD_FILE)))?;
     Ok(())
 }
 

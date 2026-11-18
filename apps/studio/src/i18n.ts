@@ -90,6 +90,9 @@ export const STRINGS = {
       duplicate: 'Already in the library.',
       unstitched:
         'This is an original Insta360 file and is not stitched yet. In Insta360 Studio, export it as an equirectangular JPG (photo) or MP4 (video), then import that file. Direct import of Insta360 originals is planned.',
+      'read-source': 'The original file could not be read: ',
+      locked:
+        'Windows kept the new files busy, so the import could not be finished. This usually comes from an antivirus scan or a sync app such as OneDrive. Import it again; if it keeps happening, keep the project in a folder that is not synced (not OneDrive) and check Windows Security › Ransomware protection.',
       project: 'Project error: ',
       'no-project': 'Open a project first.',
       unknown: 'Something went wrong: ',
@@ -206,6 +209,9 @@ export const STRINGS = {
       duplicate: 'Déjà dans la médiathèque.',
       unstitched:
         'Ceci est un fichier Insta360 d’origine, pas encore assemblé. Dans Insta360 Studio, exportez-le en JPG (photo) ou MP4 (vidéo) équirectangulaire, puis importez ce fichier. L’importation directe des fichiers Insta360 d’origine est prévue.',
+      'read-source': 'Impossible de lire le fichier d’origine : ',
+      locked:
+        'Windows a gardé les nouveaux fichiers occupés, et l’importation n’a pas pu se terminer. Cela vient souvent d’une analyse antivirus ou d’une application de synchronisation comme OneDrive. Importez-le de nouveau; si le problème se répète, gardez le projet dans un dossier non synchronisé (pas OneDrive) et vérifiez Sécurité Windows › Protection contre les ransomwares.',
       project: 'Erreur de projet : ',
       'no-project': 'Ouvrez d’abord un projet.',
       unknown: 'Une erreur est survenue : ',

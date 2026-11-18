@@ -7,7 +7,8 @@ export function describeError(t: Strings, e: unknown): string {
   if (!isCommandError(e)) return t.errors.unknown + String(e);
   const prefix = t.errors[e.code as keyof Strings['errors']] ?? t.errors.unknown;
   // Codes whose sentence is complete on its own.
-  if (['cancelled', 'duplicate', 'no-project', 'unstitched'].includes(e.code)) return prefix;
+  if (['cancelled', 'duplicate', 'no-project', 'unstitched', 'locked'].includes(e.code))
+    return prefix;
   return prefix + e.message;
 }
 

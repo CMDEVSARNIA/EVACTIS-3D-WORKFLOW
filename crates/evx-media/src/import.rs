@@ -5,6 +5,7 @@
 
 use crate::error::{MediaError, Result};
 use crate::exif::{self, CaptureInfo};
+use crate::fsutil;
 use crate::library::{self, AssetKind, AssetRecord, RECORD_VERSION};
 use crate::model;
 use crate::probe::{self, ImageLayout, Probe, RECOMMENDED_MIN_WIDTH};
@@ -103,6 +104,8 @@ pub fn import_file(
             src.display()
         )));
     }
+    // Name a failure to read the original apart from one writing the project.
+    fs::File::open(src).map_err(|e| MediaError::ReadSource(e.to_string()))?;
     let probed = match opts.purpose {
         Purpose::Scene => probe::probe(src)?,
         Purpose::FloorPlan => probe::probe_plan(src)?,
@@ -281,16 +284,25 @@ pub fn import_file(
         let dest = library::asset_dir(project_root, &id);
         if dest.exists() {
             // A folder without a record: an earlier import that never finished.
-            fs::remove_dir_all(&dest)?;
+            fsutil::retry_busy(|| fs::remove_dir_all(&dest)).map_err(finishing)?;
         }
-        fs::rename(&staging, &dest)?;
+        fsutil::move_dir(&staging, &dest).map_err(finishing)?;
         report(Stage::Finishing, 1, 1);
         Ok(rec)
     })();
     if result.is_err() {
-        let _ = fs::remove_dir_all(&staging);
+        let _ = fsutil::retry_busy(|| fs::remove_dir_all(&staging));
     }
     result
+}
+
+/// A file error while moving the finished import into the project.
+fn finishing(e: std::io::Error) -> MediaError {
+    if fsutil::is_busy(&e) {
+        MediaError::Locked(e.to_string())
+    } else {
+        e.into()
+    }
 }
 
 fn staging_dir(media: &Path) -> Result<PathBuf> {
@@ -314,7 +326,7 @@ fn copy_hashing(
     progress: &dyn Fn(u64, u64),
 ) -> Result<(String, u64)> {
     let total = fs::metadata(src)?.len();
-    let mut input = fs::File::open(src)?;
+    let mut input = fs::File::open(src).map_err(|e| MediaError::ReadSource(e.to_string()))?;
     let mut output = fs::File::create(dst)?;
     let mut hasher = Sha256::new();
     let mut buf = vec![0u8; 1 << 20];

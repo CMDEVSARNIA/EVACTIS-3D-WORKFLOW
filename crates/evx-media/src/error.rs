@@ -12,6 +12,11 @@ pub enum MediaError {
     Duplicate(String),
     /// An original from a 360 camera that still needs stitching (e.g. Insta360 .insp/.insv).
     Unstitched(String),
+    /// The original file could not be opened or read (the detail is the system's reason).
+    ReadSource(String),
+    /// Windows kept the new files busy (antivirus, indexer or a sync app) past every retry,
+    /// so the import could not be moved into the project.
+    Locked(String),
 }
 
 impl fmt::Display for MediaError {
@@ -24,6 +29,8 @@ impl fmt::Display for MediaError {
             Self::Cancelled => write!(f, "cancelled"),
             Self::Duplicate(id) => write!(f, "already in the library (asset {id})"),
             Self::Unstitched(m) => write!(f, "{m}"),
+            Self::ReadSource(m) => write!(f, "{m}"),
+            Self::Locked(m) => write!(f, "the project folder stayed busy: {m}"),
         }
     }
 }
@@ -53,6 +60,8 @@ impl MediaError {
             Self::Cancelled => "cancelled",
             Self::Duplicate(_) => "duplicate",
             Self::Unstitched(_) => "unstitched",
+            Self::ReadSource(_) => "read-source",
+            Self::Locked(_) => "locked",
         }
     }
 }

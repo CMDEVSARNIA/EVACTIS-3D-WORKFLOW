@@ -6,6 +6,7 @@
 pub mod cube;
 pub mod error;
 pub mod exif;
+pub mod fsutil;
 pub mod import;
 pub mod library;
 pub mod model;

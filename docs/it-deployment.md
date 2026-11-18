@@ -158,6 +158,7 @@ alone, including placing scenes, hotspots and equipment in Studio.
 | --- | --- |
 | Blank window | WebView2 Runtime present (`Apps & features` → "Microsoft Edge WebView2 Runtime"); for portable viewers, a fixed runtime in `webview2\` beside the program |
 | "This environment failed its integrity check" | The package was altered or damaged in transit; copy it again from the original medium |
+| Studio import: "Windows kept the new files busy" | Another program held the new files open past Studio's retries (about 6 s): an antivirus scan, the search indexer or a sync app. Keep projects out of OneDrive-synced folders (Documents is often one) — that also keeps facility media off Microsoft's cloud — and allow Studio in Windows Security › Ransomware protection if Controlled folder access is on |
 | Passphrase refused | The passphrase is case-sensitive; it cannot be recovered (ask Evactis for a new package) |
 | Self-test | `EVACTIS-3DWORKFLOW-Viewer.exe --smoke-test report.json` writes what the program checked (including that no network request was made) |
 
