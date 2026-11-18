@@ -258,3 +258,62 @@ jobs:
           name: release-kit-test-signed
           path: out/release/
           retention-days: 14
+
+  test-build-release:
+    # Puts the latest green test build on the repository's Releases page as a pre-release
+    # (tag v<version>-test, replaced on each run): the combined setup and the installation
+    # guide, as direct downloads that do not expire. Test certificate: never for clients;
+    # the delivered release comes from the offline signing station (ADR 0008, 0022).
+    name: Test build on the Releases page
+    needs: [build, smoke]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    concurrency:
+      group: test-build-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-installers
+          path: out/installers
+      - name: Publish the pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          v=$(node -p "require('./apps/studio/package.json').version")
+          tag="v$v-test"
+          dir=out/test-build
+          mkdir -p "$dir"
+          cp "out/installers/EVACTIS-3DWORKFLOW-$v-x64-Setup.exe" "$dir/"
+          node tools/install-guide.mjs --out "$dir" --version "$v" --test-signed
+          (cd "$dir" && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          cat > notes.md <<NOTES
+          **TEST BUILD — NOT FOR DELIVERY.** Signed with the CI test certificate, so Windows says
+          the publisher is unknown: select *More info › Run anyway*. Do not import the test
+          certificate on a PC you use every day. Clients only ever get the release signed at
+          Evactis's offline signing station.
+
+          **Start here:** \`EVACTIS-3DWORKFLOW-$v-x64-Setup.exe\` installs 3DWORKFLOW Viewer,
+          3DWORKFLOW Studio or both, in English or French, for you alone or for everyone on the PC.
+          Step by step: the installation guide PDF (EN / FR) below.
+
+          Built from \`${GITHUB_SHA::7}\` on \`$GITHUB_REF_NAME\`; installed, launched and
+          uninstalled on Windows Server 2022 and 2025 in
+          [run #$GITHUB_RUN_NUMBER]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID).
+          The separate Viewer/Studio setups and MSIs for IT are in that run's downloads.
+          NOTES
+          gh release delete "$tag" --cleanup-tag --yes 2>/dev/null || true
+          gh release create "$tag" "$dir"/* --target "$GITHUB_SHA" --prerelease \
+            --title "EVACTIS 3DWORKFLOW $v — test build (not for delivery)" --notes-file notes.md
+          echo "Published: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$tag" >> "$GITHUB_STEP_SUMMARY"

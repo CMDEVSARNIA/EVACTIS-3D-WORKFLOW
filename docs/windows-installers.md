@@ -37,6 +37,10 @@ Details and the template changes: `docs/decisions/0006-installer-templates.md`.
 
 The combined setup (`EVACTIS-3DWORKFLOW-<version>-x64-Setup.exe`, ADR 0022) is built by the
 same script and smoke-tested twice per runner: the Viewer per user, Studio for all users.
+After a green run on a push, the job "Test build on the Releases page" replaces the
+pre-release `v<version>-test` with that run's combined setup, the test-build installation
+guide (EN/FR) and `SHA256SUMS.txt`, so testers download one file that does not expire.
+It carries the test certificate and is titled "not for delivery".
 
 `windows.yml` builds and signs both installers, then on Windows Server 2022 and 2025:
 NSIS per-machine, MSI per-machine (both apps) and NSIS per-user (Viewer) are each

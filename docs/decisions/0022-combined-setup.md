@@ -37,3 +37,13 @@ Studio for all users through it, and checks each with the existing smoke test. T
 is not added to the Start menu: with no uninstaller of its own, the setup would leave it
 behind. The WebView2 branch is exercised only on a machine without the runtime (the
 Windows Sandbox check), as for the product setups.
+
+**Amendment (2026-11-18): where testers find it.** CI artifacts expire after 14 days and
+come as one 2.6 GB zip of every installer. After each green Windows run on a push, CI now
+replaces a GitHub pre-release, `v<version>-test` ("test build, not for delivery"), with
+the combined setup, the test-build guide and checksums. Only test-certificate product
+binaries and documents go there, never facility data; client releases still come from
+the offline signing station. The combined setup measured 504.6 MB against 507.2 MB for
+the two setups together: Studio keeps its own WebView2 copy for the packages it builds,
+so the saving is one file and one wizard, not size. Viewer-only users are better served
+by the Viewer setup (210.5 MB) or their facility's own setup.
