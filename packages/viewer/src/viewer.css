@@ -127,7 +127,10 @@
   overflow: hidden;
   clip-path: inset(50%);
 }
+/* margin: auto is the browser's own centring for a modal dialog; set it here so a host
+   page's reset (Studio's Tailwind sets every margin to 0) cannot pin it to the corner. */
 .evx-viewer__dialog {
+  margin: auto;
   inline-size: min(92vw, 44rem);
   max-block-size: 86vh;
   padding: 28px;
