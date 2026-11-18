@@ -142,6 +142,11 @@ export interface GoToOptions {
   view?: Partial<View>;
   /** Screen point the transition moves towards (e.g. the clicked hotspot). */
   towards?: { x: number; y: number } | null;
+  /**
+   * Arriving through a link: without an authored `view`, face on in the direction of
+   * travel (away from the link back) instead of the scene's start view.
+   */
+  travel?: boolean;
 }
 
 const EXTERNAL = /^[a-z][a-z0-9+.-]*:/i;
@@ -1111,6 +1116,25 @@ export class Viewer {
     this.caption.hidden = !text;
   }
 
+  /**
+   * The direction of travel on arriving in `scene` from `previous`: opposite the link that
+   * leads back. Walking back through a pair of links then faces the way you are going,
+   * not the scene's start view. Null (the start view is used) without a link back, or in
+   * a dead end, whose only links lead back: there the author's start view shows the room.
+   */
+  private travelYaw(scene: Scene, previous: string | null): number | null {
+    if (!previous || previous === scene.id) return null;
+    const links = this.environment.hotspots.filter(
+      (h) => h.sceneId === scene.id && h.actions.some((a) => a.type === 'goToScene'),
+    );
+    const leads = (h: Hotspot, to: string) =>
+      h.actions.some((a) => a.type === 'goToScene' && a.sceneId === to);
+    if (links.every((h) => leads(h, previous))) return null;
+    const back = links.find((h) => leads(h, previous));
+    const at = back && hotspotCentre(back, this.renderer);
+    return at ? wrapYaw(at.yaw + 180) : null;
+  }
+
   /** [nearest primary, alternative] for the current scene; Studio previews drafts too. */
   private routeChoice(): (Route | null)[] {
     if (!this.scene) return [];
@@ -1190,7 +1214,12 @@ export class Viewer {
         this.shownMedia = media;
         this.scene = scene;
         this.state.visited.add(scene.id);
-        const v = { ...scene.initialView, ...opts.view };
+        const ahead = opts.travel && !opts.view ? this.travelYaw(scene, previous) : null;
+        const v = {
+          ...scene.initialView,
+          ...(ahead === null ? {} : { yaw: ahead, pitch: 0 }),
+          ...opts.view,
+        };
         this.renderer.setView({ yaw: wrapYaw(v.yaw), pitch: v.pitch, fov: v.fov });
         this.sceneExtras(scene);
         this.refreshHotspots();
@@ -1239,6 +1268,7 @@ export class Viewer {
           transition: action.transition,
           view: action.view,
           towards,
+          travel: true,
         });
         return;
       case 'lookAt':

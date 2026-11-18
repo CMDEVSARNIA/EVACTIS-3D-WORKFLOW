@@ -143,3 +143,33 @@ test.describe('Viewer core (desktop)', () => {
       expect(u.startsWith('http://127.0.0.1:4176/') || u.startsWith('data:')).toBe(true);
   });
 });
+
+test('walking through links faces the way you are going, back again too', async ({ page }) => {
+  await openDemo(page);
+  expect(await sceneId(page)).toBe('lobby');
+  const follow = async (id: string, to: string) => {
+    await page.locator(`.evx-viewer__hotspot[data-hotspot-id="${id}"]`).dispatchEvent('click');
+    await expect.poll(() => sceneId(page)).toBe(to);
+    await idle(page);
+    return (await view(page)).yaw;
+  };
+  const near = (yaw: number, want: number) => Math.abs(((((yaw - want) % 360) + 540) % 360) - 180);
+  // Into the corridor: away from its link back to the lobby (at 180°), so 0°.
+  expect(near(await follow('lobby-to-corridor', 'corridor'), 0)).toBeLessThan(1);
+  // Back to the lobby: away from the lobby's link to the corridor (21.8°), so -158.2°,
+  // not the lobby's start view.
+  expect(near(await follow('corridor-to-lobby', 'lobby'), -158.2)).toBeLessThan(1);
+  // A dead end (the electrical room's only link leads back) opens on its start view,
+  // which the author aimed at the main panel.
+  await page.evaluate(() => window.viewer.goToScene('office', { transition: { kind: 'cut' } }));
+  await page.evaluate(() => window.viewer.setAudience('first-responders'));
+  await idle(page);
+  expect(near(await follow('office-to-electrical', 'electrical'), 0)).toBeLessThan(1);
+  // A scene picked by the API (a menu, a floor plan) still opens on its start view.
+  await page.evaluate(() => window.viewer.goToScene('corridor', { transition: { kind: 'cut' } }));
+  await idle(page);
+  const start = await page.evaluate(
+    () => window.viewer.environment.scenes.find((s) => s.id === 'corridor')!.initialView.yaw,
+  );
+  expect(near((await view(page)).yaw, start)).toBeLessThan(1);
+});
