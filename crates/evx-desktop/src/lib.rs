@@ -51,8 +51,16 @@ fn app_info(app: AppHandle, launch: State<'_, Launch>) -> AppInfo {
         identifier: app.config().identifier.clone(),
         open_path: launch.args.open.as_ref().map(|p| p.display().to_string()),
         smoke_test: launch.args.smoke_test.is_some(),
-        smoke_import: launch.args.smoke_import.as_ref().map(|p| p.display().to_string()),
-        smoke_passphrase: launch.args.smoke_test.as_ref().and(launch.args.smoke_passphrase.clone()),
+        smoke_import: launch
+            .args
+            .smoke_import
+            .as_ref()
+            .map(|p| p.display().to_string()),
+        smoke_passphrase: launch
+            .args
+            .smoke_test
+            .as_ref()
+            .and(launch.args.smoke_passphrase.clone()),
     }
 }
 
@@ -67,7 +75,9 @@ fn smoke_report(
     checks: Option<Vec<String>>,
     error: Option<String>,
 ) -> Result<(), String> {
-    let Some(path) = launch.args.smoke_test.as_ref() else { return Ok(()) };
+    let Some(path) = launch.args.smoke_test.as_ref() else {
+        return Ok(());
+    };
     let report = SmokeReport {
         app: launch.name.into(),
         version: app.package_info().version.to_string(),
@@ -100,19 +110,35 @@ pub struct Commands<H> {
 
 /// No app-specific commands (the Viewer, for now).
 pub fn no_commands() -> Commands<fn(Invoke<Wry>) -> bool> {
-    Commands { names: &[], handler: |_| false }
+    Commands {
+        names: &[],
+        handler: |_| false,
+    }
 }
 
-pub type SetupHook = Box<dyn FnOnce(&mut tauri::App<Wry>) -> Result<(), Box<dyn std::error::Error>> + Send>;
+pub type SetupHook =
+    Box<dyn FnOnce(&mut tauri::App<Wry>) -> Result<(), Box<dyn std::error::Error>> + Send>;
 
-pub fn run<H>(context: tauri::Context<Wry>, spec: AppSpec, commands: Commands<H>, setup: Option<SetupHook>)
-where
+pub fn run<H>(
+    context: tauri::Context<Wry>,
+    spec: AppSpec,
+    commands: Commands<H>,
+    setup: Option<SetupHook>,
+) where
     H: Fn(Invoke<Wry>) -> bool + Send + Sync + 'static,
 {
     let args = launch::parse(std::env::args().skip(1));
     let smoke: Option<PathBuf> = args.smoke_test.clone();
-    let timeout = if args.smoke_import.is_some() { SMOKE_IMPORT_TIMEOUT } else { SMOKE_TIMEOUT };
-    let AppSpec { name, width, height } = spec;
+    let timeout = if args.smoke_import.is_some() {
+        SMOKE_IMPORT_TIMEOUT
+    } else {
+        SMOKE_TIMEOUT
+    };
+    let AppSpec {
+        name,
+        width,
+        height,
+    } = spec;
     let shared = shared_handler();
     let Commands { names, handler } = commands;
 
@@ -132,7 +158,11 @@ where
             let allow_dev = cfg!(debug_assertions);
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title(name)
+                // Opens maximized: a fixed size can be taller than a laptop screen at
+                // 125-150 % display scaling, hiding the bottom of the window. The size is
+                // what "Restore down" returns to.
                 .inner_size(width, height)
+                .maximized(true)
                 .min_inner_size(960.0, 600.0)
                 .on_navigation(move |url| net::is_app_url(url.as_str(), allow_dev))
                 .initialization_script(HARDEN)
@@ -144,8 +174,7 @@ where
                 std::thread::spawn(move || {
                     std::thread::sleep(timeout);
                     let msg = format!("UI did not report within {} s", timeout.as_secs());
-                    let _ = SmokeReport::failure(name, &version, msg)
-                        .write(&path);
+                    let _ = SmokeReport::failure(name, &version, msg).write(&path);
                     handle.exit(2);
                 });
             }
