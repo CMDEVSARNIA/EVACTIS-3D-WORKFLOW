@@ -102,6 +102,37 @@ for (const [label, url, mode, kind] of [
   });
 }
 
+test('the PDF opens where the webview cannot request blob: URLs', async ({ page }) => {
+  // In the desktop Viewer's WebView2 (page at http://tauri.localhost) pdf.js's request
+  // for a package blob failed: "Unexpected server response (0)". Here every request for
+  // a blob: URL fails the same way; the reader must not depend on one.
+  await page.addInitScript(() => {
+    const fetch0 = window.fetch;
+    window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+      String(input instanceof Request ? input.url : input).startsWith('blob:')
+        ? Promise.reject(new TypeError('Failed to fetch'))
+        : fetch0(input, init);
+    type X = XMLHttpRequest & { __blob?: boolean };
+    const open = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function (this: X, ...a: unknown[]) {
+      this.__blob = String(a[1]).startsWith('blob:');
+      return (open as (...x: unknown[]) => void).apply(this, a);
+    } as typeof open;
+    const send = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.send = function (
+      this: X,
+      body?: Document | XMLHttpRequestBodyInit | null,
+    ) {
+      if (!this.__blob) return send.call(this, body);
+      setTimeout(() => this.onerror?.(new ProgressEvent('error')));
+    };
+  });
+  await page.goto(`${DISK}/folder/index.html`);
+  await ready(page, 'true');
+  await idle(page);
+  await readPdf(page);
+});
+
 test('the intranet bundle carries a strict CSP and makes no outside request', async ({ page }) => {
   await page.goto(`${SERVED}/intranet/index.html`);
   await ready(page, 'true');

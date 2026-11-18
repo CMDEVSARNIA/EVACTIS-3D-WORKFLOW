@@ -6,7 +6,8 @@ import type { UiStrings } from './i18n.ts';
  * - no worker file: the parser runs on the page (a worker URL would break file:// and
  *   strict CSPs), loaded as a code chunk instead;
  * - no eval (`isEvalSupported: false`), no font, CMap or wasm downloads, no streaming
- *   range requests; documents' own embedded fonts are used.
+ *   range requests; documents' own embedded fonts are used;
+ * - the file is read with fetch() and given to pdf.js as bytes (see below).
  */
 type PdfJs = typeof import('pdfjs-dist');
 let loading: Promise<PdfJs> | null = null;
@@ -20,6 +21,15 @@ function pdfjs(): Promise<PdfJs> {
   return loading;
 }
 
+async function documentBytes(source: Uint8Array | string): Promise<Uint8Array> {
+  if (typeof source !== 'string') return source.slice();
+  const res = await fetch(source);
+  if (!res.ok && res.status !== 0) throw new Error(`Could not read the document (${res.status})`);
+  const data = new Uint8Array(await res.arrayBuffer());
+  if (!data.length) throw new Error('The document is empty');
+  return data;
+}
+
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -27,7 +37,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string) => {
 };
 
 /** A document view: page navigation, zoom, one rendered page at a time. */
-export function pdfView(url: string, title: string, t: UiStrings): HTMLElement {
+/** `source`: the document's bytes (packages) or a URL to read them from. */
+export function pdfView(source: Uint8Array | string, title: string, t: UiStrings): HTMLElement {
   const root = el('section', 'evx-viewer__pdf');
   root.setAttribute('aria-label', title);
   root.dataset.state = 'loading';
@@ -65,8 +76,14 @@ export function pdfView(url: string, title: string, t: UiStrings): HTMLElement {
   void (async () => {
     try {
       const lib = await pdfjs();
+      // pdf.js is always given bytes, never a URL to load itself: in the desktop Viewer
+      // (WebView2 under http://tauri.localhost) its request for a package's blob: URL
+      // failed ("Unexpected server response (0)"). Packages hand over the checked bytes;
+      // otherwise (demo, Studio's files) they are read here with fetch(). pdf.js may take
+      // ownership of the buffer, so it gets its own copy.
+      const data = await documentBytes(source);
       const doc = await lib.getDocument({
-        url,
+        data,
         isEvalSupported: false,
         disableAutoFetch: true,
         disableStream: true,

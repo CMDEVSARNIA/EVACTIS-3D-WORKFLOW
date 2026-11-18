@@ -10,6 +10,7 @@ import type {
   WorldPoint,
 } from '@evactis-3dworkflow/schema';
 import {
+  AssetPathSchema,
   localize,
   parseEnvironment,
   routeHeading,
@@ -78,7 +79,14 @@ export interface ViewerOptions {
    * path once the file has passed its integrity check (and been decrypted). Used instead
    * of `baseUrl` and `resolveAsset`.
    */
-  assets?: { url(path: string): Promise<string> };
+  assets?: {
+    url(path: string): Promise<string>;
+    /**
+     * The checked (and decrypted) bytes of a file, for readers that need data rather than
+     * a URL: the PDF reader uses it, so no webview has to fetch a blob: URL.
+     */
+    bytes?(path: string): Promise<Uint8Array>;
+  };
   /** The package this environment was delivered in: its stamp shows in the info panel. */
   packageInfo?: PackageInfo;
   /**
@@ -1246,6 +1254,17 @@ export class Viewer {
     await this.runActions(h.actions, h.id, towards);
   }
 
+  /** A document for the PDF reader: the package's bytes when it gives them, else a URL. */
+  private async document(path: string): Promise<Uint8Array | string | null> {
+    const bytes = this.options.assets?.bytes;
+    if (!bytes) return this.resolve(path);
+    if (!AssetPathSchema.safeParse(path).success) {
+      this.events.emit('blocked', { url: path, reason: 'invalid' });
+      return null;
+    }
+    return bytes(path);
+  }
+
   /** A loadable URL for an asset path (null, and a `blocked` event, when refused). */
   private async resolve(path: string): Promise<string | null> {
     try {
@@ -1303,7 +1322,7 @@ export class Viewer {
           }
         } else if (c.kind === 'pdf') {
           const doc = this.environment.documents.find((d) => d.id === c.documentId);
-          const src = doc && (await this.resolve(doc.source));
+          const src = doc && (await this.document(doc.source));
           if (src) nodes.push(pdfView(src, L(doc!.title), t));
         } else nodes.push(this.dialogs.text(t.unsupported));
         await this.dialogs.show(L(action.title), nodes);
@@ -1311,7 +1330,7 @@ export class Viewer {
       }
       case 'openDocument': {
         const doc = this.environment.documents.find((d) => d.id === action.documentId);
-        const src = doc && (await this.resolve(doc.source));
+        const src = doc && (await this.document(doc.source));
         if (doc && src)
           await this.dialogs.show(
             L(doc.title),

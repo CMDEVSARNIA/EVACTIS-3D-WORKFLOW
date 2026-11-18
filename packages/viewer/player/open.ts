@@ -93,6 +93,11 @@ export async function openPackage(o: OpenOptions): Promise<Viewer> {
             if (e instanceof IntegrityError) fail(e);
             throw e;
           }),
+        bytes: (path) =>
+          pkg.bytes(path).catch((e: unknown) => {
+            if (e instanceof IntegrityError) fail(e);
+            throw e;
+          }),
       },
       language: o.language,
       // A module for one audience opens as that audience.
