@@ -12,6 +12,8 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 test('Viewer dialogs open centred inside Studio', async ({ page }) => {
   await page.goto(STUDIO);
+  // Studio renders after load; the dialogs are added to its page once it is there.
+  await expect(page.locator('.evx-chrome').first()).toBeVisible();
   for (const kind of ['', 'evx-viewer__dialog--plan', 'evx-viewer__dialog--menu']) {
     const box = await page.evaluate((extra) => {
       const d = document.createElement('dialog');
