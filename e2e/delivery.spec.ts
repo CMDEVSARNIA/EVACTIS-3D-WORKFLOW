@@ -34,6 +34,31 @@ async function unlock(page: Page) {
   await box.getByRole('button', { name: 'Open' }).click();
 }
 
+/**
+ * The intranet page keeps its own policy (PACKAGE_CSP, which lets the PDF reader read
+ * its blob), without the test server's stricter header that an intranet would not send.
+ */
+async function ownPolicy(page: Page) {
+  await page.route(`${SERVED}/**/index.html`, async (route) => {
+    const res = await route.fetch();
+    const headers = { ...res.headers() };
+    delete headers['content-security-policy'];
+    await route.fulfill({ response: res, headers });
+  });
+}
+
+/** Opens the lobby's PDF, read from the package (a blob made after verifying it). */
+async function readPdf(page: Page) {
+  // Behind the start view at this size; the hotspot itself is not under test here.
+  await page.getByRole('button', { name: 'Emergency procedures (PDF)' }).dispatchEvent('click');
+  const doc = page.getByRole('region', { name: 'Emergency procedures' });
+  await expect(doc).not.toHaveAttribute('data-state', 'loading', { timeout: 30_000 });
+  await expect(doc).toHaveAttribute('data-state', 'ready');
+  await expect(doc.locator('.evx-viewer__pdf-text')).toContainText('EMERGENCY PROCEDURES');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+}
+
 /** Walks to another floor's scene and opens the info panel: the package's stamp. */
 async function tour(page: Page, kind: string) {
   await page.evaluate(() => window.viewer!.goToScene('office', { transition: { kind: 'cut' } }));
@@ -53,11 +78,13 @@ for (const [label, url, mode, kind] of [
   ['single HTML file (file://)', `${DISK}/single.html`, 'inline', 'Single HTML file'],
 ] as const) {
   test(`${label}: opens offline, every file checked, stamp and quick start`, async ({ page }) => {
+    await ownPolicy(page);
     await page.goto(url);
     await ready(page, 'true');
     await expect(page.locator('body')).toHaveAttribute('data-mode', mode);
     await idle(page);
     await page.screenshot({ path: test.info().outputPath(`${mode}.png`) });
+    await readPdf(page);
     await tour(page, kind);
   });
 
@@ -65,10 +92,12 @@ for (const [label, url, mode, kind] of [
   test(`${label}, encrypted: a wrong passphrase is refused, the right one opens`, async ({
     page,
   }) => {
+    await ownPolicy(page);
     await page.goto(encrypted);
     await unlock(page);
     await ready(page, 'true');
     await idle(page);
+    await readPdf(page);
     await tour(page, kind);
   });
 }

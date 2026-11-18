@@ -228,6 +228,19 @@ test('photo album: one photo at a time with captions, buttons and arrow keys', a
   await expect(dialog.getByText('Photo 2 of 3')).toBeVisible();
 });
 
+test('PDF reader: a damaged document says why it cannot be shown', async ({ page }) => {
+  await page.route('**/docs/emergency-procedures.pdf', (r) =>
+    r.fulfill({ body: 'not a pdf', contentType: 'application/pdf' }),
+  );
+  await openDemo(page);
+  await page.getByRole('button', { name: 'Emergency procedures (PDF)' }).click();
+  const doc = page.getByRole('region', { name: 'Emergency procedures' });
+  await expect(doc).toHaveAttribute('data-state', 'error', { timeout: 20_000 });
+  await expect(doc.getByText('This document could not be displayed.')).toBeVisible();
+  // The reader's own reason, for support.
+  await expect(doc.locator('.evx-viewer__pdf-error')).toContainText(/PDF/);
+});
+
 test('PDF reader: opens a packaged document locally, pages through it, zooms', async ({ page }) => {
   await openDemo(page);
   await page.getByRole('button', { name: 'Emergency procedures (PDF)' }).click();

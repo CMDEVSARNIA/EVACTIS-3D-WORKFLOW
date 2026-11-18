@@ -117,9 +117,15 @@ export function pdfView(url: string, title: string, t: UiStrings): HTMLElement {
       });
       // Draw once laid out (the dialog opens around it).
       requestAnimationFrame(() => void draw());
-    } catch {
+    } catch (e) {
       root.dataset.state = 'error';
       status.textContent = t.documentFailed;
+      // The reader's own reason (e.g. "InvalidPDFException: Invalid PDF structure."),
+      // so a support request can say what failed.
+      const reason = el('p', 'evx-viewer__pdf-error');
+      reason.textContent = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+      root.dataset.error = reason.textContent;
+      page.replaceChildren(reason);
     }
   })();
   return root;

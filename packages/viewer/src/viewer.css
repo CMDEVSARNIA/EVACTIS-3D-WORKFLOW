@@ -470,6 +470,14 @@
 
 /* ------------------------------------------------------------- rich media */
 
+.evx-viewer__pdf-error {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--evx-white);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
 .evx-viewer__dialog--wide {
   inline-size: min(96vw, 64rem);
 }
