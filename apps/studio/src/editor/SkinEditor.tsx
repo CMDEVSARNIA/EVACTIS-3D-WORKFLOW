@@ -5,6 +5,7 @@
  * buttons and direction); theme colours are checked for legibility as they change;
  * the client's logo can sit next to the Evactis lockup.
  */
+import { PanelHandles } from './PanelHandles.tsx';
 import {
   ANCHORS,
   SKIN_COMMANDS,
@@ -582,7 +583,7 @@ export function SkinEditor({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="evx-toolbar px-6 pt-4">
         <div className="evx-segmented" role="radiogroup" aria-label={k.devicesLabel}>
           {(Object.keys(DEVICES) as Device[]).map((dv) => (
@@ -608,6 +609,7 @@ export function SkinEditor({
         </button>
       </div>
       <div className="evx-editor">
+        <PanelHandles t={t} />
         {list}
         <div className="evx-editor__stage">
           <SkinPreview

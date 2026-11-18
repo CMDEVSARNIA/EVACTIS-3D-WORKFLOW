@@ -49,6 +49,12 @@ Studio makes no network requests.
 **Undo/redo**: Ctrl+Z / Ctrl+Y. Studio saves automatically; **Versions** keeps snapshots
 (on open and every 10 minutes) you can restore.
 
+**Fitting the window**: Studio opens maximized; F11 switches full screen. Each tab fits
+the window, and only a long list or inspector scrolls inside its own panel. Drag the
+divider beside a side panel (or focus it and use the arrow keys; double-click resets) to
+make it wider or narrower. **A− / A+** in the top bar (or Ctrl − / Ctrl + / Ctrl 0)
+make the whole interface smaller or larger. Studio remembers both on this computer.
+
 ### Before delivering
 
 - Every safety item confirmed by a named person, plans printed and checked on site.
@@ -105,6 +111,13 @@ ne sont jamais téléversés et Studio ne fait aucune requête réseau.
 **Annuler/rétablir** : Ctrl+Z / Ctrl+Y. Studio enregistre automatiquement; **Versions**
 conserve des instantanés (à l’ouverture et toutes les 10 minutes) que vous pouvez
 restaurer.
+
+**Adapter à la fenêtre** : Studio s’ouvre agrandi; F11 passe en plein écran. Chaque
+onglet tient dans la fenêtre; seule une longue liste ou un inspecteur défile dans son
+propre panneau. Faites glisser le séparateur à côté d’un panneau latéral (ou placez-y le
+focus et utilisez les flèches; un double-clic rétablit) pour l’élargir ou le rétrécir.
+**A− / A+** dans la barre du haut (ou Ctrl − / Ctrl + / Ctrl 0) réduisent ou agrandissent
+toute l’interface. Studio retient les deux sur cet ordinateur.
 
 ### Avant de livrer
 

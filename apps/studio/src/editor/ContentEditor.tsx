@@ -4,6 +4,7 @@
  * animated regions drawn on the panorama. Hotspot actions that use them are set in the
  * Tour tab's action editor; timed hotspots in the Tour tab's hotspot inspector.
  */
+import { PanelHandles } from './PanelHandles.tsx';
 import {
   localize,
   type Environment,
@@ -902,7 +903,7 @@ export function ContentEditor({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="evx-toolbar px-6 pt-4">
         <div className="evx-segmented" role="radiogroup" aria-label={c.sectionsLabel}>
           {(['sounds', 'documents', 'albums', 'layers', 'regions'] as const).map((s) => (
@@ -924,6 +925,7 @@ export function ContentEditor({
         </div>
       </div>
       <div className="evx-editor">
+        <PanelHandles t={t} />
         {list}
         {middle}
         <aside className="evx-editor__inspector evx-panel" aria-label={c.sections[section]}>

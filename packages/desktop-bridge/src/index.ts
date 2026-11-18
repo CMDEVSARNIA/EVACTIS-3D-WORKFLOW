@@ -4,6 +4,7 @@
  * outside Tauri.
  */
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 /**
@@ -78,4 +79,24 @@ export function fullScreenKey(): void {
     const w = getCurrentWindow();
     void w.isFullscreen().then((on) => w.setFullscreen(!on));
   });
+}
+
+/** Interface sizes offered (1 = 100 %). */
+export const ZOOM_STEPS = [0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5] as const;
+
+/**
+ * Sets the size of the whole interface, like a browser's zoom: the window's webview is
+ * scaled, so layout, text and the preview stay consistent. Outside the desktop app (tests,
+ * development) the page's CSS zoom stands in.
+ */
+export async function setInterfaceZoom(scale: number): Promise<void> {
+  if (isTauri()) await getCurrentWebview().setZoom(scale);
+  else document.documentElement.style.zoom = scale === 1 ? '' : String(scale);
+}
+
+/** The next interface size up (+1) or down (-1) from `scale`. */
+export function stepZoom(scale: number, dir: 1 | -1): number {
+  const i = ZOOM_STEPS.findIndex((z) => z >= scale - 1e-6);
+  const at = i === -1 ? ZOOM_STEPS.length - 1 : i;
+  return ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, at + dir))]!;
 }

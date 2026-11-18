@@ -278,35 +278,92 @@ textarea.evx-field {
   color: var(--evx-white);
 }
 
-/* Three columns: list, stage, inspector. */
+/*
+ * Three columns that fill the window: list, stage, inspector. The page never scrolls; a
+ * column scrolls on its own only when its content is taller than the window. The side
+ * widths come from --evx-left / --evx-right (dragged with PanelHandles, remembered).
+ */
 .evx-editor {
+  position: relative;
   display: grid;
   flex: 1;
-  grid-template-columns: 17rem minmax(0, 1fr) 21rem;
+  grid-template-columns:
+    var(--evx-left, clamp(13rem, 18vw, 17rem)) minmax(0, 1fr)
+    var(--evx-right, clamp(16rem, 22vw, 21rem));
+  grid-template-rows: minmax(0, 1fr);
   gap: 1rem;
-  padding: 1rem 1.5rem 1.5rem;
+  padding: 1rem 1.5rem;
   min-block-size: 0;
 }
-@media (max-width: 1100px) {
-  .evx-editor {
-    grid-template-columns: 15rem minmax(0, 1fr);
-  }
-  .evx-editor__inspector {
-    grid-column: 1 / -1;
-  }
+.evx-editor > * {
+  min-block-size: 0;
 }
 .evx-editor__scenes,
 .evx-editor__inspector {
-  align-self: start;
-  max-block-size: calc(100vh - 12rem);
   overflow: auto;
   padding: 1rem;
 }
+/*
+ * A drop-down is as wide as its longest option, which would push a narrow panel's list
+ * past its edge; in a side panel it takes the panel's width instead (a percentage width
+ * does not widen the panel's own layout).
+ */
+.evx-editor__scenes select,
+.evx-editor__inspector select {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
 .evx-editor__stage {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   min-inline-size: 0;
+  overflow: auto;
+}
+/* Interface size: A- 100 % A+ in the top bar. */
+.evx-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.evx-zoom__level {
+  min-inline-size: 3.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Drag handles between the columns (PanelHandles): in the grid gaps, above the panels. */
+.evx-panel-handle {
+  position: absolute;
+  z-index: 2;
+  inset-block: 1rem;
+  inline-size: 0.75rem;
+  border-radius: 0.375rem;
+  cursor: col-resize;
+  touch-action: none;
+}
+.evx-panel-handle--left {
+  inset-inline-start: calc(1.5rem + var(--evx-left, clamp(13rem, 18vw, 17rem)) + 0.125rem);
+}
+.evx-panel-handle--right {
+  inset-inline-end: calc(1.5rem + var(--evx-right, clamp(16rem, 22vw, 21rem)) + 0.125rem);
+}
+.evx-panel-handle::after {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 1px);
+  inline-size: 2px;
+  background: transparent;
+  content: '';
+}
+.evx-panel-handle:hover::after,
+.evx-panel-handle:focus-visible::after,
+.evx-panel-handle[data-dragging]::after {
+  background: var(--evx-accent);
+}
+.evx-panel-handle:focus-visible {
+  outline: 3px solid var(--evx-accent);
+  outline-offset: 0;
 }
 .evx-editor__empty {
   display: grid;
@@ -380,11 +437,12 @@ textarea.evx-field {
 .evx-preview {
   position: relative;
   overflow: hidden;
+  /* Fills the stage's height (it fits the window), never smaller than a usable view. */
+  flex: 1 1 18rem;
+  min-block-size: 16rem;
   border: 1px solid var(--evx-rule);
   border-radius: 0.75rem;
   background: #000;
-  aspect-ratio: 16 / 9;
-  max-block-size: calc(100vh - 16rem);
   inline-size: 100%;
 }
 .evx-preview__stage,
@@ -525,17 +583,37 @@ textarea.evx-field {
   background: var(--evx-rule);
 }
 
-/* Safety tab: preview and plan side by side when there is room. */
+/*
+ * Safety tab: preview and plan side by side when there is room, stacked otherwise; both
+ * share the stage's height, and the whole plan stays visible (.evx-plan-fit).
+ */
 .evx-safety-views {
   display: grid;
+  flex: 1 1 auto;
   grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
-  align-items: start;
+  grid-template-rows: minmax(0, 1fr);
   gap: 1rem;
+  min-block-size: 0;
+}
+.evx-safety-views > * {
+  min-block-size: 0;
 }
 @media (max-width: 1280px) {
   .evx-safety-views {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
+}
+.evx-safety-plan-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+/* The box a plan fits into: the plan is as large as both its width and height allow. */
+.evx-plan-fit {
+  flex: 1 1 auto;
+  min-block-size: 8rem;
+  container-type: size;
 }
 .evx-row {
   display: flex;

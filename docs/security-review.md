@@ -30,7 +30,8 @@ network surface or a delivery format changes.*
   page policy); the PDF reader runs pdf.js on the page itself.
 - [Certain] The desktop apps install no Tauri plugins (no HTTP, shell, updater, opener)
   and grant only `core:default` plus the window's own full-screen switch (F11:
-  `core:window:allow-is-fullscreen`, `allow-set-fullscreen`); a navigation guard keeps
+  `core:window:allow-is-fullscreen`, `allow-set-fullscreen`) and, in Studio, the interface
+  size (`core:webview:allow-set-webview-zoom`); a navigation guard keeps
   the webview on the app's own pages.
 
 **2. The page in the desktop apps cannot reach the rest of the computer.**

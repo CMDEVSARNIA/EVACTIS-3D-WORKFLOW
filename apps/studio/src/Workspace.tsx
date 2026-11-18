@@ -104,7 +104,7 @@ export function Workspace({
       : e.status[doc.status];
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="evx-projectbar">
         <div className="min-w-0">
           <h1 className="evx-heading truncate text-2xl" data-testid="project-name">
@@ -179,7 +179,7 @@ export function Workspace({
         role="tabpanel"
         id={`panel-${tab}`}
         aria-labelledby={`tab-${tab}`}
-        className="flex flex-1 flex-col"
+        className="flex min-h-0 flex-1 flex-col overflow-auto"
       >
         {tab === 'tour' && (
           <TourEditor

@@ -3,6 +3,7 @@
  * hotspots, drag to move them), and the inspector for the selected scene or hotspot on
  * the right, including link suggestions the author can accept one by one.
  */
+import { PanelHandles } from './PanelHandles.tsx';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { Environment, Hotspot, Scene } from '@evactis-3dworkflow/schema';
 import type { Viewer } from '@evactis-3dworkflow/viewer';
@@ -286,6 +287,7 @@ export function TourEditor({
 
   return (
     <div className="evx-editor">
+      <PanelHandles t={t} />
       <aside className="evx-editor__scenes evx-panel" aria-labelledby="scenes-title">
         <div className="flex items-center justify-between gap-2">
           <h2 id="scenes-title" className="evx-subheading">

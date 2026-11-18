@@ -66,7 +66,8 @@ export function SafetyPlan({
       data-floor-id={floorId}
       style={{
         aspectRatio: `${W} / ${H}`,
-        inlineSize: `min(100%, calc((100vh - 17rem) * ${W / H}))`,
+        // Whole plan visible: as wide as its box allows, or as tall (.evx-plan-fit).
+        inlineSize: `min(100cqi, calc(100cqb * ${W / H}))`,
       }}
     >
       <img src={image} alt="" draggable={false} />

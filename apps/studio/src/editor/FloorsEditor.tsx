@@ -3,6 +3,7 @@
  * points of known distance, set its north, and place scenes where they were captured.
  * Plan positions drive link suggestions and, later, the Viewer's mini-map and routes.
  */
+import { PanelHandles } from './PanelHandles.tsx';
 import type { Environment, PlanPoint } from '@evactis-3dworkflow/schema';
 import { PlanCursor } from './PlanCursor';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
@@ -268,6 +269,7 @@ export function FloorsEditor({
 
   return (
     <div className="evx-editor">
+      <PanelHandles t={t} />
       <aside className="evx-editor__scenes evx-panel" aria-labelledby={`${ids}-b`}>
         <div className="flex items-center justify-between gap-2">
           <h2 id={`${ids}-b`} className="evx-subheading">

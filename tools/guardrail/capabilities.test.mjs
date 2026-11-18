@@ -4,14 +4,18 @@ import { readFileSync } from 'node:fs';
 
 /**
  * What the desktop pages may ask of the Rust shell (docs/security-review.md): Tauri's core
- * defaults and the window's own full-screen switch (F11), nothing else. A new permission
- * must be added here on purpose, with the review updated.
+ * defaults, the window's own full-screen switch (F11) and, in Studio, the interface size;
+ * nothing else. A new permission must be added here on purpose, with the review updated.
  */
-const ALLOWED = [
+const BASE = [
   'core:default',
   'core:window:allow-is-fullscreen',
   'core:window:allow-set-fullscreen',
 ];
+const ALLOWED = {
+  studio: [...BASE, 'core:webview:allow-set-webview-zoom'],
+  'viewer-desktop': BASE,
+};
 
 for (const app of ['studio', 'viewer-desktop']) {
   test(`${app}: the main window has only the reviewed permissions`, () => {
@@ -22,6 +26,6 @@ for (const app of ['studio', 'viewer-desktop']) {
       ),
     );
     assert.deepEqual(cap.windows, ['main']);
-    assert.deepEqual([...cap.permissions].sort(), [...ALLOWED].sort());
+    assert.deepEqual([...cap.permissions].sort(), [...ALLOWED[app]].sort());
   });
 }

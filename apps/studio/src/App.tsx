@@ -1,5 +1,10 @@
 import lockupUrl from '@evactis-3dworkflow/brand/product-lockup.svg?url';
-import type { AppInfo } from '@evactis-3dworkflow/desktop-bridge';
+import {
+  setInterfaceZoom,
+  stepZoom,
+  ZOOM_STEPS,
+  type AppInfo,
+} from '@evactis-3dworkflow/desktop-bridge';
 import { parseEnvironment, type Environment } from '@evactis-3dworkflow/schema';
 import { useEffect, useState } from 'react';
 import { AboutDialog } from './AboutDialog.tsx';
@@ -9,6 +14,8 @@ import { STRINGS, detectLang, type Lang } from './i18n.ts';
 import type { SmokeResult } from './Library.tsx';
 import { NewProjectDialog } from './NewProjectDialog.tsx';
 import { Workspace } from './Workspace.tsx';
+
+const ZOOM_KEY = 'evx-studio-zoom';
 
 type Theme = 'dark' | 'light';
 
@@ -22,6 +29,13 @@ export function App({
 }) {
   const [lang, setLang] = useState<Lang>(() => detectLang());
   const [theme, setTheme] = useState<Theme>('dark');
+  const [zoom, setZoom] = useState<number>(() => {
+    try {
+      return Number(localStorage.getItem(ZOOM_KEY)) || 1;
+    } catch {
+      return 1;
+    }
+  });
   const [open_, setOpen] = useState<{ project: ProjectInfo; env: Environment } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const t = STRINGS[lang];
@@ -30,6 +44,28 @@ export function App({
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
+
+  // Interface size: the whole window scales, like a browser's zoom; remembered here.
+  useEffect(() => {
+    void setInterfaceZoom(zoom).catch(() => undefined);
+    try {
+      localStorage.setItem(ZOOM_KEY, String(zoom));
+    } catch {
+      // Storage may be unavailable; the size still applies for this session.
+    }
+  }, [zoom]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (e.key === '+' || e.key === '=') setZoom((z) => stepZoom(z, 1));
+      else if (e.key === '-' || e.key === '_') setZoom((z) => stepZoom(z, -1));
+      else if (e.key === '0') setZoom(1);
+      else return;
+      e.preventDefault();
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
 
   function accept(p: ProjectInfo) {
     let raw: unknown;
@@ -83,7 +119,7 @@ export function App({
   }
 
   return (
-    <div className="evx-chrome flex min-h-full flex-col" data-theme={theme}>
+    <div className="evx-chrome flex h-full flex-col overflow-hidden" data-theme={theme}>
       <header className="evx-topbar">
         <img src={lockupUrl} alt="EVACTIS 3DWORKFLOW" className="h-11" />
         <div className="flex gap-3">
@@ -102,6 +138,31 @@ export function App({
           >
             {t.theme}
           </button>
+          <div className="evx-zoom" role="group" aria-label={t.zoomLevel(Math.round(zoom * 100))}>
+            <button
+              type="button"
+              className="evx-cta evx-cta--ghost text-navy"
+              aria-label={`A− ${t.zoomOut}`}
+              title={t.zoomOut}
+              disabled={zoom <= ZOOM_STEPS[0]}
+              onClick={() => setZoom((z) => stepZoom(z, -1))}
+            >
+              A−
+            </button>
+            <span className="evx-zoom__level" aria-hidden="true">
+              {Math.round(zoom * 100)} %
+            </span>
+            <button
+              type="button"
+              className="evx-cta evx-cta--ghost text-navy"
+              aria-label={`A+ ${t.zoomIn}`}
+              title={t.zoomIn}
+              disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!}
+              onClick={() => setZoom((z) => stepZoom(z, 1))}
+            >
+              A+
+            </button>
+          </div>
         </div>
       </header>
 
@@ -117,7 +178,7 @@ export function App({
           onSmoke={onSmoke}
         />
       ) : (
-        <main className="mx-auto grid w-full max-w-6xl flex-1 content-center gap-12 px-6 py-16 md:grid-cols-[3fr_2fr]">
+        <main className="mx-auto grid min-h-0 w-full max-w-6xl flex-1 content-center gap-12 overflow-auto px-6 py-16 md:grid-cols-[3fr_2fr]">
           <section>
             <p className="evx-eyebrow">{t.eyebrow}</p>
             <h1 className="evx-heading mt-5 mb-6 text-5xl">{t.heading}</h1>

@@ -4,6 +4,7 @@
  * checklist learners confirm. "Test the module" runs it in the real Viewer; "Export
  * SCORM package…" packs the environment for the client's own LMS.
  */
+import { PanelHandles } from './PanelHandles.tsx';
 import {
   localize,
   type Environment,
@@ -883,6 +884,7 @@ export function TrainingEditor({
 
   return (
     <div className="evx-editor">
+      <PanelHandles t={t} />
       {list}
       {middle}
       <aside className="evx-editor__inspector evx-panel" aria-label={k.modules}>

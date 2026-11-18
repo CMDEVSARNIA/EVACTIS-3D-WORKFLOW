@@ -7,6 +7,7 @@
  * are applied by a click, and every item and route needs a named confirmation before it
  * prints or reaches the delivered Viewer's routes.
  */
+import { PanelHandles } from './PanelHandles.tsx';
 import {
   equipmentTypeInfo,
   BUILT_IN_TYPES,
@@ -703,7 +704,7 @@ export function SafetyEditor({
             }}
           />
         )}
-        <div className="grid content-start gap-3">
+        <div className="evx-safety-plan-column">
           {draft && (
             <div className="evx-toolbar" role="group" aria-label={s.draw}>
               <p className="evx-hint w-full" data-testid="draw-hint">
@@ -735,23 +736,25 @@ export function SafetyEditor({
             </div>
           )}
           {floorId && floor?.plan ? (
-            <SafetyPlan
-              env={env}
-              floorId={floorId}
-              lang={lang}
-              image={api.fileUrl(project.root, floor.plan.image)}
-              selected={selected}
-              draft={draft && draft.floorId === floorId ? draft.points : null}
-              highlightRoute={route?.id ?? null}
-              crosshair={crosshair}
-              onPoint={onPlanPoint}
-              cursor={{ label: t.editor.planCursor, hint: t.editor.planCursorHint }}
-              onPick={(p) => {
-                if (draft || crosshair) return;
-                if (p.kind === 'equipment') selectEquipment(p.id, 'plan');
-                else setSelected(p);
-              }}
-            />
+            <div className="evx-plan-fit">
+              <SafetyPlan
+                env={env}
+                floorId={floorId}
+                lang={lang}
+                image={api.fileUrl(project.root, floor.plan.image)}
+                selected={selected}
+                draft={draft && draft.floorId === floorId ? draft.points : null}
+                highlightRoute={route?.id ?? null}
+                crosshair={crosshair}
+                onPoint={onPlanPoint}
+                cursor={{ label: t.editor.planCursor, hint: t.editor.planCursorHint }}
+                onPick={(p) => {
+                  if (draft || crosshair) return;
+                  if (p.kind === 'equipment') selectEquipment(p.id, 'plan');
+                  else setSelected(p);
+                }}
+              />
+            </div>
           ) : (
             <p className="evx-panel evx-hint">{s.noPlanFloor}</p>
           )}
@@ -1321,7 +1324,7 @@ export function SafetyEditor({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="evx-toolbar px-6 pt-4">
         <div
           className="evx-segmented"
@@ -1350,6 +1353,7 @@ export function SafetyEditor({
         <SafetyExports t={t} lang={lang} env={env} />
       </div>
       <div className="evx-editor">
+        <PanelHandles t={t} />
         {list}
         {middle}
         <aside className="evx-editor__inspector evx-panel" aria-label={s.modes[mode]}>
