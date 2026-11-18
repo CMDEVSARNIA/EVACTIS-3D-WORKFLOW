@@ -440,11 +440,14 @@ export function ActionEditor({
         }}
       >
         <option value="">{e.addAction}</option>
-        {EDITABLE.map((type) => (
-          <option key={type} value={type} disabled={!available(type, env)}>
-            {e.actionTypes[type]}
-          </option>
-        ))}
+        {EDITABLE.map((type) => {
+          const ok = available(type, env);
+          return (
+            <option key={type} value={type} disabled={!ok}>
+              {e.actionTypes[type] + (ok ? '' : e.needsContent)}
+            </option>
+          );
+        })}
       </select>
     </section>
   );

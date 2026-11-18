@@ -193,6 +193,12 @@ test('builds a 10-scene, 2-floor tour with linked hotspots in Studio and navigat
   await hotspotPanel.getByLabel('Title (French)').fill('Panneau électrique');
   await hotspotPanel.getByLabel('Text (English)').fill('Authorised staff only.');
   await hotspotPanel.getByLabel('Text (French)').fill('Personnel autorisé seulement.');
+  // Actions needing content the project has none of yet say where to make it.
+  const pdf = hotspotPanel
+    .getByRole('combobox', { name: 'Add action…' })
+    .locator('option', { hasText: 'Open a document (PDF)' });
+  await expect(pdf).toBeDisabled();
+  await expect(pdf).toHaveText('Open a document (PDF) — create one in the Content tab first');
 
   // Drag it, then undo the drag and redo it. (Wait for the typing to be saved first:
   // the preview redraws its hotspots after each edit.)

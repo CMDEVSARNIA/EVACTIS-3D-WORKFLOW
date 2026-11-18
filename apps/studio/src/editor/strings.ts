@@ -111,6 +111,8 @@ export const EDITOR = {
       setLiveLayer: 'Switch conditions (live layer)',
       openUrl: 'Open a file in the package',
     },
+    /** After an action whose sound, PDF, album or live layer the project has none of. */
+    needsContent: ' — create one in the Content tab first',
     route: 'Route',
     nearestRoute: 'The nearest route from this scene',
     document: 'Document',
@@ -339,6 +341,7 @@ export const EDITOR = {
       setLiveLayer: 'Changer les conditions (couche dynamique)',
       openUrl: 'Ouvrir un fichier du paquet',
     },
+    needsContent: ' — à créer d’abord dans l’onglet Contenu',
     route: 'Itinéraire',
     nearestRoute: 'L’itinéraire le plus proche de cette scène',
     document: 'Document',
