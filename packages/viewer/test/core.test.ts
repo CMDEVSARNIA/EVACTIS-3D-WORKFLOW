@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { EnvironmentSchema } from '@evactis-3dworkflow/schema';
 import { describe, expect, it, vi } from 'vitest';
-import { AssetError, checkedResolver, resolveAsset, resolveBase } from '../src/assets.ts';
+import { AssetError, checkedResolver, corsMode, resolveAsset, resolveBase } from '../src/assets.ts';
 import { Emitter } from '../src/events.ts';
 import { angles, direction, wrapYaw, yawDelta } from '../src/math.ts';
 import { FACES, FACE_BASIS, facePixelDirection, facePoint } from '../src/panorama/cube.ts';
@@ -109,6 +109,21 @@ describe('custom asset resolvers (Studio)', () => {
     const ok = checkedResolver((p) => `asset://localhost/${p}`, page);
     for (const bad of ['../x.jpg', 'https://example.com/a.jpg', '/etc/passwd'])
       expect(() => ok(bad)).toThrow(AssetError);
+  });
+});
+
+describe('CORS for images that reach WebGL', () => {
+  it('asks only for cross-origin HTTP, as Studio on Windows serves project files', () => {
+    const windows = 'http://tauri.localhost/index.html';
+    // Without crossOrigin the tile is tainted and WebGL refuses it: a black preview.
+    expect(corsMode('http://asset.localhost/C%3A%5Cp%5Ctiles%2F0.jpg', windows)).toBe('anonymous');
+    expect(corsMode('http://tauri.localhost/demo/tiles/0.jpg', windows)).toBeNull();
+    expect(corsMode('tiles/0.jpg', windows)).toBeNull();
+    expect(corsMode('blob:http://tauri.localhost/1234', windows)).toBeNull();
+    expect(corsMode('data:image/png;base64,AAAA', windows)).toBeNull();
+    // Linux desktop scheme and a package opened from disk: unchanged.
+    expect(corsMode('asset://localhost/p/tiles/0.jpg', 'tauri://localhost/')).toBeNull();
+    expect(corsMode('file:///D:/pkg/tiles/0.jpg', 'file:///D:/pkg/index.html')).toBeNull();
   });
 });
 

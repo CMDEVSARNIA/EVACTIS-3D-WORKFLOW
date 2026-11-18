@@ -22,6 +22,7 @@ import {
   baseResolver,
   checkedResolver,
   checkedSource,
+  corsMode,
   resolveBase,
   type AssetResolver,
   type AssetUrl,
@@ -1073,6 +1074,8 @@ export class Viewer {
         if (!src) return [];
         const isVideo = /\.(webm|mp4|m4v|ogv)$/i.test(r.source);
         const el = isVideo ? document.createElement('video') : new Image();
+        const cors = corsMode(src);
+        if (cors) el.crossOrigin = cors;
         el.src = src;
         if (el instanceof HTMLVideoElement) {
           el.muted = true;

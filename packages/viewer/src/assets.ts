@@ -85,6 +85,20 @@ export function checkedResolver(fn: AssetResolver, origin: string = location.hre
   };
 }
 
+/**
+ * The CORS mode for an image or video that ends up in WebGL. A desktop app serves project
+ * files from another origin than its page (Windows: http://asset.localhost under
+ * http://tauri.localhost); loaded without CORS the image is "tainted" and WebGL refuses
+ * it, so the panorama stays black. That asset protocol answers with
+ * Access-Control-Allow-Origin. Same-origin, blob: and data: URLs need nothing, and a
+ * page opened from disk cannot make CORS requests, so only cross-origin HTTP asks.
+ */
+export function corsMode(url: string, page: string = location.href): 'anonymous' | null {
+  const target = new URL(url, page);
+  if (target.protocol !== 'http:' && target.protocol !== 'https:') return null;
+  return target.origin === new URL(page).origin ? null : 'anonymous';
+}
+
 /** Loads and decodes an image; rejects on error or abort. */
 export function loadImage(url: string, signal?: AbortSignal): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -107,6 +121,8 @@ export function loadImage(url: string, signal?: AbortSignal): Promise<HTMLImageE
       signal?.removeEventListener('abort', abort);
       reject(new AssetError(`Could not load ${url}`));
     };
+    const cors = corsMode(url);
+    if (cors) img.crossOrigin = cors;
     img.src = url;
   });
 }

@@ -28,6 +28,12 @@ interface Fixture {
 }
 
 const ROOT = 'project';
+// `?assets=asset.localhost`: project files come from that origin, as in Studio on Windows
+// (the page is http://tauri.localhost there); the test routes it back to this server.
+const FILES =
+  new URLSearchParams(location.search).get('assets') === 'asset.localhost'
+    ? 'http://asset.localhost/'
+    : './';
 
 const state = {
   manifest: '',
@@ -205,5 +211,5 @@ export const memoryApi: StudioApi = {
   },
   joinPath: (dir, name) => `${dir}/${name}`,
   onFileDrop: async () => () => {},
-  fileUrl: (root, relative) => `./${root}/${relative}`,
+  fileUrl: (root, relative) => `${FILES}${root}/${relative}`,
 };
