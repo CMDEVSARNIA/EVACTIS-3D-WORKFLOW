@@ -42,6 +42,18 @@
   color-scheme: light;
 }
 
+/*
+ * The open list of a drop-down is drawn by the system with the options' own colours.
+ * Fields use the see-through panel colour, so on Windows the dark-mode list fell back to
+ * a light background under white text: options were faint until the hover highlight.
+ * Options get the page's opaque background and the heading colour instead.
+ */
+.evx-chrome select option,
+.evx-chrome select optgroup {
+  background-color: var(--evx-bg);
+  color: var(--evx-fg);
+}
+
 /* Heavy, tight, all-caps headings ("SEE THE SPACE. UNDERSTAND THE PLAN."). */
 .evx-heading {
   margin: 0;
