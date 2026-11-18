@@ -11,6 +11,7 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 import { STRINGS, detectLang, type Lang } from './i18n.ts';
 import {
   appInfo,
+  fullScreenKey,
   reportSmoke,
   watchNetwork,
   type AppInfo,
@@ -25,6 +26,7 @@ import {
  * with the same code as the browser packages (packages/viewer/player/open.ts).
  */
 const blocked = watchNetwork();
+fullScreenKey();
 const TOOLBAR: IconName[] = [
   'home',
   'floor-plan',

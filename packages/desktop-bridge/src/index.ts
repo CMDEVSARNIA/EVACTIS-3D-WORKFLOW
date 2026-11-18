@@ -4,6 +4,7 @@
  * outside Tauri.
  */
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 /**
  * Collects any network request the page attempts outside its own origin (resource
@@ -62,5 +63,19 @@ export async function reportSmoke(
     blockedRequests: blocked,
     checks: extra.checks ?? [],
     error: extra.error ?? null,
+  });
+}
+
+/**
+ * F11 switches the window between full screen and its usual (maximized) state, as in
+ * browsers. Needs the window's set-fullscreen permission (capabilities/default.json).
+ */
+export function fullScreenKey(): void {
+  if (!isTauri()) return;
+  addEventListener('keydown', (e) => {
+    if (e.key !== 'F11' || e.repeat) return;
+    e.preventDefault();
+    const w = getCurrentWindow();
+    void w.isFullscreen().then((on) => w.setFullscreen(!on));
   });
 }

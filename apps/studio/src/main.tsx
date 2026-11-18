@@ -1,6 +1,7 @@
 import './index.css';
 import {
   appInfo,
+  fullScreenKey,
   reportSmoke,
   watchNetwork,
   type SmokeExtra,
@@ -10,6 +11,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
 
 const blocked = watchNetwork();
+fullScreenKey();
 const info = await appInfo();
 let smokeDone: (r: SmokeExtra) => void = () => {};
 const smoke = new Promise<SmokeExtra>((resolve) => (smokeDone = resolve));
