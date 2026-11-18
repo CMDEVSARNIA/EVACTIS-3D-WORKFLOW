@@ -291,6 +291,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # Runs can finish out of order: publish only the branch's newest commit, so an
+          # older run never replaces a newer test build.
+          tip=$(git ls-remote origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "Not published: ${GITHUB_SHA::7} is no longer the tip of $GITHUB_REF_NAME (${tip::7})." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           v=$(node -p "require('./apps/studio/package.json').version")
           tag="v$v-test"
           dir=out/test-build
