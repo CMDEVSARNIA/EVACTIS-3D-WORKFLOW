@@ -221,8 +221,8 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
         ? {
             tone: 'warn',
             note: {
-              en: 'Do not add the test certificate to your computer’s trusted certificates. When Windows SmartScreen says "Windows protected your PC", select More info, check the file name, then Run anyway.',
-              fr: 'N’ajoutez pas le certificat de test aux certificats approuvés de votre ordinateur. Lorsque Windows SmartScreen affiche « Windows a protégé votre ordinateur », sélectionnez Informations complémentaires, vérifiez le nom du fichier, puis Exécuter quand même.',
+              en: 'Do not add the test certificate to your computer’s trusted certificates. When Windows SmartScreen says "Windows protected your PC", select More info, check the file name, then Run anyway. Where Smart App Control is on, a test build cannot run at all (see Troubleshooting).',
+              fr: 'N’ajoutez pas le certificat de test aux certificats approuvés de votre ordinateur. Lorsque Windows SmartScreen affiche « Windows a protégé votre ordinateur », sélectionnez Informations complémentaires, vérifiez le nom du fichier, puis Exécuter quand même. Là où le Contrôle intelligent des applications est activé, une version d’essai ne peut pas s’exécuter du tout (voir Dépannage).',
             },
           }
         : {
@@ -423,6 +423,21 @@ const SECTIONS: { title: L; blocks: (testSigned: boolean) => Block[] }[] = [
                 : {
                     en: 'Check the signature (section 3). SmartScreen can warn about a recently issued certificate. If the signer is Evactis, select More info, then Run anyway.',
                     fr: 'Vérifiez la signature (section 3). SmartScreen peut avertir au sujet d’un certificat récent. Si le signataire est Evactis, sélectionnez Informations complémentaires, puis Exécuter quand même.',
+                  },
+            ],
+            [
+              {
+                en: 'Smart App Control blocked the setup or the program',
+                fr: 'Le Contrôle intelligent des applications a bloqué l’installation ou le programme',
+              },
+              testSigned
+                ? {
+                    en: 'Expected for a test build, and there is no Run anyway: Smart App Control accepts only certificates from authorities Microsoft trusts. Test on a PC where it is off (Windows Security › App & browser control › Smart App Control settings) or in Windows Sandbox. Programs signed by Evactis are not affected.',
+                    fr: 'Normal pour une version d’essai, et il n’y a pas d’Exécuter quand même : le Contrôle intelligent des applications n’accepte que les certificats d’autorités approuvées par Microsoft. Faites l’essai sur un ordinateur où il est désactivé (Sécurité Windows › Contrôle des applications et du navigateur › Paramètres du Contrôle intelligent des applications) ou dans le Bac à sable Windows. Les programmes signés par Evactis ne sont pas touchés.',
+                  }
+                : {
+                    en: 'Check the signature (section 3). Programs signed by Evactis are accepted. A facility setup must also be signed by Evactis: if it has no Digital Signatures tab, ask Evactis for the signed setup. Do not turn Smart App Control off to run a file.',
+                    fr: 'Vérifiez la signature (section 3). Les programmes signés par Evactis sont acceptés. Le programme d’installation d’un établissement doit aussi être signé par Evactis : s’il n’a pas d’onglet Signatures numériques, demandez à Evactis la version signée. Ne désactivez pas le Contrôle intelligent des applications pour lancer un fichier.',
                   },
             ],
             [

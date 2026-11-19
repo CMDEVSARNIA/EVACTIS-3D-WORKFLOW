@@ -336,6 +336,7 @@ describe('Windows installation guide', () => {
       'EVACTIS-3DWORKFLOW-1.0.0-x64-Setup.exe /S /AllUsers /Viewer /Studio',
       'No internet connection is needed',
       'Page 1 of',
+      'Smart App Control off to run a file.',
     ])
       expect(tEn, s).toContain(s);
     for (const s of [
@@ -353,8 +354,13 @@ describe('Windows installation guide', () => {
     expect(t).toContain('TEST BUILD, NOT FOR DELIVERY');
     expect(t).toContain('Do not add the test certificate');
     expect(t).not.toContain('The signer must be "Evactis"');
+    // Smart App Control blocks test builds with no "Run anyway": the guide says where to test.
+    expect(t).toContain('Smart App Control blocked the');
+    expect(t).toContain('there is no Run anyway');
+    expect(t).toContain('Windows Sandbox');
     const tf = text(save('ig-test-fr.pdf', (await guide('fr', true)).pdf)).replace(/\s+/g, ' ');
     expect(tf).toContain('VERSION D’ESSAI, NE PAS LIVRER');
+    expect(tf).toContain('Contrôle intelligent des applications');
   });
 
   it('has every text in both languages, and the print fonts draw every character', () => {

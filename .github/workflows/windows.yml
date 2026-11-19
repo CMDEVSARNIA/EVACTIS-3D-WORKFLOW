@@ -311,6 +311,10 @@ jobs:
           certificate on a PC you use every day. Clients only ever get the release signed at
           Evactis's offline signing station.
 
+          **Smart App Control** (Windows 11) blocks test builds outright, with no *Run anyway*:
+          install on a PC where it is off (Windows Security › App & browser control) or in
+          Windows Sandbox. Never turn it off on a PC you use every day just for this.
+
           **Start here:** \`EVACTIS-3DWORKFLOW-$v-x64-Setup.exe\` installs 3DWORKFLOW Viewer,
           3DWORKFLOW Studio or both, in English or French, for you alone or for everyone on the PC.
           Step by step: the installation guide PDF (EN / FR) below.

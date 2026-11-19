@@ -40,7 +40,10 @@ same script and smoke-tested twice per runner: the Viewer per user, Studio for a
 After a green run on a push, the job "Test build on the Releases page" replaces the
 pre-release `v<version>-test` with that run's combined setup, the test-build installation
 guide (EN/FR) and `SHA256SUMS.txt`, so testers download one file that does not expire.
-It carries the test certificate and is titled "not for delivery".
+It carries the test certificate and is titled "not for delivery". Windows 11 Smart App
+Control blocks it (it accepts only certificates from authorities Microsoft trusts, and
+offers no "Run anyway"), so testers use a PC where it is off, a VM or Windows Sandbox;
+only the release signed at the offline station runs where it is on.
 
 `windows.yml` builds and signs both installers, then on Windows Server 2022 and 2025:
 NSIS per-machine, MSI per-machine (both apps) and NSIS per-user (Viewer) are each

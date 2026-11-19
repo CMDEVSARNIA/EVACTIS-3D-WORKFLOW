@@ -137,6 +137,12 @@ Viewer inside Studio; a **publisher rule for "Evactis"** covers them all. Per-fa
 setups are signed at Evactis's signing station before delivery. Nothing downloads or
 executes code at runtime, and no scripting engine is exposed.
 
+**Smart App Control** (Windows 11) runs only programs Microsoft's service already knows or
+that are signed through a certificate authority Microsoft trusts; it has no "Run anyway".
+Releases signed by Evactis pass. Test builds (signed with the CI test certificate) and
+per-facility setups not yet signed at the signing station are blocked: never turn Smart
+App Control off on a production PC to run one; ask Evactis for the signed file.
+
 ## Network and firewall
 
 Studio and the Viewer need **no network access and no firewall rules**; they may be
