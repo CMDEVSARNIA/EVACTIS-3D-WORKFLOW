@@ -44,13 +44,7 @@ import { pdfView } from './pdf.ts';
 import { Radar } from './radar.ts';
 import { SkinChrome, type FullScreenHost, type PackageInfo } from './skin.ts';
 import type { VrCommand, VrHost, VrTarget, VrUi } from './vr.ts';
-import {
-  EQUIPMENT_PREFIX,
-  equipmentHotspots,
-  planFloors,
-  planView,
-  RouteLayer,
-} from './safety.ts';
+import { EQUIPMENT_PREFIX, equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
 import { runTransition } from './transitions.ts';
 
