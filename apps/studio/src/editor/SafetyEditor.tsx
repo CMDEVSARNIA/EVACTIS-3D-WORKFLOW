@@ -24,6 +24,7 @@ import { Preview } from './Preview.tsx';
 import { SafetyExports } from './SafetyExportsBar.tsx';
 import { SafetyPlan, type Pick } from './SafetyPlan.tsx';
 import * as so from './safetyOps.ts';
+import { SizeControl } from './SizeControl.tsx';
 import type { DocumentState, DocumentStore } from './store.ts';
 import { refusal } from './useDocument.ts';
 
@@ -872,6 +873,19 @@ export function SafetyEditor({
             ))}
           </ul>
         </div>
+        <SizeControl
+          label={s.signSize}
+          hint={s.signSizeHint}
+          testId="equipment-size"
+          value={item.size ?? 1}
+          onChange={(v) =>
+            edit(
+              s.labels.editEquipment,
+              (d) => so.updateEquipment(d, item.id, { size: v === 1 ? undefined : v }),
+              `size:${item.id}`,
+            )
+          }
+        />
         {(['lastInspection', 'nextInspection'] as const).map((k) => (
           <Field key={k} label={s[k]}>
             {(id) => (

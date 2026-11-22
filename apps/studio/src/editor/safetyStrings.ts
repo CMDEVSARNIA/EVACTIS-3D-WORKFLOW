@@ -35,6 +35,9 @@ export const SAFETY = {
     descriptionEn: 'Description (English)',
     descriptionFr: 'Description (French)',
     floor: 'Floor',
+    signSize: 'Sign size',
+    signSizeHint:
+      'This item’s signs in scenes, on top of the tour’s size for equipment (Tour tab, Hotspot sizes).',
     lastInspection: 'Last inspection',
     nextInspection: 'Next inspection',
     responsible: 'Responsible person',
@@ -199,6 +202,9 @@ export const SAFETY = {
     descriptionEn: 'Description (anglais)',
     descriptionFr: 'Description (français)',
     floor: 'Étage',
+    signSize: 'Taille du panneau',
+    signSizeHint:
+      'Les panneaux de cet équipement dans les scènes, en plus de la taille de la visite pour l’équipement (onglet Visite, Taille des points d’intérêt).',
     lastInspection: 'Dernière inspection',
     nextInspection: 'Prochaine inspection',
     responsible: 'Personne responsable',

@@ -313,6 +313,23 @@ export function setHotspotTitle(env: Environment, id: string, lang: string, titl
   hotspot(env, id).title[lang] = title;
 }
 
+/** The tour's size for one kind of hotspot (links, information, equipment). */
+export function setHotspotSizes(
+  env: Environment,
+  kind: keyof Environment['settings']['hotspotSize'],
+  size: number,
+) {
+  env.settings.hotspotSize[kind] = Math.round(Math.min(2, Math.max(0.5, size)) * 100) / 100;
+}
+
+/** One hotspot's own size on top of the tour's; 100 % removes it. */
+export function setHotspotSize(env: Environment, id: string, size: number) {
+  const h = hotspot(env, id);
+  const s = Math.round(Math.min(2, Math.max(0.5, size)) * 100) / 100;
+  if (s === 1) delete h.size;
+  else h.size = s;
+}
+
 export function setHotspotAppearance(
   env: Environment,
   id: string,

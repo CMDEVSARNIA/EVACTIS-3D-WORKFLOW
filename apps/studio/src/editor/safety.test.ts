@@ -47,6 +47,11 @@ describe('safety editing operations', () => {
     // Details keep the confirmation; moving it does not.
     s.updateEquipment(env, id, { nextInspection: '2026-11-01' });
     expect(e.confirmed).toEqual(who);
+    // So does its sign size (how it looks, not where it is).
+    s.updateEquipment(env, id, { size: 1.5 });
+    expect(e).toMatchObject({ size: 1.5, confirmed: who });
+    s.updateEquipment(env, id, { size: undefined });
+    expect(e.size).toBeUndefined();
     s.placeEquipmentInScene(env, id, 'corridor', { yaw: -80, pitch: -10 });
     expect(e.confirmed).toBeUndefined();
     expect(e.placements).toHaveLength(1);

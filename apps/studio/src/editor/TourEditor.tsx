@@ -14,6 +14,7 @@ import { ActionEditor } from './ActionEditor.tsx';
 import { setTimeRange } from './contentOps.ts';
 import { suggestLinks, type LinkSuggestion } from './autolink.ts';
 import * as ops from './ops.ts';
+import { SizeControl } from './SizeControl.tsx';
 import { Preview } from './Preview.tsx';
 import type { DocumentState, DocumentStore } from './store.ts';
 import { refusal } from './useDocument.ts';
@@ -499,6 +500,19 @@ export function TourEditor({
                 )}
               </select>
             </div>
+            <SizeControl
+              label={e.size}
+              hint={e.sizeHint}
+              testId="hotspot-size"
+              value={hotspot.size ?? 1}
+              onChange={(v) =>
+                edit(
+                  e.labels.hotspotSize,
+                  (d) => ops.setHotspotSize(d, hotspot.id, v),
+                  `size:${hotspot.id}`,
+                )
+              }
+            />
             {hotspot.position.kind === 'spherical' && (
               <p className="text-sm">
                 <span className="evx-dt">{e.direction}</span> {e.degrees(hotspot.position.yaw)} ·{' '}
@@ -669,6 +683,34 @@ export function TourEditor({
               </select>
               {scene.floorId && !scene.planPosition && <p className="evx-hint">{e.placeOnPlan}</p>}
             </div>
+
+            <section aria-labelledby="sizes-title" className="grid gap-2">
+              <h3 id="sizes-title" className="evx-subheading">
+                {e.hotspotSizes}
+              </h3>
+              <p className="evx-hint">{e.hotspotSizesHint}</p>
+              {(
+                [
+                  ['links', e.sizeLinks],
+                  ['information', e.sizeInformation],
+                  ['equipment', e.sizeEquipment],
+                ] as const
+              ).map(([kind, label]) => (
+                <SizeControl
+                  key={kind}
+                  label={label}
+                  testId={`size-${kind}`}
+                  value={env.settings.hotspotSize[kind]}
+                  onChange={(v) =>
+                    edit(
+                      e.labels.hotspotSizes,
+                      (d) => ops.setHotspotSizes(d, kind, v),
+                      `sizes:${kind}`,
+                    )
+                  }
+                />
+              ))}
+            </section>
 
             <section aria-labelledby="link-style-title" className="grid gap-2">
               <h3 id="link-style-title" className="evx-subheading">

@@ -1090,3 +1090,15 @@ textarea.evx-field {
 label:has(> input:is([type='checkbox'], [type='radio'])) {
   min-block-size: 1.5rem;
 }
+
+/* Hotspot size sliders (SizeControl). */
+.evx-size {
+  inline-size: 100%;
+  min-block-size: 24px;
+  accent-color: var(--evx-accent);
+}
+.evx-size__value {
+  color: var(--evx-fg-subtle);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}

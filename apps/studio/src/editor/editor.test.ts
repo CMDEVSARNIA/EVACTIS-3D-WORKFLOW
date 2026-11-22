@@ -170,6 +170,22 @@ describe('editing operations', () => {
     valid(env);
   });
 
+  it('sizes hotspots for the whole tour and one by one, within 50 % to 200 %', () => {
+    const env = empty();
+    const a = ops.addScene(env, asset('a'));
+    const info = ops.addHotspot(env, a, { yaw: 0, pitch: 0 }, 'info');
+    expect(env.settings.hotspotSize).toEqual({ links: 1, information: 1, equipment: 1 });
+    ops.setHotspotSizes(env, 'links', 1.5);
+    ops.setHotspotSizes(env, 'equipment', 0.2);
+    ops.setHotspotSizes(env, 'information', 3);
+    expect(env.settings.hotspotSize).toEqual({ links: 1.5, information: 2, equipment: 0.5 });
+    ops.setHotspotSize(env, info, 0.7);
+    expect(ops.hotspot(env, info).size).toBe(0.7);
+    ops.setHotspotSize(env, info, 1); // 100 %: no size of its own
+    expect('size' in ops.hotspot(env, info)).toBe(false);
+    valid(env);
+  });
+
   it('refuses to remove a scene that safety content still uses', () => {
     const env = empty();
     const a = ops.addScene(env, asset('a'));

@@ -29,7 +29,10 @@ Studio makes no network requests.
    door), and they light up one chevron after another towards it; following one is a
    walk-through (the view turns to the arrow and moves on into the next scene). Each
    link's **Appearance** can be an arrow button instead; **Use floor arrows for all
-   links** (scene panel, **Link style**) converts links made before.
+   links** (scene panel, **Link style**) converts links made before. **Hotspot sizes**
+   (scene panel) makes links, information and equipment signs smaller or larger for the
+   whole tour (50 % to 200 %); a hotspot's own **Size**, and an equipment item's **Sign
+   size** (Safety tab), adjust one on top of that. Sizes never change a confirmation.
 4. **Floors**: add buildings and floors, import each plan, **Set scale** with two points
    and a known distance, set plan north, and **Place scene** on the plan (click, or Tab to
    the plan and use the arrow keys and Enter).
@@ -97,7 +100,11 @@ ne sont jamais téléversés et Studio ne fait aucune requête réseau.
    s’allument l’une après l’autre dans sa direction, et les suivre est une marche (la vue
    se tourne vers la flèche puis avance dans la scène suivante). L’**Apparence** de chaque
    lien peut aussi être un bouton flèche; **Flèches au sol pour les liens** (panneau de
-   la scène, **Style des liens**) convertit les liens créés avant.
+   la scène, **Style des liens**) convertit les liens créés avant. **Taille des points
+   d’intérêt** (panneau de la scène) réduit ou agrandit les liens, l’information et les
+   panneaux d’équipement pour toute la visite (50 % à 200 %); la **Taille** d’un point
+   d’intérêt, et la **Taille du panneau** d’un équipement (onglet Sécurité), en ajustent
+   un seul en plus. Les tailles ne retirent jamais une confirmation.
 4. **Étages** : ajoutez bâtiments et étages, importez chaque plan, **Définir l’échelle** avec
    deux points et une distance connue, réglez le nord du plan et **Placer une scène** sur le
    plan (clic, ou Tab jusqu’au plan puis flèches et Entrée).

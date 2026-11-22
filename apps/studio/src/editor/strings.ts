@@ -72,6 +72,15 @@ export const EDITOR = {
     backToEditing: 'Back to editing',
     testing: 'Testing: hotspots run their actions as the client will see them.',
     previewFailed: 'The preview could not be shown: ',
+    // Hotspot sizes
+    hotspotSizes: 'Hotspot sizes',
+    hotspotSizesHint:
+      'For the whole tour, as clients see it. Any hotspot or equipment item can also have its own size.',
+    sizeLinks: 'Links',
+    sizeInformation: 'Information and other hotspots',
+    sizeEquipment: 'Equipment signs',
+    size: 'Size',
+    sizeHint: 'On top of the tour’s size for this kind of hotspot (Hotspot sizes).',
     // Link style
     linkStyle: 'Link style',
     linkStyleHint:
@@ -226,6 +235,8 @@ export const EDITOR = {
       moveHotspot: 'Move hotspot',
       editHotspot: 'Edit hotspot',
       floorArrows: 'Floor arrows for links',
+      hotspotSizes: 'Hotspot sizes',
+      hotspotSize: 'Hotspot size',
       removeHotspot: 'Remove hotspot',
       editActions: 'Edit actions',
       addLink: 'Add link',
@@ -315,6 +326,15 @@ export const EDITOR = {
     backToEditing: 'Revenir à l’édition',
     testing: 'Test : les points d’intérêt exécutent leurs actions comme le client les verra.',
     previewFailed: 'L’aperçu n’a pas pu être affiché : ',
+    hotspotSizes: 'Taille des points d’intérêt',
+    hotspotSizesHint:
+      'Pour toute la visite, comme le client la verra. Chaque point d’intérêt ou équipement peut aussi avoir sa propre taille.',
+    sizeLinks: 'Liens',
+    sizeInformation: 'Information et autres points d’intérêt',
+    sizeEquipment: 'Panneaux d’équipement',
+    size: 'Taille',
+    sizeHint:
+      'En plus de la taille de la visite pour ce genre de point d’intérêt (Taille des points d’intérêt).',
     linkStyle: 'Style des liens',
     linkStyleHint:
       'Les nouveaux liens sont des flèches au sol, allumées l’une après l’autre vers la scène suivante, avec une marche : la vue se tourne vers le lien puis avance dans la scène suivante.',
@@ -469,6 +489,8 @@ export const EDITOR = {
       moveHotspot: 'Déplacer le point d’intérêt',
       editHotspot: 'Modifier le point d’intérêt',
       floorArrows: 'Flèches au sol pour les liens',
+      hotspotSizes: 'Taille des points d’intérêt',
+      hotspotSize: 'Taille du point d’intérêt',
       removeHotspot: 'Supprimer le point d’intérêt',
       editActions: 'Modifier les actions',
       addLink: 'Ajouter un lien',

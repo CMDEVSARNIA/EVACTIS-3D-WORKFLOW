@@ -479,6 +479,12 @@ makes network calls at runtime.
     safety green), lit towards the next scene; following one turns the view to it and
     walks on (the next scene opens zoomed in and widens). Default for new links in
     Studio; older links convert in one undoable step; VR shows the "next" button.
+89. **Hotspot sizes** (Evactis request, RC testing): `settings.hotspotSize` per kind
+    (links, information, equipment) and an optional `size` on a hotspot or equipment item,
+    multiplied and kept within 50 % to 200 %. In the scene the minimum is 24 px (WCAG 2.2,
+    assumption 77), so the kit's 44 px floor applies to the toolbar only; a large floor
+    arrow close to the reader shrinks to stay in front of the camera. Sizes are cosmetic:
+    they keep a safety confirmation. VR keeps its own fixed sizes.
 
 ## Requirements added by Evactis
 

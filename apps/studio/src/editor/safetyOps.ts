@@ -88,6 +88,7 @@ export type EquipmentDetails = Partial<
     | 'nextInspection'
     | 'responsiblePerson'
     | 'audienceIds'
+    | 'size'
   >
 >;
 
