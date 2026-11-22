@@ -130,6 +130,46 @@ describe('editing operations', () => {
     valid(env);
   });
 
+  it('makes links floor arrows with the walk-through; converts older links on request', () => {
+    const env = empty();
+    const a = ops.addScene(env, asset('a'));
+    const b = ops.addScene(env, asset('b'));
+    const link = ops.addHotspot(env, a, { yaw: 30, pitch: -25 }, 'link', { target: b });
+    expect(ops.hotspot(env, link).appearance).toEqual({ kind: 'floor-arrow' });
+    expect(ops.hotspot(env, link).actions[0]).toMatchObject({ transition: { kind: 'walk' } });
+    expect(ops.floorLinkCandidates(env)).toEqual([]);
+    // A link made before floor arrows, an info hotspot and an area link.
+    const old = ops.addHotspot(env, b, { yaw: 180, pitch: -20 }, 'link', { target: a });
+    ops.setHotspotAppearance(env, old, { kind: 'button', icon: 'next' });
+    ops.setActions(env, old, [
+      { type: 'goToScene', sceneId: a, transition: { kind: 'fade', durationMs: 800 } },
+    ]);
+    const info = ops.addHotspot(env, b, { yaw: 0, pitch: 0 }, 'info');
+    env.hotspots.push({
+      ...structuredClone(ops.hotspot(env, old)),
+      id: 'door-area',
+      position: {
+        kind: 'polygon',
+        points: [
+          { yaw: 0, pitch: 0 },
+          { yaw: 10, pitch: 0 },
+          { yaw: 10, pitch: -10 },
+        ],
+      },
+      appearance: { kind: 'area' },
+    });
+    expect(ops.floorLinkCandidates(env).map((h) => h.id)).toEqual([old]);
+    expect(ops.useFloorArrows(env)).toBe(1);
+    expect(ops.hotspot(env, old).appearance).toEqual({ kind: 'floor-arrow' });
+    expect(ops.hotspot(env, old).actions[0]).toMatchObject({
+      transition: { kind: 'walk', durationMs: 800 },
+    });
+    expect(ops.hotspot(env, info).appearance).toEqual({ kind: 'marker', marker: 'info' });
+    expect(ops.hotspot(env, 'door-area').appearance).toEqual({ kind: 'area' });
+    expect(ops.useFloorArrows(env)).toBe(0);
+    valid(env);
+  });
+
   it('refuses to remove a scene that safety content still uses', () => {
     const env = empty();
     const a = ops.addScene(env, asset('a'));

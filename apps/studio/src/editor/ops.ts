@@ -209,8 +209,34 @@ export function hotspot(env: Environment, id: string): Hotspot {
   return h;
 }
 
+/** A link's action: the walk-through (turn to the link, move on into the next scene). */
 export function goTo(sceneId: string): Action {
-  return { type: 'goToScene', sceneId, transition: { kind: 'fade', durationMs: 800 } };
+  return { type: 'goToScene', sceneId, transition: { kind: 'walk', durationMs: 800 } };
+}
+
+/** Links (hotspots that go to another scene) that can lie on the floor: not areas. */
+export function floorLinkCandidates(env: Environment): Hotspot[] {
+  return env.hotspots.filter(
+    (h) =>
+      h.position.kind !== 'polygon' &&
+      h.actions.some((a) => a.type === 'goToScene') &&
+      (h.appearance.kind !== 'floor-arrow' ||
+        h.actions.some((a) => a.type === 'goToScene' && a.transition.kind !== 'walk')),
+  );
+}
+
+/**
+ * Every link as an animated floor arrow with the walk-through transition. Returns how
+ * many links changed. Areas and other hotspots are left as they are.
+ */
+export function useFloorArrows(env: Environment): number {
+  const links = floorLinkCandidates(env);
+  for (const h of links) {
+    h.appearance = { kind: 'floor-arrow' };
+    for (const a of h.actions)
+      if (a.type === 'goToScene') a.transition = { ...a.transition, kind: 'walk' };
+  }
+  return links.length;
 }
 
 /**
@@ -258,8 +284,7 @@ export function addHotspot(
     sceneId,
     title,
     position: positionAt(at),
-    appearance:
-      kind === 'link' ? { kind: 'button', icon: 'next' } : { kind: 'marker', marker: 'info' },
+    appearance: kind === 'link' ? { kind: 'floor-arrow' } : { kind: 'marker', marker: 'info' },
     actions:
       kind === 'link'
         ? target

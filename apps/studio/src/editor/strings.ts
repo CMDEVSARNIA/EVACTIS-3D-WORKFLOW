@@ -72,6 +72,13 @@ export const EDITOR = {
     backToEditing: 'Back to editing',
     testing: 'Testing: hotspots run their actions as the client will see them.',
     previewFailed: 'The preview could not be shown: ',
+    // Link style
+    linkStyle: 'Link style',
+    linkStyleHint:
+      'New links are arrows on the floor, lit one after another towards the next scene, with a walk-through: the view turns to the link and moves on into the next scene.',
+    useFloorArrows: (n: number) =>
+      n === 1 ? 'Use floor arrows for 1 link' : `Use floor arrows for all ${n} links`,
+    allFloorArrows: 'Every link uses floor arrows',
     // Suggestions
     suggestions: 'Suggested links',
     suggestionsHint:
@@ -87,6 +94,7 @@ export const EDITOR = {
     titleFr: 'Title (French)',
     appearance: 'Appearance',
     appearances: {
+      'floor-arrow': 'Floor arrow (animated)',
       next: 'Arrow button',
       info: 'Information marker',
       'evac-route': 'Exit route marker',
@@ -217,6 +225,7 @@ export const EDITOR = {
       addHotspot: 'Add hotspot',
       moveHotspot: 'Move hotspot',
       editHotspot: 'Edit hotspot',
+      floorArrows: 'Floor arrows for links',
       removeHotspot: 'Remove hotspot',
       editActions: 'Edit actions',
       addLink: 'Add link',
@@ -306,6 +315,12 @@ export const EDITOR = {
     backToEditing: 'Revenir à l’édition',
     testing: 'Test : les points d’intérêt exécutent leurs actions comme le client les verra.',
     previewFailed: 'L’aperçu n’a pas pu être affiché : ',
+    linkStyle: 'Style des liens',
+    linkStyleHint:
+      'Les nouveaux liens sont des flèches au sol, allumées l’une après l’autre vers la scène suivante, avec une marche : la vue se tourne vers le lien puis avance dans la scène suivante.',
+    useFloorArrows: (n: number) =>
+      n === 1 ? 'Flèches au sol pour 1 lien' : `Flèches au sol pour les ${n} liens`,
+    allFloorArrows: 'Tous les liens utilisent des flèches au sol',
     suggestions: 'Liens suggérés',
     suggestionsHint:
       'D’après les positions sur le plan, le GPS de la caméra et l’ordre de prise de vue. Rien n’est lié tant que vous ne l’ajoutez pas ; vérifiez où chacun apparaît.',
@@ -320,6 +335,7 @@ export const EDITOR = {
     titleFr: 'Titre (français)',
     appearance: 'Apparence',
     appearances: {
+      'floor-arrow': 'Flèche au sol (animée)',
       next: 'Bouton flèche',
       info: 'Marqueur d’information',
       'evac-route': 'Marqueur d’itinéraire de sortie',
@@ -452,6 +468,7 @@ export const EDITOR = {
       addHotspot: 'Ajouter un point d’intérêt',
       moveHotspot: 'Déplacer le point d’intérêt',
       editHotspot: 'Modifier le point d’intérêt',
+      floorArrows: 'Flèches au sol pour les liens',
       removeHotspot: 'Supprimer le point d’intérêt',
       editActions: 'Modifier les actions',
       addLink: 'Ajouter un lien',

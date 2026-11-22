@@ -41,6 +41,7 @@ export function captureOrder(scenes: Scene[], assets: AssetRecord[]): string[] {
 }
 
 const APPEARANCES = {
+  'floor-arrow': { kind: 'floor-arrow' },
   next: { kind: 'button', icon: 'next' },
   info: { kind: 'marker', marker: 'info' },
   'evac-route': { kind: 'marker', marker: 'evac-route' },
@@ -668,6 +669,23 @@ export function TourEditor({
               </select>
               {scene.floorId && !scene.planPosition && <p className="evx-hint">{e.placeOnPlan}</p>}
             </div>
+
+            <section aria-labelledby="link-style-title" className="grid gap-2">
+              <h3 id="link-style-title" className="evx-subheading">
+                {e.linkStyle}
+              </h3>
+              <p className="evx-hint">{e.linkStyleHint}</p>
+              <button
+                type="button"
+                className="evx-cta evx-cta--ghost evx-cta--small justify-self-start"
+                disabled={testing || ops.floorLinkCandidates(env).length === 0}
+                onClick={() => edit(e.labels.floorArrows, (d) => ops.useFloorArrows(d))}
+              >
+                {ops.floorLinkCandidates(env).length
+                  ? e.useFloorArrows(ops.floorLinkCandidates(env).length)
+                  : e.allFloorArrows}
+              </button>
+            </section>
 
             <section aria-labelledby="suggest-title" className="grid gap-2">
               <h3 id="suggest-title" className="evx-subheading">
