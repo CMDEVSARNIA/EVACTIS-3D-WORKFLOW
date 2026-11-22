@@ -36,6 +36,8 @@ export interface OpenOptions {
   passphrase?: string;
   /** Hides the quick-start link (the desktop app has the PDF beside it). */
   noQuickStart?: boolean;
+  /** The desktop app's window full screen (see ViewerOptions.fullScreen). */
+  fullScreen?: ViewerOptions['fullScreen'];
 }
 
 export type OpenState = 'locked' | 'true' | 'integrity-error' | 'error';
@@ -105,6 +107,7 @@ export async function openPackage(o: OpenOptions): Promise<Viewer> {
       sceneId: module?.startSceneId ?? o.sceneId,
       skin: env.skin ?? DEFAULT_SKIN,
       kiosk: o.kiosk || m.kiosk === true,
+      fullScreen: o.fullScreen,
       learnerName: o.learnerName,
       packageInfo: {
         kind: m.kind,

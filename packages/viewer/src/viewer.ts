@@ -42,7 +42,7 @@ import { LuminanceMap } from './panorama/adaptive.ts';
 import { PanoramaRenderer, type View } from './panorama/renderer.ts';
 import { pdfView } from './pdf.ts';
 import { Radar } from './radar.ts';
-import { SkinChrome, type PackageInfo } from './skin.ts';
+import { SkinChrome, type FullScreenHost, type PackageInfo } from './skin.ts';
 import type { VrCommand, VrHost, VrTarget, VrUi } from './vr.ts';
 import { equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
@@ -104,6 +104,11 @@ export interface ViewerOptions {
   skin?: SkinInput | null;
   /** Kiosk deployment: the skin's kiosk layout (large touch targets, no full screen). */
   kiosk?: boolean;
+  /**
+   * The host's full screen, used by the toolbar's full-screen button instead of the
+   * browser's element full screen (which, in a desktop app, only fills its window).
+   */
+  fullScreen?: FullScreenHost;
   /** The learner's name (e.g. from an LMS), offered on training certificates. */
   learnerName?: string;
   /**
@@ -841,6 +846,7 @@ export class Viewer {
       get element() {
         return v.element;
       },
+      fullScreen: v.options.fullScreen ?? null,
       get environment() {
         return v.environment;
       },

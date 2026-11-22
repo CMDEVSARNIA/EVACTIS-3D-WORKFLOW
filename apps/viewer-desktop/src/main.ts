@@ -4,16 +4,18 @@ import '@evactis-3dworkflow/brand/button.css';
 import '@evactis-3dworkflow/brand/chrome.css';
 import '@evactis-3dworkflow/viewer/player.css';
 import './style.css';
-import { buttonHtml, type IconName } from '@evactis-3dworkflow/brand';
+import { buttonHtml } from '@evactis-3dworkflow/brand';
 import lockupUrl from '@evactis-3dworkflow/brand/product-lockup-plate.svg?url';
 import { openPackage, playerStrings, showProblem } from '@evactis-3dworkflow/viewer/open-package';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { STRINGS, detectLang, type Lang } from './i18n.ts';
 import {
   appInfo,
+  fullScreen,
   fullScreenKey,
   reportSmoke,
   watchNetwork,
+  windowFullScreen,
   type AppInfo,
 } from '@evactis-3dworkflow/desktop-bridge';
 
@@ -27,17 +29,10 @@ import {
  */
 const blocked = watchNetwork();
 fullScreenKey();
-const TOOLBAR: IconName[] = [
-  'home',
-  'floor-plan',
-  'evac-route',
-  'menu',
-  'info',
-  'help',
-  'sound-on',
-  'fullscreen',
-  'vr',
-];
+/** The window's full screen (a page's in a browser); null where there is none. */
+const full = fullScreen();
+/** Stops the start screen following full-screen changes once an environment is open. */
+let stopWatching: (() => void) | null = null;
 
 /** What the Rust side reports about the package it opened and checked. */
 interface Opened {
@@ -58,7 +53,10 @@ function render(version: string) {
   root.innerHTML = `
     <header class="viewer-top">
       <img class="viewer-lockup" src="${lockupUrl}" alt="EVACTIS 3DWORKFLOW" />
-      <button type="button" class="evx-cta evx-cta--ghost" id="lang">${t.language}</button>
+      <div class="viewer-controls">
+        <button type="button" class="evx-cta evx-cta--ghost" id="lang">${t.language}</button>
+        ${full ? `<span id="full">${buttonHtml({ icon: full.on ? 'fullscreen-exit' : 'fullscreen', lang })}</span>` : ''}
+      </div>
     </header>
     <main class="viewer-stage">
       <p class="evx-eyebrow">${t.eyebrow}</p>
@@ -67,10 +65,12 @@ function render(version: string) {
       <p><button type="button" class="evx-cta" id="open">${t.open}</button></p>
       <p class="viewer-offline" role="note">${t.offline}</p>
       <p class="viewer-version">${t.version} ${version}</p>
-    </main>
-    <nav class="viewer-toolbar" aria-label="${t.toolbar}">
-      ${TOOLBAR.map((icon) => buttonHtml({ icon, lang })).join('')}
-    </nav>`;
+    </main>`;
+  root.querySelector('#full button')?.addEventListener('click', () => {
+    void full?.toggle().catch(() => undefined);
+  });
+  stopWatching?.();
+  stopWatching = full?.watch(() => render(version)) ?? null;
   root.querySelector('#lang')!.addEventListener('click', () => {
     lang = lang === 'en' ? 'fr' : 'en';
     render(version);
@@ -85,6 +85,8 @@ function render(version: string) {
 
 /** The stage the environment fills (the start screen goes). */
 function stage(): HTMLElement {
+  stopWatching?.();
+  stopWatching = null;
   window.viewer?.destroy();
   delete window.viewer;
   root.innerHTML = '';
@@ -123,6 +125,8 @@ async function show(path: string | null, info: AppInfo | null): Promise<string[]
     passphrase: info?.smokePassphrase ?? undefined,
     // The quick-start PDF ships beside the package in installs and portable folders.
     noQuickStart: true,
+    // The toolbar's full-screen button fills the monitor, not just this window.
+    fullScreen: windowFullScreen() ?? undefined,
   });
   return [
     `opened ${opened.kind} package "${title}"`,

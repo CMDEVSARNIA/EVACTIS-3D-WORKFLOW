@@ -16,14 +16,21 @@ test('Studio start screen renders offline in both languages', async ({ page }) =
   await expect(page.getByRole('dialog')).toContainText('EVACTIS 3DWORKFLOW Studio');
 });
 
-test('Viewer shell renders the lockup and the kit toolbar offline', async ({ page }) => {
+test('Viewer shell renders the lockup, language and a working full-screen button offline', async ({
+  page,
+}) => {
   await page.goto(VIEWER);
   await expect(page.getByRole('img', { name: 'EVACTIS 3DWORKFLOW' })).toBeVisible();
-  const toolbar = page.getByRole('navigation');
-  await expect(toolbar.locator('.evx-btn')).toHaveCount(9);
-  await expect(toolbar.getByRole('button', { name: 'Evacuation route' })).toBeVisible();
+  // Only controls that work: no decorative toolbar on the start screen.
+  await expect(page.getByRole('navigation')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Full screen' }).click();
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+  await expect(page.getByRole('button', { name: 'Exit full screen' })).toBeVisible();
+  await page.getByRole('button', { name: 'Exit full screen' }).click();
+  await expect(page.getByRole('button', { name: 'Full screen' })).toBeVisible();
   await page.getByRole('button', { name: 'Français' }).click();
-  await expect(toolbar.getByRole('button', { name: 'Itinéraire d’évacuation' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ouvrir un environnement…' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Plein écran' })).toBeVisible();
 });
 
 // Every visible text in both themes and both languages, measured from the rendered

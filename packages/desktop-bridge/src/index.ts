@@ -67,17 +67,86 @@ export async function reportSmoke(
   });
 }
 
+/** Full screen as a button sees it: on or off, a toggle, and news of changes. */
+export interface FullScreen {
+  readonly on: boolean;
+  toggle(): Promise<void>;
+  /** Calls `changed` whenever full screen starts or ends (button, F11, Esc); returns a stop function. */
+  watch(changed: () => void): () => void;
+}
+
+let windowFull: FullScreen | null = null;
+
+/**
+ * The app window's full screen (the whole monitor, no title bar or taskbar). One shared
+ * instance, so F11 and every button agree. Needs the window's is-/set-fullscreen
+ * permissions (capabilities/default.json). Null outside the desktop app.
+ */
+export function windowFullScreen(): FullScreen | null {
+  if (!isTauri()) return null;
+  if (windowFull) return windowFull;
+  const w = getCurrentWindow();
+  const listeners = new Set<() => void>();
+  let on = false;
+  const set = (next: boolean) => {
+    if (next === on) return;
+    on = next;
+    for (const l of listeners) l();
+  };
+  // A full-screen change resizes the page, whatever caused it.
+  const check = () => void w.isFullscreen().then(set, () => undefined);
+  check();
+  addEventListener('resize', check);
+  windowFull = {
+    get on() {
+      return on;
+    },
+    async toggle() {
+      await w.setFullscreen(!on);
+      set(await w.isFullscreen());
+    },
+    watch(changed) {
+      listeners.add(changed);
+      return () => listeners.delete(changed);
+    },
+  };
+  return windowFull;
+}
+
+/**
+ * Full screen for an app's own button: the window's in the desktop app; in a browser
+ * (tests, development) the page's. Null where neither is possible.
+ */
+export function fullScreen(): FullScreen | null {
+  const win = windowFullScreen();
+  if (win) return win;
+  if (typeof document === 'undefined' || !document.fullscreenEnabled) return null;
+  return {
+    get on() {
+      return !!document.fullscreenElement;
+    },
+    async toggle() {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    },
+    watch(changed) {
+      document.addEventListener('fullscreenchange', changed);
+      return () => document.removeEventListener('fullscreenchange', changed);
+    },
+  };
+}
+
 /**
  * F11 switches the window between full screen and its usual (maximized) state, as in
- * browsers. Needs the window's set-fullscreen permission (capabilities/default.json).
+ * browsers.
  */
 export function fullScreenKey(): void {
-  if (!isTauri()) return;
+  const full = windowFullScreen();
+  if (!full) return;
   addEventListener('keydown', (e) => {
     if (e.key !== 'F11' || e.repeat) return;
     e.preventDefault();
-    const w = getCurrentWindow();
-    void w.isFullscreen().then((on) => w.setFullscreen(!on));
+    void full.toggle();
   });
 }
 

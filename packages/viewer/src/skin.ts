@@ -34,8 +34,23 @@ export interface PackageInfo {
   quickStart?: () => Promise<string>;
 }
 
+/**
+ * Full screen provided by the page hosting the Viewer. A desktop app makes its whole
+ * window full screen this way; the browser's element full screen would only fill the
+ * window it is already in.
+ */
+export interface FullScreenHost {
+  /** Whether the window is full screen now. */
+  readonly on: boolean;
+  toggle(): Promise<void>;
+  /** Calls `changed` when full screen starts or ends by any means (F11, Esc); returns a stop function. */
+  watch(changed: () => void): () => void;
+}
+
 export interface SkinHost {
   readonly element: HTMLElement;
+  /** The host's full screen, if it has one (else the browser's element full screen). */
+  readonly fullScreen: FullScreenHost | null;
   readonly environment: Environment;
   readonly sceneId: string | null;
   readonly language: string;
@@ -106,6 +121,7 @@ export class SkinChrome {
   private bp: Breakpoint | null = null;
   private resize: ResizeObserver;
   private fullscreenHandler = () => this.refresh();
+  private unwatchFullScreen: (() => void) | null = null;
 
   constructor(
     private host: SkinHost,
@@ -132,6 +148,7 @@ export class SkinChrome {
     this.resize = new ResizeObserver(() => this.layout());
     this.resize.observe(host.element);
     document.addEventListener('fullscreenchange', this.fullscreenHandler);
+    this.unwatchFullScreen = host.fullScreen?.watch(this.fullscreenHandler) ?? null;
     this.layout(true);
   }
 
@@ -256,10 +273,14 @@ export class SkinChrome {
     return plate;
   }
 
+  private isFullScreen(): boolean {
+    return this.host.fullScreen ? this.host.fullScreen.on : !!document.fullscreenElement;
+  }
+
   private available(c: SkinCommand): boolean {
     switch (c) {
       case 'fullscreen':
-        return !this.kiosk && !!document.fullscreenEnabled;
+        return !this.kiosk && (!!this.host.fullScreen || !!document.fullscreenEnabled);
       // Shown only where the browser can start a headset session.
       case 'vr':
         return this.host.vrAvailable;
@@ -330,7 +351,10 @@ export class SkinChrome {
         h.zoom(0.8);
         return;
       case 'fullscreen':
-        if (document.fullscreenElement) await document.exitFullscreen();
+        if (h.fullScreen) {
+          await h.fullScreen.toggle();
+          this.refresh();
+        } else if (document.fullscreenElement) await document.exitFullscreen();
         else await h.element.requestFullscreen?.().catch(() => undefined);
         return;
       case 'menu':
@@ -362,7 +386,7 @@ export class SkinChrome {
     for (const [c, b] of this.buttons) {
       if (c === 'sound') setButtonIcon(b, h.muted ? 'sound-off' : 'sound-on', lang);
       else if (c === 'fullscreen')
-        setButtonIcon(b, document.fullscreenElement ? 'fullscreen-exit' : 'fullscreen', lang);
+        setButtonIcon(b, this.isFullScreen() ? 'fullscreen-exit' : 'fullscreen', lang);
       else setButtonIcon(b, ICON[c], lang);
       if (c === 'evac-route') setButtonPressed(b, h.activeRouteId !== null);
       if (c === 'start-module') setButtonPressed(b, h.trainingActive);
@@ -649,6 +673,7 @@ export class SkinChrome {
   dispose(): void {
     this.resize.disconnect();
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
+    this.unwatchFullScreen?.();
     // The radar belongs to the Viewer: hand it back before the chrome goes.
     const radar = this.host.radarElement;
     if (radar && this.root.contains(radar)) this.host.element.append(radar);

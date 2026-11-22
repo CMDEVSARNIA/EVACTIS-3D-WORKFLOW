@@ -4,7 +4,6 @@ export const STRINGS = {
     title: 'See the space. Understand the plan.',
     empty: 'No environment is open. Double-click a .evx file, or open one here.',
     offline: 'This environment runs fully offline. Nothing is sent over the network.',
-    toolbar: 'Viewer controls',
     language: 'Français',
     version: 'Version',
     open: 'Open an environment…',
@@ -18,7 +17,6 @@ export const STRINGS = {
       'Aucun environnement n’est ouvert. Double-cliquez sur un fichier .evx ou ouvrez-en un ici.',
     offline:
       'Cet environnement fonctionne entièrement hors ligne. Rien n’est transmis sur le réseau.',
-    toolbar: 'Commandes du visualiseur',
     language: 'English',
     version: 'Version',
     open: 'Ouvrir un environnement…',

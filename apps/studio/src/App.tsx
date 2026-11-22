@@ -1,13 +1,9 @@
 import lockupUrl from '@evactis-3dworkflow/brand/product-lockup.svg?url';
-import {
-  setInterfaceZoom,
-  stepZoom,
-  ZOOM_STEPS,
-  type AppInfo,
-} from '@evactis-3dworkflow/desktop-bridge';
+import { setInterfaceZoom, stepZoom, type AppInfo } from '@evactis-3dworkflow/desktop-bridge';
 import { parseEnvironment, type Environment } from '@evactis-3dworkflow/schema';
 import { useEffect, useState } from 'react';
 import { AboutDialog } from './AboutDialog.tsx';
+import { AppControls, type Theme } from './AppControls.tsx';
 import { api, desktop, type ProjectInfo } from './api.ts';
 import { describeError, newProjectManifest } from './format.ts';
 import { STRINGS, detectLang, type Lang } from './i18n.ts';
@@ -16,8 +12,6 @@ import { NewProjectDialog } from './NewProjectDialog.tsx';
 import { Workspace } from './Workspace.tsx';
 
 const ZOOM_KEY = 'evx-studio-zoom';
-
-type Theme = 'dark' | 'light';
 
 export function App({
   info,
@@ -118,53 +112,25 @@ export function App({
     setOpen(null);
   }
 
+  const controls = (
+    <AppControls
+      t={t}
+      theme={theme}
+      setTheme={setTheme}
+      onLanguage={() => setLang(lang === 'en' ? 'fr' : 'en')}
+      zoom={zoom}
+      setZoom={setZoom}
+    />
+  );
+
   return (
     <div className="evx-chrome flex h-full flex-col overflow-hidden" data-theme={theme}>
-      <header className="evx-topbar">
-        <img src={lockupUrl} alt="EVACTIS 3DWORKFLOW" className="h-11" />
-        <div className="flex gap-3">
-          <button
-            type="button"
-            className="evx-cta evx-cta--ghost text-navy"
-            onClick={() => setLang(lang === 'en' ? 'fr' : 'en')}
-          >
-            {t.language}
-          </button>
-          <button
-            type="button"
-            className="evx-cta evx-cta--ghost text-navy"
-            aria-pressed={theme === 'light'}
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          >
-            {t.theme}
-          </button>
-          <div className="evx-zoom" role="group" aria-label={t.zoomLevel(Math.round(zoom * 100))}>
-            <button
-              type="button"
-              className="evx-cta evx-cta--ghost text-navy"
-              aria-label={`A− ${t.zoomOut}`}
-              title={t.zoomOut}
-              disabled={zoom <= ZOOM_STEPS[0]}
-              onClick={() => setZoom((z) => stepZoom(z, -1))}
-            >
-              A−
-            </button>
-            <span className="evx-zoom__level" aria-hidden="true">
-              {Math.round(zoom * 100)} %
-            </span>
-            <button
-              type="button"
-              className="evx-cta evx-cta--ghost text-navy"
-              aria-label={`A+ ${t.zoomIn}`}
-              title={t.zoomIn}
-              disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!}
-              onClick={() => setZoom((z) => stepZoom(z, 1))}
-            >
-              A+
-            </button>
-          </div>
-        </div>
-      </header>
+      {!open_ && (
+        <header className="evx-topbar">
+          <img src={lockupUrl} alt="EVACTIS 3DWORKFLOW" className="h-11" />
+          {controls}
+        </header>
+      )}
 
       {open_ ? (
         <Workspace
@@ -174,6 +140,7 @@ export function App({
           project={open_.project}
           environment={open_.env}
           onClose={() => void close()}
+          controls={controls}
           initialImport={smokeImport ? [smokeImport] : undefined}
           onSmoke={onSmoke}
         />

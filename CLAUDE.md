@@ -461,6 +461,15 @@ makes network calls at runtime.
     each program keeps its own Apps entry, uninstaller and upgrade path. It does not add
     the installation guide to the Start menu (it could not remove it again). The six
     separate installers stay for IT.
+86. **Studio fits the window** (RC testing, 2026-11): no page scrolling (long lists scroll
+    in their panel), resizable side panels and an interface size (A−/A+, Ctrl −/+/0),
+    both remembered per computer. With a project open, the website-style header and the
+    project bar become one slim bar over underlined tabs (~90 px instead of ~215 px). Full
+    screen is a button as well as F11 in both apps; in the desktop apps it is the
+    window's full screen (the Viewer's toolbar button uses it through
+    `ViewerOptions.fullScreen`), never the browser's element full screen, which only
+    fills the window. The desktop Viewer's start screen shows only working controls (the
+    decorative kit toolbar is gone).
 
 ## Requirements added by Evactis
 

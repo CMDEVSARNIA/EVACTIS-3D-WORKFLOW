@@ -250,3 +250,22 @@ for (const bg of ['gradient', 'bright', 'dark', 'busy'] as const) {
     });
   }
 }
+
+test.describe('full screen provided by the host (the desktop Viewer)', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('the toolbar button uses the host’s full screen and follows changes made elsewhere', async ({
+    page,
+  }) => {
+    await open(page, '&host-fullscreen');
+    const toolbar = page.getByRole('navigation');
+    await toolbar.getByRole('button', { name: 'Full screen' }).click();
+    await expect(page.locator('body')).toHaveAttribute('data-host-fullscreen', 'true');
+    // The window goes full screen, not the Viewer element inside it.
+    expect(await page.evaluate(() => document.fullscreenElement)).toBeNull();
+    await expect(toolbar.getByRole('button', { name: 'Exit full screen' })).toBeVisible();
+    // F11 or Esc in the app: the button follows.
+    await page.evaluate(() => window.setHostFullScreen!(false));
+    await expect(toolbar.getByRole('button', { name: 'Full screen' })).toBeVisible();
+  });
+});

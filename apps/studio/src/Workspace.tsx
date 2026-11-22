@@ -2,8 +2,11 @@
  * An open project: the document store (undo/redo, autosave), the project header and
  * its sections — Tour, Floors, Safety, Content, Training, Skin, Media and Versions.
  */
+import lockupUrl from '@evactis-3dworkflow/brand/product-lockup.svg?url';
+import plateUrl from '@evactis-3dworkflow/brand/product-lockup-plate.svg?url';
 import type { Environment } from '@evactis-3dworkflow/schema';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ICONS, ToolIcon } from './AppControls.tsx';
 import { api, type AssetRecord, type ProjectInfo } from './api.ts';
 import { FloorsEditor } from './editor/FloorsEditor.tsx';
 import { ContentEditor } from './editor/ContentEditor.tsx';
@@ -43,6 +46,7 @@ export function Workspace({
   project,
   environment,
   onClose,
+  controls,
   initialImport,
   onSmoke,
 }: {
@@ -51,6 +55,8 @@ export function Workspace({
   project: ProjectInfo;
   environment: Environment;
   onClose: () => void;
+  /** Language, theme, interface size and full screen (AppControls). */
+  controls?: ReactNode;
   initialImport?: string[];
   onSmoke?: (r: SmokeResult) => void;
 }) {
@@ -105,21 +111,65 @@ export function Workspace({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="evx-projectbar">
-        <div className="min-w-0">
-          <h1 className="evx-heading truncate text-2xl" data-testid="project-name">
-            {project.name}
-          </h1>
-          <p
-            role="status"
-            className={`evx-save evx-save--${doc.status}`}
-            data-testid="save-status"
-            data-status={doc.status}
-          >
-            {statusText}
-          </p>
+      {/* One slim bar (brand, project, actions, app controls) over the section tabs. */}
+      <header className="evx-projectbar">
+        <div className="evx-appbar">
+          {/* On the dark theme the lockup sits on its paper plate (brand rule). */}
+          <img src={plateUrl} alt="EVACTIS 3DWORKFLOW" className="evx-appbar__lockup--dark" />
+          <img src={lockupUrl} alt="EVACTIS 3DWORKFLOW" className="evx-appbar__lockup--light" />
+          <span className="evx-appbar__divider" aria-hidden="true" />
+          <div className="evx-appbar__project">
+            <h1 className="evx-appbar__name" data-testid="project-name" title={project.name}>
+              {project.name}
+            </h1>
+            <p
+              role="status"
+              className={`evx-save evx-save--${doc.status}`}
+              data-testid="save-status"
+              data-status={doc.status}
+            >
+              {statusText}
+            </p>
+          </div>
+          <div className="evx-appbar__actions">
+            <button
+              type="button"
+              className="evx-tool"
+              disabled={!doc.undoLabel}
+              aria-label={e.undo}
+              title={doc.undoLabel ? e.undoWhat(doc.undoLabel) : e.nothingToUndo}
+              aria-keyshortcuts="Control+Z"
+              onClick={() => store.undo()}
+            >
+              <ToolIcon d={ICONS.undo} />
+            </button>
+            <button
+              type="button"
+              className="evx-tool"
+              disabled={!doc.redoLabel}
+              aria-label={e.redo}
+              title={doc.redoLabel ? e.redoWhat(doc.redoLabel) : e.nothingToRedo}
+              aria-keyshortcuts="Control+Y"
+              onClick={() => store.redo()}
+            >
+              <ToolIcon d={ICONS.redo} />
+            </button>
+            <PackageDialog t={t} lang={lang} env={doc.env} />
+            <span className="evx-appbar__divider" aria-hidden="true" />
+            {controls}
+            <span className="evx-appbar__divider" aria-hidden="true" />
+            <button
+              type="button"
+              className="evx-tool"
+              disabled={closing}
+              onClick={() => void close()}
+            >
+              <ToolIcon d={ICONS.close} />
+              {t.closeProject}
+            </button>
+          </div>
         </div>
-        <div className="evx-tabs" role="tablist" aria-label={e.tabsLabel}>
+        <div className="evx-tabbar" role="tablist" aria-label={e.tabsLabel}>
           {TABS.map((id) => (
             <button
               key={id}
@@ -142,38 +192,7 @@ export function Workspace({
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <PackageDialog t={t} lang={lang} env={doc.env} />
-          <button
-            type="button"
-            className="evx-cta evx-cta--ghost evx-cta--small"
-            disabled={!doc.undoLabel}
-            title={doc.undoLabel ? e.undoWhat(doc.undoLabel) : e.nothingToUndo}
-            aria-keyshortcuts="Control+Z"
-            onClick={() => store.undo()}
-          >
-            {e.undo}
-          </button>
-          <button
-            type="button"
-            className="evx-cta evx-cta--ghost evx-cta--small"
-            disabled={!doc.redoLabel}
-            title={doc.redoLabel ? e.redoWhat(doc.redoLabel) : e.nothingToRedo}
-            aria-keyshortcuts="Control+Y"
-            onClick={() => store.redo()}
-          >
-            {e.redo}
-          </button>
-          <button
-            type="button"
-            className="evx-cta evx-cta--ghost evx-cta--small"
-            disabled={closing}
-            onClick={() => void close()}
-          >
-            {t.closeProject}
-          </button>
-        </div>
-      </div>
+      </header>
 
       <div
         role="tabpanel"

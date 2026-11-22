@@ -52,8 +52,9 @@ the pass mark and can save a certificate (it carries the name you type). The
 
 ### Other controls
 
-**Information** (the environment, its date and package check), **Sound**, **Full screen**,
-**VR** where your device supports it, and the language button (**FR** / **EN**).
+**Information** (the environment, its date and package check), **Sound**, **Full screen**
+(in the 3DWORKFLOW Viewer app it fills the whole screen; F11 does the same; not offered
+on kiosks), **VR** where your device supports it, and the language button (**FR** / **EN**).
 
 ### Accessibility
 
@@ -118,8 +119,9 @@ tapez). La **Liste de vérification** montre ce qui reste à faire.
 
 ### Autres commandes
 
-**Information** (l’environnement, sa date et sa vérification), **Son**, **Plein écran**,
-**RV** si votre appareil le permet, et le bouton de langue (**EN** / **FR**).
+**Information** (l’environnement, sa date et sa vérification), **Son**, **Plein écran**
+(dans l’application 3DWORKFLOW Viewer, il occupe tout l’écran; F11 fait de même; absent
+des bornes), **RV** si votre appareil le permet, et le bouton de langue (**EN** / **FR**).
 
 ### Accessibilité
 

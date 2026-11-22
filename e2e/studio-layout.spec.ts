@@ -120,3 +120,16 @@ test('the interface size changes with A- / A+ and Ctrl - / + / 0, and is remembe
   await page.keyboard.press('Control+0');
   expect(await zoom()).toBe('1');
 });
+
+test('the project bar is slim, and full screen is a button as well as F11', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await openDemo(page);
+  // Logo, project, actions and app controls in one row over the tabs: under 100 px.
+  const bar = (await page.locator('.evx-projectbar').boundingBox())!;
+  expect(bar.y + bar.height).toBeLessThan(100);
+  await page.getByRole('button', { name: 'Full screen (F11)' }).click();
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+  await page.getByRole('button', { name: 'Exit full screen (F11)' }).click();
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+  await expect(page.getByRole('button', { name: 'Full screen (F11)' })).toBeVisible();
+});

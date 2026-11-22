@@ -6,6 +6,8 @@ export const DEMO = 'http://127.0.0.1:4176/index.html';
 declare global {
   interface Window {
     viewer: import('../packages/viewer/src/index.ts').Viewer;
+    /** Demo page with ?host-fullscreen: full screen changed by the host (F11). */
+    setHostFullScreen?: (on: boolean) => void;
   }
 }
 

@@ -49,7 +49,10 @@ Studio makes no network requests.
 **Undo/redo**: Ctrl+Z / Ctrl+Y. Studio saves automatically; **Versions** keeps snapshots
 (on open and every 10 minutes) you can restore.
 
-**Fitting the window**: Studio opens maximized; F11 switches full screen. Each tab fits
+**Fitting the window**: Studio opens maximized. The full-screen button at the top right
+(or F11) fills the whole screen; press it again, or F11, to return. With a project open,
+one slim bar holds the project, Undo/Redo, **Package…**, the language, light/dark and
+interface-size controls and **Close project**, above the section tabs. Each tab fits
 the window, and only a long list or inspector scrolls inside its own panel. Drag the
 divider beside a side panel (or focus it and use the arrow keys; double-click resets) to
 make it wider or narrower. **A− / A+** in the top bar (or Ctrl − / Ctrl + / Ctrl 0)
@@ -112,8 +115,11 @@ ne sont jamais téléversés et Studio ne fait aucune requête réseau.
 conserve des instantanés (à l’ouverture et toutes les 10 minutes) que vous pouvez
 restaurer.
 
-**Adapter à la fenêtre** : Studio s’ouvre agrandi; F11 passe en plein écran. Chaque
-onglet tient dans la fenêtre; seule une longue liste ou un inspecteur défile dans son
+**Adapter à la fenêtre** : Studio s’ouvre agrandi. Le bouton plein écran en haut à
+droite (ou F11) occupe tout l’écran; appuyez de nouveau, ou sur F11, pour revenir. Avec
+un projet ouvert, une seule barre mince réunit le projet, Annuler/Rétablir,
+**Empaqueter…**, la langue, le clair/sombre, la taille de l’interface et **Fermer le
+projet**, au-dessus des onglets. Chaque onglet tient dans la fenêtre; seule une longue liste ou un inspecteur défile dans son
 propre panneau. Faites glisser le séparateur à côté d’un panneau latéral (ou placez-y le
 focus et utilisez les flèches; un double-clic rétablit) pour l’élargir ou le rétrécir.
 **A− / A+** dans la barre du haut (ou Ctrl − / Ctrl + / Ctrl 0) réduisent ou agrandissent

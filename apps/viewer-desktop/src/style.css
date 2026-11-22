@@ -6,13 +6,19 @@ body,
 }
 #app {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr;
 }
 .viewer-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
+}
+.viewer-controls {
+  --evx-btn-size: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .viewer-lockup {
   block-size: 52px;
@@ -34,11 +40,6 @@ body,
   color: var(--evx-fg-subtle);
   font-size: 0.875rem;
 }
-.viewer-toolbar {
-  --evx-btn-size: 64px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-  padding: 16px;
+.viewer-controls .evx-cta {
+  min-block-size: 44px;
 }

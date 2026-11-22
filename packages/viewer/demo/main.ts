@@ -1,13 +1,40 @@
 import { DEFAULT_SKIN } from '@evactis-3dworkflow/schema';
 import { paintBackdrop, BACKDROPS, type BackdropName } from '../../brand/sheet/backdrops.ts';
-import { createViewer, type Viewer } from '../src/index.ts';
+import { createViewer, type FullScreenHost, type Viewer } from '../src/index.ts';
 import './demo.css';
 
 declare global {
   interface Window {
     viewer?: Viewer;
     viewerError?: string;
+    /** ?host-fullscreen: what F11 does in the desktop app (full screen changed elsewhere). */
+    setHostFullScreen?: (on: boolean) => void;
   }
+}
+
+/**
+ * Stands in for the desktop app's window full screen (?host-fullscreen): the state shows
+ * on <body data-host-fullscreen>, so tests see the toolbar used the host's full screen.
+ */
+function hostFullScreen(): FullScreenHost {
+  const listeners = new Set<() => void>();
+  let on = false;
+  const set = (next: boolean) => {
+    on = next;
+    document.body.dataset.hostFullscreen = String(on);
+    for (const l of listeners) l();
+  };
+  window.setHostFullScreen = set;
+  return {
+    get on() {
+      return on;
+    },
+    toggle: async () => set(!on),
+    watch(changed) {
+      listeners.add(changed);
+      return () => listeners.delete(changed);
+    },
+  };
 }
 
 /**
@@ -16,6 +43,7 @@ declare global {
  *   ?kiosk                      kiosk layout (large touch targets, no full screen)
  *   ?no-skin                    panorama and hotspots only
  *   ?bg=gradient|bright|dark|busy  legibility tests: the skin over a test backdrop
+ *   ?host-fullscreen            full screen provided by the host page (as the desktop app)
  */
 const params = new URLSearchParams(location.search);
 const stage = document.getElementById('stage')!;
@@ -32,6 +60,7 @@ try {
     editing: params.has('editing') || undefined,
     skin: params.has('no-skin') ? null : (env.skin ?? DEFAULT_SKIN),
     kiosk: params.has('kiosk'),
+    fullScreen: params.has('host-fullscreen') ? hostFullScreen() : undefined,
   });
   window.viewer = viewer;
   document.documentElement.lang = viewer.language;
