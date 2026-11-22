@@ -98,6 +98,10 @@ export function standaloneSvg(svg: string, width: number): { markup: string; hei
 
 /** The kit artwork of a hotspot element (the DOM hotspot the screen shows). */
 export function artOf(el: Element): VrArt {
+  // Floor arrows are drawn on the screen's floor; in the headset a link shows as the
+  // kit's "next" button where it points.
+  if (el.classList.contains('evx-viewer__floor-arrow'))
+    return { svg: iconSvg('next', { color: PAPER, accent: GREEN }), plate: true };
   if (el.classList.contains('evx-btn')) {
     const icon = (el as HTMLElement).dataset.icon as IconName;
     return { svg: iconSvg(icon, { color: PAPER, accent: GREEN }), plate: true };

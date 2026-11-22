@@ -120,6 +120,56 @@
   stroke: var(--evx-green);
   outline: none;
 }
+/*
+ * Floor arrows (links): three chevrons lying on the floor, white with a navy edge so they
+ * read on light and dark floors, never the safety green of evacuation routes. A highlight
+ * runs from the nearest chevron to the farthest: the way to go.
+ */
+.evx-viewer__hotspot.evx-viewer__floor-arrow {
+  pointer-events: auto;
+  cursor: pointer;
+  outline: none;
+}
+.evx-viewer__floor-arrow-hit {
+  fill: rgb(255 255 255 / 0);
+  stroke: none;
+}
+.evx-viewer__floor-chevron {
+  fill: var(--evx-white);
+  fill-opacity: 0.6;
+  stroke: var(--evx-navy);
+  stroke-opacity: 0.9;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  pointer-events: none;
+  animation: evx-floor-arrow 1.6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.22s);
+}
+@keyframes evx-floor-arrow {
+  0%,
+  70%,
+  100% {
+    fill-opacity: 0.6;
+  }
+  30% {
+    fill-opacity: 1;
+  }
+}
+.evx-viewer__floor-arrow:hover .evx-viewer__floor-chevron,
+.evx-viewer__floor-arrow:focus-visible .evx-viewer__floor-chevron {
+  fill-opacity: 1;
+  stroke-width: 3.5;
+}
+.evx-viewer__floor-arrow:focus-visible .evx-viewer__floor-arrow-hit,
+.evx-viewer__floor-arrow.evx-viewer__hotspot--selected .evx-viewer__floor-arrow-hit {
+  fill: rgb(113 176 67 / 0.16);
+  stroke: var(--evx-green);
+  stroke-width: 3;
+}
+.evx-viewer__hotspots--still .evx-viewer__floor-chevron {
+  animation: none;
+  fill-opacity: 0.9;
+}
 .evx-viewer__live {
   position: absolute;
   inline-size: 1px;

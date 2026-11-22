@@ -155,6 +155,12 @@ export const HotspotAppearanceSchema = z.discriminatedUnion('kind', [
   }),
   z.object({ kind: z.literal('label'), text: LocalizedTextSchema }),
   z.object({ kind: z.literal('area') }),
+  /**
+   * Links: chevrons lying on the floor where the position points (the floor 1.6 m below
+   * the eye), pointing away from the reader, with a highlight running towards the
+   * destination. White and navy, never the safety green of evacuation routes.
+   */
+  z.object({ kind: z.literal('floor-arrow') }),
 ]);
 export type HotspotAppearance = z.infer<typeof HotspotAppearanceSchema>;
 

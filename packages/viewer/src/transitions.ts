@@ -4,6 +4,9 @@ import type { Transition } from '@evactis-3dworkflow/schema';
  * Scene transitions, composited in the DOM over the WebGL canvas: the outgoing frame is
  * snapshotted into an overlay, the new scene renders underneath, and the overlay
  * animates away. Reduced motion turns zoom and walk into a short fade.
+ *
+ * Walk (the walk-through): the Viewer has already turned to face the link, so the old
+ * view pushes forward from the centre and fades while the new scene widens behind it.
  */
 export async function runTransition(
   overlay: HTMLElement,
@@ -38,12 +41,13 @@ export async function runTransition(
         : kind === 'walk'
           ? [
               { transform: 'scale(1)', opacity: 1, filter: 'blur(0)' },
-              { transform: 'scale(1.35)', opacity: 0, filter: 'blur(3px)' },
+              { transform: 'scale(1.25)', opacity: 0.85, filter: 'blur(0.5px)', offset: 0.35 },
+              { transform: 'scale(1.7)', opacity: 0, filter: 'blur(2px)' },
             ]
           : [{ opacity: 1 }, { opacity: 0 }];
     if (typeof snapshot.animate === 'function') {
-      await snapshot.animate(frames, { duration, easing: 'ease-in-out', fill: 'forwards' })
-        .finished;
+      const easing = kind === 'walk' ? 'cubic-bezier(0.4, 0, 0.6, 1)' : 'ease-in-out';
+      await snapshot.animate(frames, { duration, easing, fill: 'forwards' }).finished;
     }
   } finally {
     overlay.replaceChildren();

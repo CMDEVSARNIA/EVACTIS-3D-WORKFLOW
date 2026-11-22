@@ -5,6 +5,53 @@ import type { PanoramaRenderer } from './panorama/renderer.ts';
 import { createSymbol, type SymbolAppearance } from './safety.ts';
 
 const SVG = 'http://www.w3.org/2000/svg';
+const DEG = Math.PI / 180;
+
+/** Eye height above the floor in panoramas (metres), as for links and route chevrons. */
+const EYE = 1.6;
+/** One chevron in metres on the floor: u across, v along the way (tip at +v). */
+const CHEVRON: [number, number][] = [
+  [-0.5, -0.22],
+  [0, 0.28],
+  [0.5, -0.22],
+  [0.5, -0.5],
+  [0, 0],
+  [-0.5, -0.5],
+];
+/** Where the three chevrons sit along the way, around the hotspot's floor point. */
+const CHEVRON_STEPS = [-0.65, 0, 0.65];
+/** The area that takes clicks: the three chevrons with a margin. */
+const HIT: [number, number][] = [
+  [-0.7, -1.3],
+  [0.7, -1.3],
+  [0.7, 1.05],
+  [-0.7, 1.05],
+];
+
+/**
+ * Directions (yaw/pitch) of points on the floor around a hotspot pointing at the floor:
+ * the shape is laid flat at that spot, facing away from the reader, so the renderer
+ * projects it in true perspective. Directions at or above the horizon are taken as a
+ * spot 8 m away; very near ones as 1.2 m (the arrow stays whole and clickable).
+ */
+export function floorShape(
+  yaw: number,
+  pitch: number,
+  shape: [number, number][],
+  along = 0,
+): { yaw: number; pitch: number }[] {
+  const d = Math.min(8, Math.max(1.2, pitch < -1 ? EYE / Math.tan(-pitch * DEG) : 8));
+  // Far arrows are drawn larger so they stay readable and easy to hit: seen along the
+  // floor, their depth shrinks much faster than their width.
+  const s = Math.min(2.4, Math.max(0.8, d / 2.4));
+  const f = [Math.sin(yaw * DEG), Math.cos(yaw * DEG)];
+  const r = [f[1]!, -f[0]!];
+  return shape.map(([u, v]) => {
+    const x = f[0]! * (d + (v + along) * s) + r[0]! * u * s;
+    const z = f[1]! * (d + (v + along) * s) + r[1]! * u * s;
+    return { yaw: Math.atan2(x, z) / DEG, pitch: -Math.atan2(EYE, Math.hypot(x, z)) / DEG };
+  });
+}
 
 /**
  * DOM layer of hotspots over the panorama, built from the Evactis kit (buttons, round
@@ -37,6 +84,11 @@ export class HotspotLayer {
     this.areas.setAttribute('class', 'evx-viewer__areas');
     this.el.append(this.areas);
     host.append(this.el);
+  }
+
+  /** Reduced motion: floor arrows keep their highlight still. */
+  set still(on: boolean) {
+    this.el.classList.toggle('evx-viewer__hotspots--still', on);
   }
 
   /** Replaces the hotspots shown (already filtered for scene, audience and conditions). */
@@ -105,7 +157,9 @@ export class HotspotLayer {
     const label = localize(h.title, lang);
     const a = h.appearance;
     let el: HTMLElement | SVGElement;
-    if (a.kind === 'area') {
+    if (a.kind === 'floor-arrow') {
+      el = this.floorArrow(h, label);
+    } else if (a.kind === 'area') {
       const poly = document.createElementNS(SVG, 'polygon');
       poly.setAttribute('class', 'evx-viewer__area');
       poly.setAttribute('tabindex', '0');
@@ -147,10 +201,78 @@ export class HotspotLayer {
     return el;
   }
 
+  /**
+   * A link drawn on the floor: three chevrons (white, navy edge) over a wider invisible
+   * hit area, one focusable button for keyboards and screen readers.
+   */
+  private floorArrow(h: Hotspot, label: string): SVGGElement {
+    const g = document.createElementNS(SVG, 'g');
+    g.setAttribute('class', 'evx-viewer__hotspot evx-viewer__floor-arrow');
+    g.setAttribute('tabindex', '0');
+    g.setAttribute('role', 'button');
+    g.setAttribute('aria-label', label);
+    const title = document.createElementNS(SVG, 'title');
+    title.textContent = label;
+    const hit = document.createElementNS(SVG, 'polygon');
+    hit.setAttribute('class', 'evx-viewer__floor-arrow-hit');
+    g.append(title, hit);
+    CHEVRON_STEPS.forEach((_, i) => {
+      const c = document.createElementNS(SVG, 'polygon');
+      c.setAttribute('class', 'evx-viewer__floor-chevron');
+      c.style.setProperty('--i', String(i));
+      g.append(c);
+    });
+    g.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.activate(h);
+      }
+    });
+    this.areas.append(g);
+    return g;
+  }
+
+  /** Lays a floor arrow out for the current camera; false when it cannot be seen whole. */
+  private placeFloorArrow(g: SVGElement, yaw: number, pitch: number): boolean {
+    const toScreen = (pts: { yaw: number; pitch: number }[]) => {
+      const out = pts.map((q) => this.renderer.project(q.yaw, q.pitch));
+      return out.some((q) => !q)
+        ? null
+        : out.map((q) => `${q!.x.toFixed(1)},${q!.y.toFixed(1)}`).join(' ');
+    };
+    const hit = toScreen(floorShape(yaw, pitch, HIT));
+    if (!hit) return false;
+    const polys = g.querySelectorAll('polygon');
+    polys[0]!.setAttribute('points', hit);
+    for (let i = 0; i < CHEVRON_STEPS.length; i++) {
+      const pts = toScreen(floorShape(yaw, pitch, CHEVRON, CHEVRON_STEPS[i]));
+      if (!pts) return false;
+      polys[i + 1]!.setAttribute('points', pts);
+    }
+    return true;
+  }
+
   /** Repositions every hotspot for the current camera. Called after each rendered frame. */
   update(): void {
     for (const { hotspot: h, el } of this.items) {
       const p = h.position;
+      if (h.appearance.kind === 'floor-arrow' && p.kind !== 'polygon') {
+        const dir =
+          this.drag?.id === h.id
+            ? this.renderer.unproject(this.drag.x, this.drag.y)
+            : p.kind === 'world'
+              ? this.renderer.toView(p)
+              : p;
+        const shown = this.placeFloorArrow(el as SVGElement, dir.yaw, dir.pitch);
+        const box = shown ? (el as SVGGraphicsElement).getBBox?.() : null;
+        const w = this.el.clientWidth;
+        const hgt = this.el.clientHeight;
+        const off =
+          !shown ||
+          (!!box && (box.x + box.width < 0 || box.y + box.height < 0 || box.x > w || box.y > hgt));
+        el.classList.toggle('evx-viewer__hotspot--offscreen', off);
+        continue;
+      }
       if (p.kind === 'spherical' || p.kind === 'world') {
         // World points (GLB and splat scenes) are seen from the viewpoint, like directions.
         const dir = p.kind === 'world' ? this.renderer.toView(p) : p;

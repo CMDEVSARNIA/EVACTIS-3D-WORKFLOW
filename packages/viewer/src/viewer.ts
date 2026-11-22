@@ -155,6 +155,8 @@ export interface GoToOptions {
   view?: Partial<View>;
   /** Screen point the transition moves towards (e.g. the clicked hotspot). */
   towards?: { x: number; y: number } | null;
+  /** Direction of the link followed: the walk-through turns to it before moving on. */
+  aim?: { yaw: number; pitch: number } | null;
   /**
    * Arriving through a link: without an authored `view`, face on in the direction of
    * travel (away from the link back) instead of the scene's start view.
@@ -163,6 +165,8 @@ export interface GoToOptions {
 }
 
 const EXTERNAL = /^[a-z][a-z0-9+.-]*:/i;
+/** Walk-through: the next scene opens at this share of its field of view, then widens. */
+const WALK_ARRIVAL_FOV = 0.72;
 
 /** Direction of a hotspot's centre (polygons: the vertex average; world points: from the viewpoint). */
 function hotspotCentre(h: Hotspot, r: PanoramaRenderer): { yaw: number; pitch: number } | null {
@@ -575,12 +579,13 @@ export class Viewer {
     actions: Action[],
     hotspotId: string | null = null,
     towards: { x: number; y: number } | null = null,
+    aim: { yaw: number; pitch: number } | null = null,
   ) {
     for (const action of actions) {
       if (this.destroyed) return;
       if (!this.state.test(action.condition)) continue;
       this.events.emit('action', { action, hotspotId });
-      await this.run(action, towards);
+      await this.run(action, towards, aim);
     }
   }
 
@@ -1174,6 +1179,8 @@ export class Viewer {
   }
 
   private refreshHotspots() {
+    // Still while authoring (placing needs a steady picture) and with reduced motion.
+    this.hotspots.still = this.reducedMotion || !!this.options.editing;
     this.hotspots.set(this.visibleHotspots(), this.lang);
     this.vr?.ui.refresh();
     this.hotspots.select(this.selected);
@@ -1215,13 +1222,28 @@ export class Viewer {
         : (opts.transition?.kind ?? (previous ? 'fade' : 'cut')),
       durationMs: opts.transition?.durationMs ?? 800,
     };
+    // Walk-through: turn to face the link, then move forward through it into the next
+    // scene, which opens slightly zoomed in and widens (the sense of having walked on).
+    const walking = transition.kind === 'walk' && !this.reducedMotion && !!previous;
+    let towards = opts.towards ?? null;
+    const dir = opts.aim ?? (towards ? this.renderer.unproject(towards.x, towards.y) : null);
+    if (walking && dir) {
+      const now = this.getView();
+      const turn = Math.hypot(yawDelta(now.yaw, dir.yaw), dir.pitch - now.pitch);
+      if (turn > 4)
+        await this.lookAt(
+          { yaw: dir.yaw, pitch: clamp(dir.pitch * 0.4, -20, 10) },
+          clamp(turn * 5, 180, 450),
+        );
+      towards = null; // straight ahead now
+    }
     const snapshot = previous && transition.kind !== 'cut' ? this.renderer.snapshot() : null;
     await runTransition(
       this.overlay,
       snapshot,
       transition,
       this.reducedMotion,
-      opts.towards ?? null,
+      towards,
       async () => {
         const media = this.layers.media(scene.id, scene.media);
         await this.renderer.show(media, this.assetUrl, scene.viewpoint);
@@ -1234,7 +1256,12 @@ export class Viewer {
           ...(ahead === null ? {} : { yaw: ahead, pitch: 0 }),
           ...opts.view,
         };
-        this.renderer.setView({ yaw: wrapYaw(v.yaw), pitch: v.pitch, fov: v.fov });
+        this.renderer.setView({
+          yaw: wrapYaw(v.yaw),
+          pitch: v.pitch,
+          fov: walking ? v.fov * WALK_ARRIVAL_FOV : v.fov,
+        });
+        if (walking) void this.lookAt({ fov: v.fov }, transition.durationMs);
         this.sceneExtras(scene);
         this.refreshHotspots();
         this.refreshRoute();
@@ -1257,7 +1284,7 @@ export class Viewer {
     const towards = r
       ? { x: r.left + r.width / 2 - host.left, y: r.top + r.height / 2 - host.top }
       : null;
-    await this.runActions(h.actions, h.id, towards);
+    await this.runActions(h.actions, h.id, towards, hotspotCentre(h, this.renderer));
   }
 
   /** A document for the PDF reader: the package's bytes when it gives them, else a URL. */
@@ -1284,7 +1311,11 @@ export class Viewer {
     }
   }
 
-  private async run(action: Action, towards: { x: number; y: number } | null): Promise<void> {
+  private async run(
+    action: Action,
+    towards: { x: number; y: number } | null,
+    aim: { yaw: number; pitch: number } | null = null,
+  ): Promise<void> {
     const L = (t: Record<string, string> | undefined) => localize(t, this.lang);
     const t = uiStrings(this.lang);
     switch (action.type) {
@@ -1293,6 +1324,7 @@ export class Viewer {
           transition: action.transition,
           view: action.view,
           towards,
+          aim,
           travel: true,
         });
         return;
