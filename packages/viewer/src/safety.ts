@@ -95,6 +95,7 @@ export function equipmentHotspots(
         ],
         audienceIds: [],
         hidden: false,
+        ...(e.size !== undefined && { size: e.size }),
       });
     }
   }

@@ -39,11 +39,14 @@ export function floorShape(
   pitch: number,
   shape: [number, number][],
   along = 0,
+  size = 1,
 ): { yaw: number; pitch: number }[] {
   const d = Math.min(8, Math.max(1.2, pitch < -1 ? EYE / Math.tan(-pitch * DEG) : 8));
   // Far arrows are drawn larger so they stay readable and easy to hit: seen along the
   // floor, their depth shrinks much faster than their width.
-  const s = Math.min(2.4, Math.max(0.8, d / 2.4));
+  // The arrow's near end (the hit area reaches 1.3 units back) stays 0.6 m in front of the
+  // reader, so a large arrow close by shrinks to fit instead of disappearing.
+  const s = Math.min(Math.min(2.4, Math.max(0.8, d / 2.4)) * size, (d - 0.6) / 1.3);
   const f = [Math.sin(yaw * DEG), Math.cos(yaw * DEG)];
   const r = [f[1]!, -f[0]!];
   return shape.map(([u, v]) => {
@@ -85,6 +88,9 @@ export class HotspotLayer {
     this.el.append(this.areas);
     host.append(this.el);
   }
+
+  /** Each hotspot's size (1 = normal), set by the Viewer from the tour's settings. */
+  sizeOf: (h: Hotspot) => number = () => 1;
 
   /** Reduced motion: floor arrows keep their highlight still. */
   set still(on: boolean) {
@@ -188,6 +194,12 @@ export class HotspotLayer {
         b.setAttribute('aria-label', label);
       }
       b.classList.add('evx-viewer__hotspot');
+      b.style.setProperty('--evx-hotspot-scale', String(this.sizeOf(h)));
+      // Kit parts that set their own size (signs: their artwork's width) scale from it.
+      for (const v of ['--evx-sign-size', '--evx-marker-size', '--evx-btn-size']) {
+        const own = b.style.getPropertyValue(v);
+        if (own) b.style.setProperty(v, `calc(${own} * var(--evx-hotspot-scale, 1))`);
+      }
       b.title = label;
       this.el.append(b);
       el = b;
@@ -233,19 +245,19 @@ export class HotspotLayer {
   }
 
   /** Lays a floor arrow out for the current camera; false when it cannot be seen whole. */
-  private placeFloorArrow(g: SVGElement, yaw: number, pitch: number): boolean {
+  private placeFloorArrow(g: SVGElement, yaw: number, pitch: number, size: number): boolean {
     const toScreen = (pts: { yaw: number; pitch: number }[]) => {
       const out = pts.map((q) => this.renderer.project(q.yaw, q.pitch));
       return out.some((q) => !q)
         ? null
         : out.map((q) => `${q!.x.toFixed(1)},${q!.y.toFixed(1)}`).join(' ');
     };
-    const hit = toScreen(floorShape(yaw, pitch, HIT));
+    const hit = toScreen(floorShape(yaw, pitch, HIT, 0, size));
     if (!hit) return false;
     const polys = g.querySelectorAll('polygon');
     polys[0]!.setAttribute('points', hit);
     for (let i = 0; i < CHEVRON_STEPS.length; i++) {
-      const pts = toScreen(floorShape(yaw, pitch, CHEVRON, CHEVRON_STEPS[i]));
+      const pts = toScreen(floorShape(yaw, pitch, CHEVRON, CHEVRON_STEPS[i], size));
       if (!pts) return false;
       polys[i + 1]!.setAttribute('points', pts);
     }
@@ -263,7 +275,7 @@ export class HotspotLayer {
             : p.kind === 'world'
               ? this.renderer.toView(p)
               : p;
-        const shown = this.placeFloorArrow(el as SVGElement, dir.yaw, dir.pitch);
+        const shown = this.placeFloorArrow(el as SVGElement, dir.yaw, dir.pitch, this.sizeOf(h));
         const box = shown ? (el as SVGGraphicsElement).getBBox?.() : null;
         const w = this.el.clientWidth;
         const hgt = this.el.clientHeight;

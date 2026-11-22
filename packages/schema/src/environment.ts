@@ -164,6 +164,12 @@ export const HotspotAppearanceSchema = z.discriminatedUnion('kind', [
 ]);
 export type HotspotAppearance = z.infer<typeof HotspotAppearanceSchema>;
 
+/**
+ * Size of a hotspot relative to its normal size (1 = 100 %). 50 % keeps every one at
+ * least 24 px across (WCAG 2.2 target size); 200 % is as large as a sign can usefully be.
+ */
+export const HotspotSizeSchema = z.number().min(0.5).max(2);
+
 export const HotspotSchema = z.object({
   id: IdSchema,
   sceneId: IdSchema,
@@ -178,6 +184,8 @@ export const HotspotSchema = z.object({
   /** For 360° video scenes: visible between these playback times (seconds). */
   timeRange: z.object({ start: z.number().min(0), end: z.number().min(0) }).optional(),
   hidden: z.boolean().default(false),
+  /** This hotspot's size, on top of the tour's size for its kind (settings.hotspotSize). */
+  size: HotspotSizeSchema.optional(),
 });
 export type Hotspot = z.infer<typeof HotspotSchema>;
 
@@ -308,6 +316,8 @@ export const EquipmentSchema = z.object({
   attributes: z.record(z.string(), z.string()).default({}),
   /** Safety content must be placed or confirmed by a person. */
   confirmed: HumanConfirmationSchema.optional(),
+  /** Size of this item's signs in scenes, on top of settings.hotspotSize.equipment. */
+  size: HotspotSizeSchema.optional(),
 });
 export type Equipment = z.infer<typeof EquipmentSchema>;
 
@@ -486,6 +496,17 @@ export const SettingsSchema = z.object({
     .default({ reducedMotion: 'system', highContrast: false, captions: true }),
   /** Whether the package is passphrase-encrypted. The passphrase itself is never stored. */
   passphraseProtected: z.boolean().default(false),
+  /**
+   * Size of hotspots in scenes, by kind: links (they go to another scene), equipment
+   * signs, and information (every other hotspot). 1 = 100 %.
+   */
+  hotspotSize: z
+    .object({
+      links: HotspotSizeSchema.default(1),
+      information: HotspotSizeSchema.default(1),
+      equipment: HotspotSizeSchema.default(1),
+    })
+    .default({ links: 1, information: 1, equipment: 1 }),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -527,6 +548,7 @@ export const EnvironmentObjectSchema = z.object({
     offlineLinkPolicy: 'local-only',
     accessibility: { reducedMotion: 'system', highContrast: false, captions: true },
     passphraseProtected: false,
+    hotspotSize: { links: 1, information: 1, equipment: 1 },
   }),
 });
 export type Environment = z.infer<typeof EnvironmentObjectSchema>;

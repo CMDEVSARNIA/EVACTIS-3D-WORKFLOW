@@ -53,17 +53,32 @@
   pointer-events: auto;
   will-change: transform;
 }
+/*
+ * Sizes scale with --evx-hotspot-scale (the tour's hotspot sizes, 0.5 to 2). In the
+ * scene the floor is 24 px (WCAG 2.2 target size, assumption 77) instead of the kit's
+ * 44 px, which stays on the toolbar: smaller hotspots must really get smaller.
+ */
 .evx-viewer__hotspot.evx-btn {
-  --evx-btn-size: 56px;
+  --evx-btn-size: calc(56px * var(--evx-hotspot-scale, 1));
+  --_size: max(24px, var(--evx-btn-size));
 }
 .evx-viewer__hotspot.evx-marker {
-  --evx-marker-size: 64px;
+  min-inline-size: 24px;
+  min-block-size: 24px;
+}
+.evx-viewer__hotspot.evx-marker {
+  --evx-marker-size: calc(64px * var(--evx-hotspot-scale, 1));
 }
 .evx-viewer__hotspot.evx-marker--info {
-  --evx-marker-size: 48px;
+  --evx-marker-size: calc(48px * var(--evx-hotspot-scale, 1));
 }
 .evx-viewer__hotspot.evx-sign {
-  --evx-sign-size: 56px;
+  --evx-sign-size: calc(56px * var(--evx-hotspot-scale, 1));
+}
+.evx-viewer__hotspot.evx-symbol {
+  min-inline-size: calc(44px * var(--evx-hotspot-scale, 1));
+  block-size: calc(44px * var(--evx-hotspot-scale, 1));
+  font-size: calc(0.8125rem * var(--evx-hotspot-scale, 1));
 }
 .evx-viewer__hotspot--selected {
   outline: 3px solid var(--evx-green);
@@ -83,13 +98,13 @@
   pointer-events: none;
 }
 .evx-viewer__label {
-  min-block-size: 44px;
+  min-block-size: max(24px, calc(44px * var(--evx-hotspot-scale, 1)));
   padding: 0.5em 0.9em;
   border: 0;
   border-radius: 8px;
   background: rgb(10 47 91 / 0.9);
   color: var(--evx-white);
-  font: 600 0.9375rem/1.2 var(--evx-font-body);
+  font: 600 calc(0.9375rem * var(--evx-hotspot-scale, 1)) / 1.2 var(--evx-font-body);
   box-shadow: var(--evx-shadow-soft);
   cursor: pointer;
 }

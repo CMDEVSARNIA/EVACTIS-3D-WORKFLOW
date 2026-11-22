@@ -44,7 +44,13 @@ import { pdfView } from './pdf.ts';
 import { Radar } from './radar.ts';
 import { SkinChrome, type FullScreenHost, type PackageInfo } from './skin.ts';
 import type { VrCommand, VrHost, VrTarget, VrUi } from './vr.ts';
-import { equipmentHotspots, planFloors, planView, RouteLayer } from './safety.ts';
+import {
+  EQUIPMENT_PREFIX,
+  equipmentHotspots,
+  planFloors,
+  planView,
+  RouteLayer,
+} from './safety.ts';
 import { ViewerState, type VarValue } from './state.ts';
 import { runTransition } from './transitions.ts';
 
@@ -1154,6 +1160,20 @@ export class Viewer {
     return at ? wrapYaw(at.yaw + 180) : null;
   }
 
+  /**
+   * A hotspot's size: the tour's size for its kind (links, equipment, information) times
+   * its own, kept between 50 % and 200 %.
+   */
+  private hotspotSize(h: Hotspot): number {
+    const sizes = this.environment.settings.hotspotSize;
+    const kind = h.id.startsWith(EQUIPMENT_PREFIX)
+      ? sizes.equipment
+      : h.actions.some((a) => a.type === 'goToScene')
+        ? sizes.links
+        : sizes.information;
+    return clamp(kind * (h.size ?? 1), 0.5, 2);
+  }
+
   /** [nearest primary, alternative] for the current scene; Studio previews drafts too. */
   private routeChoice(): (Route | null)[] {
     if (!this.scene) return [];
@@ -1181,6 +1201,7 @@ export class Viewer {
   private refreshHotspots() {
     // Still while authoring (placing needs a steady picture) and with reduced motion.
     this.hotspots.still = this.reducedMotion || !!this.options.editing;
+    this.hotspots.sizeOf = (h) => this.hotspotSize(h);
     this.hotspots.set(this.visibleHotspots(), this.lang);
     this.vr?.ui.refresh();
     this.hotspots.select(this.selected);
