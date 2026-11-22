@@ -470,6 +470,10 @@ makes network calls at runtime.
     `ViewerOptions.fullScreen`), never the browser's element full screen, which only
     fills the window. The desktop Viewer's start screen shows only working controls (the
     decorative kit toolbar is gone).
+87. **The embedded WebView2 offline installer is pinned by SHA-256**
+    (`packaging/windows/webview2-pin.json`, ADR 0023): Microsoft's link serves its newest
+    file (205 MB → 281 MB within three days), so builds were not reproducible. Moving the
+    pin is a deliberate commit (`get-webview2.ps1 -UpdatePin`); CI caches the pinned file.
 
 ## Requirements added by Evactis
 

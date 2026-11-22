@@ -9,8 +9,9 @@
     - Cargo registry   (all crates for Cargo.lock)
     - Tauri tools dir  (NSIS, WiX, NSIS plugins) in target\.tauri, because
                        tauri.conf.json sets useLocalToolsDir
-    - WebView2 Runtime offline installer in target\webview2 (get-webview2.ps1),
-                       checked to be signed by Microsoft
+    - WebView2 Runtime offline installer in target\webview2 (get-webview2.ps1):
+                       the file pinned in packaging\windows\webview2-pin.json,
+                       checked by SHA-256 and to be signed by Microsoft
     - LGPL ffmpeg/ffprobe for Studio in target\ffmpeg (get-ffmpeg.ps1), checked to
                        be built without --enable-gpl / --enable-nonfree
   Then copy the repository folder, %LOCALAPPDATA%\pnpm\store and %USERPROFILE%\.cargo

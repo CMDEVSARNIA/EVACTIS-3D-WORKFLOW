@@ -22,6 +22,9 @@ delivers. Details live in the linked documents; this page is the checklist.*
       `.evx`, uninstall ([windows-installers.md](windows-installers.md#what-ci-proves-every-push)
       covers the rest of the installer QA matrix in CI).
 - [ ] Reference-PC checks done ([performance.md](performance.md#checked-by-hand-on-reference-pcs-evactis)).
+- [ ] WebView2 pin reviewed: `packaging/windows/webview2-pin.json` is the file you mean to
+      ship (move it with `get-webview2.ps1 -UpdatePin` before the release commit, not
+      after; [windows-installers.md](windows-installers.md#the-pinned-webview2-installer-adr-0023)).
 
 ## 2. Build and sign at the offline signing station
 

@@ -45,6 +45,15 @@ jobs:
           $thumb = & scripts/windows/new-test-cert.ps1
           "EVX_SIGN_THUMBPRINT=$thumb" >> $env:GITHUB_ENV
           "EVX_TIMESTAMP_URL=http://timestamp.digicert.com" >> $env:GITHUB_ENV
+      - name: Pinned WebView2 installer
+        # The exact file named by packaging/windows/webview2-pin.json, kept between runs:
+        # Microsoft's link serves its newest installer, which must not change a build
+        # (ADR 0023). get-webview2.ps1 checks the SHA-256 whether it came from here or
+        # from Microsoft.
+        uses: actions/cache@v4
+        with:
+          path: target/webview2
+          key: webview2-${{ hashFiles('packaging/windows/webview2-pin.json') }}
       - name: Build signed installers
         shell: pwsh
         env:

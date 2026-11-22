@@ -11,11 +11,27 @@ scripts/windows/build-installers.ps1                             # → out\insta
 
 Unsigned local builds: skip `EVX_SIGN_THUMBPRINT`. CI: `.github/workflows/windows.yml`.
 
+### The pinned WebView2 installer (ADR 0023)
+
+The setups embed exactly the WebView2 offline installer named in
+`packaging/windows/webview2-pin.json` (SHA-256, size, date). `get-webview2.ps1` checks
+any copy in `target\webview2`, downloads a missing one, and stops the build if the file
+is not the pinned one. CI keeps the file in a cache keyed by the pin.
+
+If the build stops with "The pinned WebView2 installer ... is no longer available",
+Microsoft now serves a newer file and no copy of the pinned one was kept. To move to it:
+
+1. On a connected machine: `scripts\windows\get-webview2.ps1 -UpdatePin` (downloads the
+   newest file, checks Microsoft's signature, rewrites the pin).
+2. Build and test the installers (`build-installers.ps1`, smoke test, or let CI run).
+3. Commit `packaging/windows/webview2-pin.json` and note the change in the release notes
+   (the setups' size changes with it).
+
 ### Fully offline build and signing
 
 1. On a connected machine, once per dependency change: `scripts\windows\prepare-offline-build.ps1`
-   (fills the pnpm store, Cargo registry, `target\webview2` (WebView2 offline installer,
-   Microsoft signature checked) and `target\.tauri` tools: NSIS, WiX).
+   (fills the pnpm store, Cargo registry, `target\webview2` (the pinned WebView2 offline
+   installer, SHA-256 and Microsoft signature checked) and `target\.tauri` tools: NSIS, WiX).
 2. Move the repository folder, `%LOCALAPPDATA%\pnpm\store` and `%USERPROFILE%\.cargo` to
    the offline station (or disconnect this machine).
 3. `scripts\windows\build-installers.ps1 -Offline` — Cargo/pnpm run offline and every

@@ -50,7 +50,7 @@ entry below was added with that checked; the offline guardrail tests enforce it.
 
 | Component | Where | Licence / terms | Notes |
 | --- | --- | --- | --- |
-| Microsoft Edge WebView2 Runtime (offline installer) | Embedded in Studio and Viewer installers | Microsoft WebView2 Runtime distribution terms (redistribution permitted) | Installed only if missing. See ADR 0003. |
+| Microsoft Edge WebView2 Runtime (offline installer) | Embedded in Studio and Viewer installers | Microsoft WebView2 Runtime distribution terms (redistribution permitted) | Installed only if missing. The exact file is pinned by SHA-256 (`packaging/windows/webview2-pin.json`, ADR 0023). See ADR 0003. |
 | Microsoft Visual C++ runtime | Statically linked (`+crt-static`) | Part of the MSVC toolchain licence | No redistributable is shipped or downloaded. |
 | NSIS 3 (via Tauri bundler) | Build-time; stub embedded in each setup .exe, including the combined setup (ADR 0022). Since Phase 10 also **redistributed with Studio** (`<install>\nsis\`: makensis, stubs, headers, plugins) to build per-facility installers; their stub is embedded in each generated setup | zlib/libpng licence (bzip2 and LZMA portions under their own permissive terms, per NSIS `COPYING`) | Keep NSIS's `COPYING` in the bundled folder. No network code; makensis reads only the local script and files. |
 | Microsoft Edge WebView2 Fixed Version runtime (optional) | Studio `<install>\webview2\` when built with `-WebView2FixedRuntime`; copied into portable viewers and per-facility installers | Microsoft WebView2 Runtime distribution terms (redistribution with an app permitted) | Not bundled by default (ADR 0018). Used by the Viewer when `webview2\msedgewebview2.exe` sits beside it. |
