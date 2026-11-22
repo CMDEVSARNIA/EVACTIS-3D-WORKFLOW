@@ -28,3 +28,4 @@ accepted record; supersede it with a new one.
 | [0021](0021-bug-scanner.md) | Bug scanner: a Claude Managed Agent reviews the source in CI (read and report only) | Accepted |
 | [0022](0022-combined-setup.md) | One combined Windows setup that runs the product setups (Viewer and/or Studio) | Accepted |
 | [0023](0023-pinned-webview2.md) | The embedded WebView2 installer is pinned by its SHA-256 | Accepted |
+| [0024](0024-floor-arrows.md) | Links as floor arrows, followed by a walk-through | Accepted |

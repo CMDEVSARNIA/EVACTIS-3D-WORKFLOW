@@ -24,7 +24,12 @@ Studio makes no network requests.
    **link** and **information** hotspots by clicking the preview, or with the keyboard:
    turn the view with the arrow keys, then **Place at the centre of the view**. Drag a
    hotspot to move it (or **Move to the centre of the view**). Link suggestions (from
-   plan positions, GPS or capture order) are offered; you accept each one.
+   plan positions, GPS or capture order) are offered; you accept each one. Links are
+   **floor arrows**: place them on the floor where the next scene is (in front of the
+   door), and they light up one chevron after another towards it; following one is a
+   walk-through (the view turns to the arrow and moves on into the next scene). Each
+   link's **Appearance** can be an arrow button instead; **Use floor arrows for all
+   links** (scene panel, **Link style**) converts links made before.
 4. **Floors**: add buildings and floors, import each plan, **Set scale** with two points
    and a known distance, set plan north, and **Place scene** on the plan (click, or Tab to
    the plan and use the arrow keys and Enter).
@@ -87,7 +92,12 @@ ne sont jamais téléversés et Studio ne fait aucune requête réseau.
    cliquant dans l’aperçu, ou au clavier : tournez la vue avec les flèches, puis
    **Placer au centre de la vue**. Faites glisser un point pour le déplacer (ou
    **Déplacer au centre de la vue**). Des liens sont suggérés (positions sur le plan, GPS
-   ou ordre de capture); vous acceptez chacun.
+   ou ordre de capture); vous acceptez chacun. Les liens sont des **flèches au sol** :
+   placez-les sur le sol, là où se trouve la scène suivante (devant la porte); elles
+   s’allument l’une après l’autre dans sa direction, et les suivre est une marche (la vue
+   se tourne vers la flèche puis avance dans la scène suivante). L’**Apparence** de chaque
+   lien peut aussi être un bouton flèche; **Flèches au sol pour les liens** (panneau de
+   la scène, **Style des liens**) convertit les liens créés avant.
 4. **Étages** : ajoutez bâtiments et étages, importez chaque plan, **Définir l’échelle** avec
    deux points et une distance connue, réglez le nord du plan et **Placer une scène** sur le
    plan (clic, ou Tab jusqu’au plan puis flèches et Entrée).

@@ -16,7 +16,7 @@ import {
 import { lobbyAlarm, strobePolygon } from './rich.ts';
 import { modules } from './training.ts';
 import { dockPath, equipment3d, hotspots3d, scenes3d } from './scenes3d.ts';
-import { featureAngles, sceneSpec, anglesOf } from './scenes.ts';
+import { featureAngles, floorBefore, sceneSpec, anglesOf } from './scenes.ts';
 
 /**
  * The seeded demo facility environment. Hotspot directions come from the procedural
@@ -35,13 +35,18 @@ const nav = (
   id,
   sceneId,
   title: T(...title),
-  position: { kind: 'spherical' as const, yaw: at.yaw, pitch: Math.max(-30, at.pitch - 4) },
-  appearance: { kind: 'button' as const, icon: 'next' as const },
+  position: { kind: 'spherical' as const, yaw: at.yaw, pitch: at.pitch },
+  appearance: { kind: 'floor-arrow' as const },
   actions: [{ type: 'goToScene' as const, sceneId: to, transition: { kind, durationMs: 700 } }],
 });
-/** Points slightly above a door so the arrow does not cover the exit sign. */
+/** Just below a door's centre, for a button link (the exit sign above stays clear). */
+const aboveDoor = (scene: string, wall: 'n' | 'e' | 's' | 'w') => {
+  const d = featureAngles(scene, 'door', wall);
+  return { yaw: d.yaw, pitch: Math.max(-30, d.pitch - 4) };
+};
+/** The floor a metre in front of a door: where the link's floor arrow lies. */
 const door = (scene: string, wall: 'n' | 'e' | 's' | 'w', at?: number) =>
-  featureAngles(scene, 'door', wall, at);
+  floorBefore(scene, 'door', wall, at);
 
 export function demoEnvironmentInput(): EnvironmentInput {
   const media = (id: string, tiled = true) =>
@@ -174,7 +179,7 @@ export function demoEnvironmentInput(): EnvironmentInput {
         'Back to the lobby',
         'Retour au hall',
       ]),
-      nav('stairs-up', 'stairwell', 'office', featureAngles('stairwell', 'opening', 'n'), [
+      nav('stairs-up', 'stairwell', 'office', floorBefore('stairwell', 'opening', 'n'), [
         'Up to the second floor',
         'Vers le deuxième étage',
       ]),
@@ -222,10 +227,14 @@ export function demoEnvironmentInput(): EnvironmentInput {
           },
         ],
       },
-      nav('drill-to-corridor', 'drill', 'corridor', door('corridor', 's'), [
-        'Back to the corridor',
-        'Retour au couloir',
-      ]),
+      {
+        // The 360° video's own geometry is not the corridor's: a button where the door is.
+        ...nav('drill-to-corridor', 'drill', 'corridor', aboveDoor('corridor', 's'), [
+          'Back to the corridor',
+          'Retour au couloir',
+        ]),
+        appearance: { kind: 'button' as const, icon: 'next' as const },
+      },
       {
         id: 'drill-alarm',
         sceneId: 'drill',
@@ -250,7 +259,7 @@ export function demoEnvironmentInput(): EnvironmentInput {
         id: 'drill-exit',
         sceneId: 'drill',
         title: T('Leave by the nearest exit', 'Sortez par la sortie la plus proche'),
-        position: { kind: 'spherical' as const, ...door('corridor', 'n') },
+        position: { kind: 'spherical' as const, ...featureAngles('corridor', 'door', 'n') },
         appearance: { kind: 'marker' as const, marker: 'evac-route' as const },
         timeRange: { start: 4, end: 10 },
         actions: [

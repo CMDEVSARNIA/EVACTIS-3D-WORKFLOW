@@ -466,12 +466,33 @@ export function sceneSpec(id: string): SceneSpec {
 }
 
 /** Direction (yaw/pitch) of the n-th feature of a kind on a wall, for hotspot placement. */
-export function featureAngles(sceneId: string, kind: Feature['kind'], wall: Wall, at?: number) {
+function featureIn(sceneId: string, kind: Feature['kind'], wall: Wall, at?: number): V3 {
   const s = sceneSpec(sceneId);
   if (s.outdoor) throw new Error('Outdoor scenes have no wall features');
   const f = s.features.find(
     (x) => x.kind === kind && x.wall === wall && (at === undefined || x.at === at),
   );
   if (!f) throw new Error(`No ${kind} on wall ${wall} in ${sceneId}`);
-  return anglesOf(featurePoint(s, f));
+  return featurePoint(s, f);
+}
+
+export function featureAngles(sceneId: string, kind: Feature['kind'], wall: Wall, at?: number) {
+  return anglesOf(featureIn(sceneId, kind, wall, at));
+}
+
+/**
+ * The spot on the floor `back` metres in front of a door or opening (at least 1.2 m from
+ * the camera): where a floor-arrow link lies.
+ */
+export function floorBefore(
+  sceneId: string,
+  kind: Feature['kind'],
+  wall: Wall,
+  at?: number,
+  back = 1,
+) {
+  const p = featureIn(sceneId, kind, wall, at);
+  const h = Math.hypot(p[0], p[2]);
+  const k = Math.max(1.2, h - back) / h;
+  return anglesOf([p[0] * k, -EYE, p[2] * k]);
 }

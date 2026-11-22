@@ -23,8 +23,10 @@ runs entirely on your computer or your organisation's network; nothing is sent a
 
 - **Look around**: drag the view, or use the arrow keys. **Zoom**: mouse wheel, pinch, or
   the **+** and **−** keys.
-- **Move**: select the arrows in the scene, or **Previous** and **Next**. **Home** returns
-  to the first scene.
+- **Move**: select the arrows on the floor (they light up towards the next room) or the
+  arrow buttons in the scene, or **Previous** and **Next**. The view turns to the arrow
+  and walks on into the next scene. **Home** returns to the first scene. Evacuation
+  routes are shown differently, as green chevrons with a route banner.
 - **Floor plan**: shows where you are ("You are here") and which way you face; select a
   place on the plan to go there. The small radar in the corner does the same.
 - **Keyboard**: Tab moves between controls, Enter selects. **Help** lists all of this.
@@ -85,8 +87,11 @@ votre organisation; rien n’est transmis.
 
 - **Regarder autour** : faites glisser la vue ou utilisez les flèches du clavier.
   **Zoom** : molette, pincement, ou les touches **+** et **−**.
-- **Se déplacer** : sélectionnez les flèches dans la scène, ou **Précédent** et
-  **Suivant**. **Accueil** ramène à la première scène.
+- **Se déplacer** : sélectionnez les flèches au sol (elles s’allument vers la pièce
+  suivante) ou les boutons flèche dans la scène, ou **Précédent** et **Suivant**. La vue
+  se tourne vers la flèche et avance dans la scène suivante. **Accueil** ramène à la
+  première scène. Les itinéraires d’évacuation sont présentés autrement : chevrons verts
+  et bandeau d’itinéraire.
 - **Plan d’étage** : montre où vous êtes (« Vous êtes ici ») et dans quelle direction vous
   regardez; sélectionnez un endroit du plan pour y aller. Le petit radar dans le coin fait
   de même.

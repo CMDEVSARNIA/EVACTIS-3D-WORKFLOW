@@ -474,6 +474,11 @@ makes network calls at runtime.
     (`packaging/windows/webview2-pin.json`, ADR 0023): Microsoft's link serves its newest
     file (205 MB → 281 MB within three days), so builds were not reproducible. Moving the
     pin is a deliberate commit (`get-webview2.ps1 -UpdatePin`); CI caches the pinned file.
+88. **Links are floor arrows with a walk-through** (ADR 0024, Evactis request during RC
+    testing): three perspective chevrons on the floor, white with a navy edge (never
+    safety green), lit towards the next scene; following one turns the view to it and
+    walks on (the next scene opens zoomed in and widens). Default for new links in
+    Studio; older links convert in one undoable step; VR shows the "next" button.
 
 ## Requirements added by Evactis
 
