@@ -11,6 +11,7 @@ pub mod import;
 pub mod library;
 pub mod model;
 pub mod probe;
+pub mod stitch;
 pub mod tiles;
 pub mod video;
 

@@ -43,7 +43,7 @@ pub fn level_sizes(width: u32, tile_size: u32) -> Vec<u32> {
 }
 
 /// Samples an equirectangular image bilinearly, wrapping horizontally.
-fn sample(img: &RgbImage, yaw: f64, pitch: f64) -> [u8; 3] {
+pub(crate) fn sample(img: &RgbImage, yaw: f64, pitch: f64) -> [u8; 3] {
     let (w, h) = (img.width() as f64, img.height() as f64);
     let x = (yaw + 180.0) / 360.0 * w - 0.5;
     let y = ((90.0 - pitch) / 180.0 * h - 0.5).clamp(0.0, h - 1.0);

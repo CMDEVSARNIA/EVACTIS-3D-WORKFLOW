@@ -490,11 +490,15 @@ makes network calls at runtime.
 
 - **Insta360 originals drop straight into Studio** (Evactis, 2026-10-15): `.insp` photos
   and `.insv` videos must import without a manual export from Insta360's app, so Studio
-  needs dual-fisheye stitching. Plan: Insta360's developer kit if its terms allow fully
-  offline use and redistribution (Evactis to apply), plus a built-in photo stitcher as
-  fallback. Camera: **Insta360 X5**. Blocked on: sample originals + matching Insta360 exports
-  (non-sensitive location), SDK decision. Until then, originals get a clear EN/FR
-  message instead of "unsupported".
+  needs dual-fisheye stitching. Camera: **Insta360 X5**. **Photos only** (`.insp`;
+  Evactis, 2026-11-23: videos are not needed), so the plan is our own stitcher, not
+  Insta360's kit (whose offline use, redistribution and admin-rights terms are unknown).
+  Done: the stitching engine (`crates/evx-media/src/stitch.rs`: lens model with
+  distortion and roll, exposure matching, feathered seam; 12K in ~3 s on 4 cores, tested
+  on synthetic dual-fisheye shots). Blocked on: X5 sample originals + matching Insta360
+  exports (non-sensitive location) to read the `.insp` layout and lens calibration and
+  to compare results. Until then, originals get a clear EN/FR message instead of
+  "unsupported".
 
 ## Future work (out of scope for now)
 
