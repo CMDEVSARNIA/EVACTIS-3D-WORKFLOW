@@ -300,7 +300,7 @@ describe('quick-start guide', () => {
 describe('Windows installation guide', () => {
   const guide = (lang: 'en' | 'fr', testSigned = false) =>
     installGuidePdf(
-      { lang, version: '1.0.0', date: '2026-10-27', testSigned },
+      { lang, version: '1.5.0', date: '2026-10-27', testSigned },
       { fonts: assets.fonts, logo: assets.logo! },
     );
 
@@ -317,8 +317,8 @@ describe('Windows installation guide', () => {
       expect(run('pdfinfo', pdf)).toMatch(new RegExp(`Pages:\\s+${g.pages}`));
       const t = text(pdf).replace(/\s+/g, ' ');
       for (const s of [
-        'EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-setup.exe',
-        'msiexec /i EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi /qn /norestart',
+        'EVACTIS-3DWORKFLOW-Viewer-1.5.0-x64-setup.exe',
+        'msiexec /i EVACTIS-3DWORKFLOW-Viewer-1.5.0-x64-en-US.msi /qn /norestart',
         '/S /CurrentUser',
         `${g.pages} `,
       ])
@@ -333,7 +333,7 @@ describe('Windows installation guide', () => {
       'INSTALLING EVACTIS 3DWORKFLOW',
       'The signer must be "Evactis"',
       'Just me (no administrator rights needed)',
-      'EVACTIS-3DWORKFLOW-1.0.0-x64-Setup.exe /S /AllUsers /Viewer /Studio',
+      'EVACTIS-3DWORKFLOW-1.5.0-x64-Setup.exe /S /AllUsers /Viewer /Studio',
       'No internet connection is needed',
       'Page 1 of',
       'Smart App Control off to run a file.',

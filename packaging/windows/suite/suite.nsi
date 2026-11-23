@@ -7,7 +7,7 @@
 ; identity and Apps entry; this setup registers nothing of its own and needs no network.
 ;
 ; Built by scripts/windows/build-installers.ps1:
-;   makensis /DVERSION=1.0.0 /DVIEWER_SETUP=<file> /DSTUDIO_SETUP=<file>
+;   makensis /DVERSION=1.5.0 /DVIEWER_SETUP=<file> /DSTUDIO_SETUP=<file>
 ;            /DWEBVIEW2=<file> /DOUTFILE=<file> packaging\windows\suite\suite.nsi
 ;
 ; Silent: <setup> /S [/CurrentUser | /AllUsers] [/Viewer] [/Studio]

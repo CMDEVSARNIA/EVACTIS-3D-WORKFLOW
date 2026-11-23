@@ -1,6 +1,6 @@
 {
   "name": "@evactis-3dworkflow/site-server",
-  "version": "1.0.0",
+  "version": "1.5.0",
   "private": true,
   "description": "EVACTIS 3DWORKFLOW Site Server — optional, client-hosted, LAN-only: shared notes, guided sessions, local usage reports.",
   "license": "UNLICENSED",

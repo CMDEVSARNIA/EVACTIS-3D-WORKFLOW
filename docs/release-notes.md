@@ -4,11 +4,11 @@
 
 ## English
 
-### 1.0.0 — release candidate 1 (not yet released)
+### 1.5.0 — release candidate (not yet released)
 
 | | |
 | --- | --- |
-| Version | Studio, Viewer and Site Server **1.0.0** (release candidate 1; the version is final unless a later candidate is needed) |
+| Version | Studio, Viewer and Site Server **1.5.0** (the first release; numbered 1.5.0 by Evactis for the additions made during testing of the 1.0.0 candidate) |
 | Date, commit | Filled in at release (the signed kit's `README.txt` records the commit) |
 | SBOM advisory check | Filled in at release (step 1) |
 | Reference-PC measurements | Filled in at release (`docs/performance.md`) |
@@ -35,6 +35,17 @@ anywhere.
   intranet, browser folder, single HTML file, SCORM; optional passphrase encryption;
   every file checked before it is shown.
 - Works with the keyboard alone, including placing scenes, hotspots and equipment.
+- Fits the window: resizable side panels, interface size (A− / A+), a slim project bar,
+  and a full-screen button (or F11).
+- Links are animated arrows on the floor, followed by a walk-through into the next
+  scene; hotspot sizes for links, information and equipment, for the whole tour or one
+  by one.
+
+**Windows installation**
+- One setup for Studio and/or the Viewer, for one person or everyone on the PC, with an
+  illustrated installation guide (EN/FR); the separate installers and MSIs stay for IT.
+- The embedded WebView2 installer is pinned, so the same release always builds the same
+  setup.
 
 **3DWORKFLOW Viewer**
 - The facility in 360°, 3D and VR (where the device supports it), with the floor plan,
@@ -61,11 +72,11 @@ anywhere.
 
 ## Français
 
-### 1.0.0 — version candidate 1 (pas encore publiée)
+### 1.5.0 — version candidate (pas encore publiée)
 
 | | |
 | --- | --- |
-| Version | Studio, Viewer et Site Server **1.0.0** (version candidate 1; le numéro est définitif sauf si une autre candidate est nécessaire) |
+| Version | Studio, Viewer et Site Server **1.5.0** (première version publiée; numérotée 1.5.0 par Evactis pour les ajouts faits pendant les essais de la candidate 1.0.0) |
 | Date, commit | À remplir à la publication (le `README.txt` de la trousse signée indique le commit) |
 | Vérification des avis de sécurité (SBOM) | À remplir à la publication (étape 1) |
 | Mesures sur les postes de référence | À remplir à la publication (`docs/performance.md`) |
@@ -97,6 +108,18 @@ n’est jamais transmis.
   chiffrement facultatif par phrase de passe; chaque fichier vérifié avant d’être
   affiché.
 - Utilisable entièrement au clavier, y compris pour placer scènes, points et équipement.
+- S’adapte à la fenêtre : panneaux latéraux redimensionnables, taille de l’interface
+  (A− / A+), barre de projet mince et bouton plein écran (ou F11).
+- Les liens sont des flèches animées au sol, suivies d’une marche vers la scène
+  suivante; taille des points d’intérêt pour les liens, l’information et l’équipement,
+  pour toute la visite ou un par un.
+
+**Installation sous Windows**
+- Un seul programme d’installation pour Studio et/ou le Viewer, pour une personne ou
+  pour tous les utilisateurs du PC, avec un guide d’installation illustré (EN/FR); les
+  programmes séparés et les MSI restent pour l’informatique.
+- Le programme d’installation WebView2 intégré est figé : une même version produit
+  toujours le même programme d’installation.
 
 **3DWORKFLOW Viewer**
 - L’établissement en 360°, en 3D et en réalité virtuelle (si l’appareil le permet), avec

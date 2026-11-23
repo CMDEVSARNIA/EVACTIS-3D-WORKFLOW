@@ -12,7 +12,7 @@ export type GuideLang = 'en' | 'fr';
 
 export interface InstallGuideData {
   lang: GuideLang;
-  /** Product version, e.g. "1.0.0". */
+  /** Product version, e.g. "1.5.0". */
   version: string;
   /** ISO date printed on the guide. */
   date: string;

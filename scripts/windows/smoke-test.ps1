@@ -4,9 +4,9 @@
   network access blocked (scripts/windows/offline.ps1).
 
 .EXAMPLE
-  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Viewer-1.0.0-x64-en-US.msi -App Viewer
-  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Studio-1.0.0-x64-setup.exe -App Studio -PerUser
-  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-1.0.0-x64-Setup.exe -App Studio -InstallerArgs '/Studio'
+  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Viewer-1.5.0-x64-en-US.msi -App Viewer
+  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-Studio-1.5.0-x64-setup.exe -App Studio -PerUser
+  .\smoke-test.ps1 -Installer out\installers\EVACTIS-3DWORKFLOW-1.5.0-x64-Setup.exe -App Studio -InstallerArgs '/Studio'
 
   The combined setup (no app name in its file name) is run like a product setup, plus
   -InstallerArgs to choose the program; the program is then checked and uninstalled with
